@@ -1,9 +1,18 @@
 import { kml } from "@tmcw/togeojson";
+import JSZip from "jszip";
 
 export function parseKML(text: string): GeoJSON.FeatureCollection {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, "text/xml");
   return kml(doc) as GeoJSON.FeatureCollection;
+}
+
+export async function parseKMZ(arrayBuffer: ArrayBuffer): Promise<GeoJSON.FeatureCollection> {
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const kmlFile = Object.keys(zip.files).find((name) => name.toLowerCase().endsWith(".kml"));
+  if (!kmlFile) throw new Error("Nenhum arquivo KML encontrado dentro do KMZ");
+  const text = await zip.files[kmlFile].async("string");
+  return parseKML(text);
 }
 
 export function parseGeoJSON(text: string): GeoJSON.FeatureCollection {
