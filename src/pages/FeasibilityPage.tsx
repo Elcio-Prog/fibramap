@@ -598,13 +598,13 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 30 });
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 70 });
 
     // Force re-render after container is fully visible
     const timer = setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.invalidateSize();
-        mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 30 });
+        mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 70 });
       }
     }, 500);
 
