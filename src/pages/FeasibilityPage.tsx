@@ -167,7 +167,7 @@ export default function FeasibilityPage() {
         if (!lpuItem && providerLpu.length > 0) lpuItem = providerLpu[0];
         const lpuValue = lpuItem?.value || 0;
         const mult = customMultiplier ? parseFloat(customMultiplier) : provider.multiplier;
-        const finalValue = lpuValue * mult;
+        const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
         const maxDist = provider.max_lpu_distance_m;
 
         if (inside) {
@@ -283,7 +283,7 @@ export default function FeasibilityPage() {
 
   const shareResult = (r: FeasibilityResult, via: "whatsapp" | "email") => {
     const statusText = r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
-    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}\nDistância: ${r.distance}m (máx ${r.maxDistance}m)\nTipo: ${r.lpuType}\nValor LPU: R$ ${r.lpuValue.toFixed(2)}\nMultiplicador: ${r.multiplier}\nValor Final: R$ ${r.finalValue.toFixed(2)}`;
+    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}\nDistância: ${r.distance}m (máx ${r.maxDistance}m)\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
 
     if (via === "whatsapp") {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -582,9 +582,7 @@ function ResultCard({
                 </>
               )}
               <p><span className="text-muted-foreground">Tipo link:</span> {r.lpuType}</p>
-              <p><span className="text-muted-foreground">Valor LPU:</span> R$ {r.lpuValue.toFixed(2)}</p>
-              <p><span className="text-muted-foreground">Multiplicador:</span> {r.multiplier}</p>
-              <p><span className="text-muted-foreground">Valor Final:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
+              <p><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
             </div>
 
             <div className="flex gap-2 pt-1">
