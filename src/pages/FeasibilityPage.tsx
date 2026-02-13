@@ -444,7 +444,7 @@ export default function FeasibilityPage() {
               <input
                 type="range"
                 min={10}
-                max={22}
+                max={50}
                 value={mapZoom}
                 onChange={(e) => handleZoomChange(parseInt(e.target.value, 10))}
                 className="w-24 h-1.5 accent-primary"
@@ -551,12 +551,12 @@ function ResultCard({
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
-      maxZoom: 22,
+      maxZoom: 50,
     }).setView([r.lat, r.lng], mapZoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxNativeZoom: 19,
-      maxZoom: 22,
+      maxZoom: 50,
     }).addTo(map);
     mapRef.current = map;
 
