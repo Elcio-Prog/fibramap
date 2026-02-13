@@ -28,18 +28,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash, Download } from "lucide-react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash } from "lucide-react";
 import html2canvas from "html2canvas";
-
-// Fix leaflet icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
 
 type ResultStatus = "inside" | "outside_viable" | "outside_not_viable" | "too_far";
 
@@ -449,8 +439,6 @@ function ResultCard({
   allGeoElements: any[];
   onShare: (r: FeasibilityResult, via: "whatsapp" | "email") => void;
 }) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [capturing, setCapturing] = useState(false);
 
@@ -516,95 +504,15 @@ function ResultCard({
   const Icon = config.icon;
   const showMap = r.status !== "too_far";
 
-  useEffect(() => {
-    if (!showMap || !mapContainerRef.current || mapRef.current) return;
-
-    const map = L.map(mapContainerRef.current, { zoomControl: false, attributionControl: false }).setView([r.lat, r.lng], 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-    mapRef.current = map;
-
-    // Customer marker
-    L.marker([r.lat, r.lng]).addTo(map).bindPopup(`<b>Cliente</b><br/>${r.address}`);
-
-    // Draw provider coverage polygons
-    const providerElements = allGeoElements.filter((e) => e.provider_id === r.providerId);
-    const bounds = L.latLngBounds([[r.lat, r.lng]]);
-
-    for (const el of providerElements) {
-      try {
-        const geo = el.geometry as any;
-        if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
-          const layer = L.geoJSON(
-            { type: "Feature", geometry: geo, properties: {} } as any,
-            {
-              style: () => ({
-                color: r.providerColor,
-                weight: 2,
-                opacity: 0.6,
-                fillColor: r.providerColor,
-                fillOpacity: 0.15,
-              }),
-            }
-          ).addTo(map);
-          bounds.extend(layer.getBounds());
-        }
-      } catch {}
+  // Build static map URL with markers
+  const getStaticMapUrl = () => {
+    const zoom = r.status === "inside" ? 15 : 14;
+    let url = `https://staticmap.openstreetmap.de/staticmap.php?center=${r.lat},${r.lng}&zoom=${zoom}&size=600x250&maptype=osmarenderer&markers=${r.lat},${r.lng},red-pushpin`;
+    if (r.nearestPoint) {
+      url += `|${r.nearestPoint[0]},${r.nearestPoint[1]},blue-pushpin`;
     }
-
-    // Draw route if outside coverage
-    if (r.status !== "inside" && r.nearestPoint) {
-      const routeColor = r.status === "outside_viable" ? "#22c55e" : "#ef4444";
-
-      if (r.routeGeometry) {
-        L.geoJSON(r.routeGeometry, {
-          style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
-        }).addTo(map);
-      } else {
-        L.polyline([[r.lat, r.lng], r.nearestPoint], {
-          color: routeColor,
-          weight: 4,
-          opacity: 0.8,
-          dashArray: "10 6",
-        }).addTo(map);
-      }
-
-      // Distance label
-      const midLat = (r.lat + r.nearestPoint[0]) / 2;
-      const midLng = (r.lng + r.nearestPoint[1]) / 2;
-      L.marker([midLat, midLng], {
-        icon: L.divIcon({
-          className: "distance-label",
-          html: `<div style="background:${routeColor};color:white;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:bold;white-space:nowrap;">${r.distance}m</div>`,
-          iconSize: [80, 24],
-          iconAnchor: [40, 12],
-        }),
-      }).addTo(map);
-
-      // Nearest point marker
-      L.circleMarker(r.nearestPoint, {
-        radius: 8,
-        fillColor: r.providerColor,
-        color: "#fff",
-        weight: 2,
-        fillOpacity: 0.9,
-      }).addTo(map).bindPopup(`<b>Rede ${r.providerName}</b>`);
-
-      bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
-    }
-
-    map.fitBounds(bounds, { padding: [30, 30] });
-
-    // Fix map rendering in dynamic containers
-    setTimeout(() => {
-      map.invalidateSize();
-      map.fitBounds(bounds, { padding: [30, 30] });
-    }, 200);
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
-  }, []);
+    return url;
+  };
 
   return (
     <Card className="border-l-4 overflow-hidden" style={{ borderLeftColor: r.providerColor }}>
@@ -632,7 +540,22 @@ function ResultCard({
         ) : (
           <>
             {showMap && (
-              <div ref={mapContainerRef} className="h-48 w-full rounded-lg overflow-hidden border" />
+              <div className="relative">
+                <img
+                  src={getStaticMapUrl()}
+                  alt={`Mapa - ${r.address}`}
+                  className="h-48 w-full rounded-lg overflow-hidden border object-cover"
+                  loading="lazy"
+                />
+                {r.status !== "inside" && r.distance > 0 && (
+                  <div
+                    className="absolute top-2 right-2 px-2 py-1 rounded-full text-white text-xs font-bold"
+                    style={{ backgroundColor: r.status === "outside_viable" ? "#22c55e" : "#ef4444" }}
+                  >
+                    {r.distance}m
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
