@@ -22,6 +22,7 @@ export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: providers } = useProviders();
   const { data: geoElements } = useGeoElements();
   const bulkCreate = useBulkCreateGeoElements();
@@ -112,27 +113,36 @@ export default function MapPage() {
     });
   };
 
-  const handleFileImport = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !selectedProvider) {
-        toast({ title: "Selecione um provedor antes de importar", variant: "destructive" });
-        return;
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    console.log("[KML Import] File selected:", file?.name, "Provider:", selectedProvider);
+    
+    if (!file) {
+      console.log("[KML Import] No file selected");
+      return;
+    }
+    
+    if (!selectedProvider) {
+      toast({ title: "Selecione um provedor antes de importar", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      console.log("[KML Import] File read, size:", text.length, "chars");
+      
+      let fc: GeoJSON.FeatureCollection;
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
+        console.log("[KML Import] Parsing as KML...");
+        fc = parseKML(text);
+      } else {
+        console.log("[KML Import] Parsing as GeoJSON...");
+        fc = parseGeoJSON(text);
       }
 
-      const text = await file.text();
-      let fc: GeoJSON.FeatureCollection;
-      try {
-        const fileName = file.name.toLowerCase();
-        if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
-          fc = parseKML(text);
-        } else {
-          fc = parseGeoJSON(text);
-        }
-      } catch {
-        toast({ title: "Erro ao ler arquivo", variant: "destructive" });
-        return;
-      }
+      console.log("[KML Import] Parsed features:", fc.features.length);
+      console.log("[KML Import] Features with geometry:", fc.features.filter(f => f.geometry != null).length);
 
       const items = fc.features
         .filter((f) => f.geometry != null)
@@ -145,21 +155,20 @@ export default function MapPage() {
 
       if (items.length === 0) {
         toast({ title: "Nenhum elemento geográfico válido encontrado no arquivo", variant: "destructive" });
-        e.target.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
 
-      try {
-        await bulkCreate.mutateAsync(items);
-        toast({ title: `${items.length} elementos importados!` });
-      } catch (err: any) {
-        toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-      }
+      console.log("[KML Import] Inserting", items.length, "elements...");
+      await bulkCreate.mutateAsync(items);
+      toast({ title: `${items.length} elementos importados!` });
+    } catch (err: any) {
+      console.error("[KML Import] Error:", err);
+      toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
+    }
 
-      e.target.value = "";
-    },
-    [selectedProvider, bulkCreate, toast]
-  );
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
     <div className="relative flex h-full">
@@ -191,7 +200,7 @@ export default function MapPage() {
 
         <div>
           <input
-            id="kml-upload"
+            ref={fileInputRef}
             type="file"
             accept=".kml,.KML,.geojson,.json"
             className="hidden"
@@ -201,7 +210,7 @@ export default function MapPage() {
             variant="outline"
             size="sm"
             className="w-full gap-2"
-            onClick={() => document.getElementById("kml-upload")?.click()}
+            onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="h-4 w-4" /> Importar KML/GeoJSON
           </Button>
