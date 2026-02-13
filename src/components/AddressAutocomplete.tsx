@@ -30,10 +30,26 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     }
     setLoading(true);
     try {
+      // First try standard search
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
       );
-      const data: NominatimResult[] = await res.json();
+      let data: NominatimResult[] = await res.json();
+
+      // If no results, try simplified query (remove number and neighborhood)
+      if (data.length === 0) {
+        const simplified = query
+          .replace(/,?\s*\d+\s*/g, " ") // remove house numbers
+          .replace(/\s*-\s*[^,]+/g, "") // remove "- Bairro"
+          .trim();
+        if (simplified !== query) {
+          const res2 = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
+          );
+          data = await res2.json();
+        }
+      }
+
       setSuggestions(data);
       setShowDropdown(data.length > 0);
     } catch {
