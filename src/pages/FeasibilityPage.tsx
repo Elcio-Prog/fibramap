@@ -82,6 +82,14 @@ export default function FeasibilityPage() {
   const [cepNumber, setCepNumber] = useState("");
   const [cepLoading, setCepLoading] = useState(false);
   const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">("address");
+  const [mapZoom, setMapZoom] = useState(() => {
+    const saved = localStorage.getItem("feasibility_map_zoom");
+    return saved ? parseInt(saved, 10) : 15;
+  });
+  const handleZoomChange = (value: number) => {
+    setMapZoom(value);
+    localStorage.setItem("feasibility_map_zoom", String(value));
+  };
   const handleCepLookup = async (value: string) => {
     setCep(value);
     const clean = value.replace(/\D/g, "");
@@ -429,9 +437,23 @@ export default function FeasibilityPage() {
       {/* Results */}
       {results.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Resultados ({results.length} provedores)</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Resultados ({results.length} provedores)</h2>
+            <div className="flex items-center gap-3 bg-muted px-3 py-1.5 rounded-lg">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Zoom do mapa:</span>
+              <input
+                type="range"
+                min={10}
+                max={18}
+                value={mapZoom}
+                onChange={(e) => handleZoomChange(parseInt(e.target.value, 10))}
+                className="w-24 h-1.5 accent-primary"
+              />
+              <span className="text-sm font-mono font-bold w-6 text-center">{mapZoom}</span>
+            </div>
+          </div>
           {results.map((r, i) => (
-            <ResultCard key={i} result={r} allGeoElements={allGeoElements || []} onShare={shareResult} />
+            <ResultCard key={i} result={r} allGeoElements={allGeoElements || []} onShare={shareResult} mapZoom={mapZoom} />
           ))}
         </div>
       )}
@@ -444,10 +466,12 @@ function ResultCard({
   result: r,
   allGeoElements,
   onShare,
+  mapZoom,
 }: {
   result: FeasibilityResult;
   allGeoElements: any[];
   onShare: (r: FeasibilityResult, via: "whatsapp" | "email") => void;
+  mapZoom: number;
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -598,11 +622,11 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    // If only one point (inside coverage), use fixed zoom; otherwise fit bounds
+    // Use user-configured zoom
     if (r.status === "inside") {
-      map.setView([r.lat, r.lng], 15);
+      map.setView([r.lat, r.lng], mapZoom);
     } else {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
     }
 
     // Force re-render after container is fully visible
@@ -610,9 +634,9 @@ function ResultCard({
       if (mapRef.current) {
         mapRef.current.invalidateSize();
         if (r.status === "inside") {
-          mapRef.current.setView([r.lat, r.lng], 15);
+          mapRef.current.setView([r.lat, r.lng], mapZoom);
         } else {
-          mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+          mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
         }
       }
     }, 500);
@@ -624,7 +648,7 @@ function ResultCard({
         mapRef.current = null;
       }
     };
-  }, [showMap, r.lat, r.lng]);
+  }, [showMap, r.lat, r.lng, mapZoom]);
 
   return (
     <Card className="border-l-4 overflow-hidden" style={{ borderLeftColor: r.providerColor }}>
