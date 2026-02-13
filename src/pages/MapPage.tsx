@@ -5,7 +5,6 @@ import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements, useBulkCreateGeoElements } from "@/hooks/useGeoElements";
 import { parseKML, parseGeoJSON, getGeometryType } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Layers, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -170,7 +169,7 @@ export default function MapPage() {
           <SelectTrigger className="text-sm">
             <SelectValue placeholder="Selecione o provedor" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[2000]">
             {providers?.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 <span className="flex items-center gap-2">
@@ -182,19 +181,23 @@ export default function MapPage() {
           </SelectContent>
         </Select>
 
-        <label className="cursor-pointer">
-          <Input
+        <div>
+          <input
+            id="kml-upload"
             type="file"
             accept=".kml,.KML,.geojson,.json"
             className="hidden"
             onChange={handleFileImport}
           />
-          <Button variant="outline" size="sm" className="w-full gap-2" asChild>
-            <span>
-              <Upload className="h-4 w-4" /> Importar KML/GeoJSON
-            </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => document.getElementById("kml-upload")?.click()}
+          >
+            <Upload className="h-4 w-4" /> Importar KML/GeoJSON
           </Button>
-        </label>
+        </div>
 
         {/* Provider toggles */}
         <div className="max-h-60 space-y-1 overflow-y-auto">
