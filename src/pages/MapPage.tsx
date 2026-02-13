@@ -3,7 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements, useBulkCreateGeoElements } from "@/hooks/useGeoElements";
-import { parseKML, parseGeoJSON, getGeometryType } from "@/lib/geo-utils";
+import { parseKML, parseKMZ, parseGeoJSON, getGeometryType } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Layers, Eye, EyeOff } from "lucide-react";
@@ -128,16 +128,19 @@ export default function MapPage() {
     }
 
     try {
-      const text = await file.text();
-      console.log("[KML Import] File read, size:", text.length, "chars");
-      
       let fc: GeoJSON.FeatureCollection;
       const fileName = file.name.toLowerCase();
-      if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
+      if (fileName.endsWith(".kmz")) {
+        console.log("[KMZ Import] Parsing as KMZ...");
+        const buffer = await file.arrayBuffer();
+        fc = await parseKMZ(buffer);
+      } else if (fileName.endsWith(".kml")) {
+        const text = await file.text();
         console.log("[KML Import] Parsing as KML...");
         fc = parseKML(text);
       } else {
-        console.log("[KML Import] Parsing as GeoJSON...");
+        const text = await file.text();
+        console.log("[Import] Parsing as GeoJSON...");
         fc = parseGeoJSON(text);
       }
 
@@ -202,7 +205,7 @@ export default function MapPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".kml,.KML,.geojson,.json"
+            accept=".kml,.KML,.kmz,.KMZ,.geojson,.json"
             className="hidden"
             onChange={handleFileImport}
           />
