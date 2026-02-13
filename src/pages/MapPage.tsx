@@ -134,12 +134,20 @@ export default function MapPage() {
         return;
       }
 
-      const items = fc.features.map((f) => ({
-        provider_id: selectedProvider,
-        element_type: getGeometryType(f.geometry),
-        geometry: f.geometry as unknown as Json,
-        properties: (f.properties || {}) as unknown as Json,
-      }));
+      const items = fc.features
+        .filter((f) => f.geometry != null)
+        .map((f) => ({
+          provider_id: selectedProvider,
+          element_type: getGeometryType(f.geometry),
+          geometry: f.geometry as unknown as Json,
+          properties: (f.properties || {}) as unknown as Json,
+        }));
+
+      if (items.length === 0) {
+        toast({ title: "Nenhum elemento geográfico válido encontrado no arquivo", variant: "destructive" });
+        e.target.value = "";
+        return;
+      }
 
       try {
         await bulkCreate.mutateAsync(items);
