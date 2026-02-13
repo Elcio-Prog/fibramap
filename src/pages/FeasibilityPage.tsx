@@ -540,6 +540,12 @@ function ResultCard({
 
     map.fitBounds(bounds, { padding: [30, 30] });
 
+    // Fix map rendering in dynamic containers
+    setTimeout(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }, 200);
+
     return () => {
       map.remove();
       mapRef.current = null;
@@ -583,7 +589,8 @@ function ResultCard({
                 </>
               )}
               <p><span className="text-muted-foreground">Tipo link:</span> {r.lpuType}</p>
-              <p><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
+              <p><span className="text-muted-foreground">LPU:</span> R$ {r.lpuValue.toFixed(2)}</p>
+              <p className="col-span-2"><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
             </div>
 
             <div className="flex gap-2 pt-1">
