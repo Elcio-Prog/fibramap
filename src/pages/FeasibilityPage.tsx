@@ -598,13 +598,22 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 70 });
+    // If only one point (inside coverage), use fixed zoom; otherwise fit bounds
+    if (r.status === "inside") {
+      map.setView([r.lat, r.lng], 15);
+    } else {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+    }
 
     // Force re-render after container is fully visible
     const timer = setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.invalidateSize();
-        mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 70 });
+        if (r.status === "inside") {
+          mapRef.current.setView([r.lat, r.lng], 15);
+        } else {
+          mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 16 });
+        }
       }
     }, 500);
 
