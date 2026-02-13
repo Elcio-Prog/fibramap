@@ -81,6 +81,67 @@ function extractPoints(geometry: any): [number, number][] {
   }
 }
 
+/** Extract all polygons from a geometry as arrays of [lng, lat] rings */
+function extractPolygonRings(geometry: any): [number, number][][] {
+  if (!geometry) return [];
+  switch (geometry.type) {
+    case "Polygon":
+      return geometry.coordinates.map((ring: [number, number][]) => ring);
+    case "MultiPolygon":
+      return geometry.coordinates.flat().map((ring: [number, number][]) => ring);
+    default:
+      return [];
+  }
+}
+
+/** Ray-casting point-in-polygon test. Point is [lng, lat], ring is array of [lng, lat]. */
+function pointInRing(lng: number, lat: number, ring: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/** Check if a lat/lng point is inside any polygon of the given geo elements */
+export function isInsideCoverage(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any }>
+): boolean {
+  for (const el of elements) {
+    const rings = extractPolygonRings(el.geometry);
+    for (const ring of rings) {
+      if (pointInRing(lng, lat, ring)) return true;
+    }
+  }
+  return false;
+}
+
+/** Find the nearest point on the boundary of polygon elements */
+export function findNearestBoundaryPoint(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string }>
+): { distance: number; point: [number, number] } | null {
+  let nearest: { distance: number; point: [number, number] } | null = null;
+  for (const el of elements) {
+    const rings = extractPolygonRings(el.geometry);
+    for (const ring of rings) {
+      for (const p of ring) {
+        const d = haversineDistance(lat, lng, p[1], p[0]);
+        if (!nearest || d < nearest.distance) {
+          nearest = { distance: d, point: [p[1], p[0]] };
+        }
+      }
+    }
+  }
+  return nearest;
+}
+
 /** Calculate route distance via OSRM */
 export async function getRouteDistance(
   fromLat: number,

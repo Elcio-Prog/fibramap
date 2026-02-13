@@ -124,7 +124,8 @@ export default function MapPage() {
       const text = await file.text();
       let fc: GeoJSON.FeatureCollection;
       try {
-        if (file.name.endsWith(".kml")) {
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith(".kml") || fileName.endsWith(".kmz")) {
           fc = parseKML(text);
         } else {
           fc = parseGeoJSON(text);
@@ -184,7 +185,7 @@ export default function MapPage() {
         <label className="cursor-pointer">
           <Input
             type="file"
-            accept=".kml,.geojson,.json"
+            accept=".kml,.KML,.geojson,.json"
             className="hidden"
             onChange={handleFileImport}
           />
