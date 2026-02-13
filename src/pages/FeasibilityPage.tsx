@@ -12,6 +12,8 @@ import {
   findNearestBoundaryPoint,
   haversineDistance,
 } from "@/lib/geo-utils";
+import { fetchCep } from "@/lib/cep-utils";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban } from "lucide-react";
+import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -70,25 +73,82 @@ export default function FeasibilityPage() {
   const [customMultiplier, setCustomMultiplier] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<FeasibilityResult[]>([]);
+  const [resolvedGeo, setResolvedGeo] = useState<{ lat: number; lng: number; display: string } | null>(null);
+  const [coordLat, setCoordLat] = useState("");
+  const [coordLng, setCoordLng] = useState("");
+  const [cep, setCep] = useState("");
+  const [cepAddress, setCepAddress] = useState("");
+  const [cepNumber, setCepNumber] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">("address");
+  const handleCepLookup = async (value: string) => {
+    setCep(value);
+    const clean = value.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setCepLoading(true);
+      const result = await fetchCep(clean);
+      setCepLoading(false);
+      if (result) {
+        const fullAddr = `${result.logradouro}, ${result.bairro}, ${result.localidade} - ${result.uf}`;
+        setCepAddress(fullAddr);
+      } else {
+        toast({ title: "CEP não encontrado", variant: "destructive" });
+        setCepAddress("");
+      }
+    }
+  };
 
   const handleCalculate = async () => {
-    if (!address.trim()) {
-      toast({ title: "Digite um endereço", variant: "destructive" });
-      return;
-    }
-
     setLoading(true);
     setResults([]);
 
     try {
-      const geo = await geocodeAddress(address);
+      let geo: { lat: number; lng: number; display: string } | null = null;
+
+      if (inputMode === "address") {
+        if (resolvedGeo) {
+          geo = resolvedGeo;
+        } else if (address.trim()) {
+          geo = await geocodeAddress(address);
+        }
+        if (!geo) {
+          toast({ title: "Endereço não encontrado", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+      } else if (inputMode === "coords") {
+        const lat = parseFloat(coordLat);
+        const lng = parseFloat(coordLng);
+        if (isNaN(lat) || isNaN(lng)) {
+          toast({ title: "Coordenadas inválidas", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        geo = { lat, lng, display: `${lat}, ${lng}` };
+      } else if (inputMode === "cep") {
+        if (!cepAddress) {
+          toast({ title: "Busque um CEP válido primeiro", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        const fullAddr = cepNumber ? `${cepAddress}, ${cepNumber}` : cepAddress;
+        geo = await geocodeAddress(fullAddr);
+        if (!geo) {
+          toast({ title: "Endereço do CEP não encontrado", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+      }
+
       if (!geo) {
-        toast({ title: "Endereço não encontrado", variant: "destructive" });
+        toast({ title: "Informe um endereço, coordenadas ou CEP", variant: "destructive" });
+        setLoading(false);
         return;
       }
 
       if (!providers?.length || !allGeoElements?.length) {
         toast({ title: "Cadastre provedores e importe dados antes", variant: "destructive" });
+        setLoading(false);
         return;
       }
 
@@ -241,19 +301,95 @@ export default function FeasibilityPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <MapPin className="h-5 w-5" /> Endereço do Cliente
+            <MapPin className="h-5 w-5" /> Localização do Cliente
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label>Endereço</Label>
-            <Input
-              placeholder="Ex: Rua das Flores, 123, São Paulo"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCalculate()}
-            />
-          </div>
+          <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as any)}>
+            <TabsList className="w-full">
+              <TabsTrigger value="address" className="flex-1 gap-1">
+                <MapPin className="h-3.5 w-3.5" /> Endereço
+              </TabsTrigger>
+              <TabsTrigger value="coords" className="flex-1 gap-1">
+                <Navigation className="h-3.5 w-3.5" /> Coordenadas
+              </TabsTrigger>
+              <TabsTrigger value="cep" className="flex-1 gap-1">
+                <Hash className="h-3.5 w-3.5" /> CEP
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="address" className="mt-3">
+              <Label>Endereço</Label>
+              <AddressAutocomplete
+                value={address}
+                onChange={(val) => {
+                  setAddress(val);
+                  setResolvedGeo(null);
+                }}
+                onSelect={(result) => {
+                  setAddress(result.address);
+                  setResolvedGeo({ lat: result.lat, lng: result.lng, display: result.address });
+                }}
+                placeholder="Ex: Rua Sergio Potulski, 275, Sumaré - SP"
+              />
+            </TabsContent>
+
+            <TabsContent value="coords" className="mt-3 space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Latitude</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="-22.8231"
+                    value={coordLat}
+                    onChange={(e) => setCoordLat(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Longitude</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    placeholder="-47.2668"
+                    value={coordLng}
+                    onChange={(e) => setCoordLng(e.target.value)}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="cep" className="mt-3 space-y-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-1">
+                  <Label>CEP</Label>
+                  <div className="relative">
+                    <Input
+                      placeholder="13170-000"
+                      value={cep}
+                      onChange={(e) => handleCepLookup(e.target.value)}
+                      maxLength={9}
+                    />
+                    {cepLoading && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <Label>Endereço</Label>
+                  <Input value={cepAddress} readOnly placeholder="Preencha o CEP" className="bg-muted" />
+                </div>
+              </div>
+              <div className="w-32">
+                <Label>Número</Label>
+                <Input
+                  placeholder="275"
+                  value={cepNumber}
+                  onChange={(e) => setCepNumber(e.target.value)}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
