@@ -444,7 +444,7 @@ export default function FeasibilityPage() {
               <input
                 type="range"
                 min={10}
-                max={18}
+                max={22}
                 value={mapZoom}
                 onChange={(e) => handleZoomChange(parseInt(e.target.value, 10))}
                 className="w-24 h-1.5 accent-primary"
@@ -542,15 +542,22 @@ function ResultCard({
 
   useEffect(() => {
     if (!showMap || !mapContainerRef.current) return;
-    // Prevent re-initialization
-    if (mapRef.current) return;
+    // Destroy previous map if zoom changed
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
 
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
-    }).setView([r.lat, r.lng], 14);
+      maxZoom: 22,
+    }).setView([r.lat, r.lng], mapZoom);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxNativeZoom: 19,
+      maxZoom: 22,
+    }).addTo(map);
     mapRef.current = map;
 
     // Customer marker
