@@ -283,7 +283,8 @@ export default function FeasibilityPage() {
 
   const shareResult = (r: FeasibilityResult, via: "whatsapp" | "email") => {
     const statusText = r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
-    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}\nDistância: ${r.distance}m (máx ${r.maxDistance}m)\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
+    const distanceLine = r.status === "inside" ? "" : `\nDistância: ${r.distance}m (máx ${r.maxDistance}m)`;
+    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}${distanceLine}\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
 
     if (via === "whatsapp") {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
