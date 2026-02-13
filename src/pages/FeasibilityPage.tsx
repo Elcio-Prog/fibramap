@@ -28,9 +28,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash } from "lucide-react";
+import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash, Download } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import html2canvas from "html2canvas";
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -450,6 +451,59 @@ function ResultCard({
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [capturing, setCapturing] = useState(false);
+
+  const captureCardImage = async (): Promise<Blob | null> => {
+    if (!cardRef.current) return null;
+    try {
+      const canvas = await html2canvas(cardRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+      return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+    } catch {
+      return null;
+    }
+  };
+
+  const shareWithImage = async (via: "whatsapp" | "email") => {
+    setCapturing(true);
+    try {
+      const blob = await captureCardImage();
+      if (blob && navigator.share) {
+        const file = new File([blob], `viabilidade-${r.providerName}.png`, { type: "image/png" });
+        const statusText = r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
+        const distanceLine = r.status === "inside" ? "" : `\nDistância: ${r.distance}m (máx ${r.maxDistance}m)`;
+        const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}${distanceLine}\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
+
+        await navigator.share({
+          title: `Viabilidade - ${r.providerName}`,
+          text,
+          files: [file],
+        });
+      } else {
+        // Fallback: download image + share text
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `viabilidade-${r.providerName}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        onShare(r, via);
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        onShare(r, via);
+      }
+    } finally {
+      setCapturing(false);
+    }
+  };
 
   const statusConfig: Record<ResultStatus, { label: string; variant: "default" | "destructive" | "secondary" | "outline"; icon: any; color: string }> = {
     inside: { label: "DENTRO DA COBERTURA", variant: "default", icon: CheckCircle, color: "text-green-600" },
@@ -555,6 +609,8 @@ function ResultCard({
   return (
     <Card className="border-l-4 overflow-hidden" style={{ borderLeftColor: r.providerColor }}>
       <CardContent className="pt-4 space-y-3">
+        {/* Capturable area */}
+        <div ref={cardRef} className="space-y-3 bg-background p-2 rounded">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-4 w-4 rounded-full" style={{ backgroundColor: r.providerColor }} />
@@ -592,16 +648,19 @@ function ResultCard({
               <p><span className="text-muted-foreground">LPU:</span> R$ {r.lpuValue.toFixed(2)}</p>
               <p className="col-span-2"><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
             </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button size="sm" variant="outline" className="gap-1" onClick={() => onShare(r, "whatsapp")}>
-                <Share2 className="h-3.5 w-3.5" /> WhatsApp
-              </Button>
-              <Button size="sm" variant="outline" className="gap-1" onClick={() => onShare(r, "email")}>
-                <Share2 className="h-3.5 w-3.5" /> Email
-              </Button>
-            </div>
-          </>
+          </> 
+        )}
+        </div>
+        {/* Share buttons outside capturable area */}
+        {r.status !== "too_far" && (
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("whatsapp")} disabled={capturing}>
+              {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} WhatsApp
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("email")} disabled={capturing}>
+              {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} Email
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
