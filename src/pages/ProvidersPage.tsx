@@ -1,0 +1,202 @@
+import { useState } from "react";
+import { useProviders, useCreateProvider, useUpdateProvider, useDeleteProvider } from "@/hooks/useProviders";
+import { useLpuItems, useCreateLpuItem, useDeleteLpuItem } from "@/hooks/useLpuItems";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Trash2, Settings, Package } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function ProvidersPage() {
+  const { data: providers, isLoading } = useProviders();
+  const createProvider = useCreateProvider();
+  const updateProvider = useUpdateProvider();
+  const deleteProvider = useDeleteProvider();
+  const { toast } = useToast();
+
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#3388ff");
+  const [maxDist, setMaxDist] = useState("500");
+  const [multiplier, setMultiplier] = useState("0.33");
+
+  const [lpuProviderId, setLpuProviderId] = useState<string | null>(null);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    try {
+      await createProvider.mutateAsync({
+        name: name.trim(),
+        color,
+        max_lpu_distance_m: parseFloat(maxDist),
+        multiplier: parseFloat(multiplier),
+      });
+      setName("");
+      setColor("#3388ff");
+      setMaxDist("500");
+      setMultiplier("0.33");
+      setShowForm(false);
+      toast({ title: "Provedor criado!" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Provedores</h1>
+        <Button onClick={() => setShowForm(!showForm)} className="gap-2">
+          <Plus className="h-4 w-4" /> Novo Provedor
+        </Button>
+      </div>
+
+      {showForm && (
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Nome</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do provedor" />
+              </div>
+              <div>
+                <Label>Cor</Label>
+                <div className="flex gap-2">
+                  <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-14 cursor-pointer rounded border" />
+                  <Input value={color} onChange={(e) => setColor(e.target.value)} className="flex-1" />
+                </div>
+              </div>
+              <div>
+                <Label>Distância máx. LPU (metros)</Label>
+                <Input type="number" value={maxDist} onChange={(e) => setMaxDist(e.target.value)} />
+              </div>
+              <div>
+                <Label>Multiplicador (ex: 0.33)</Label>
+                <Input type="number" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
+              </div>
+            </div>
+            <Button onClick={handleCreate} disabled={createProvider.isPending}>Salvar</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="pt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cor</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Dist. Máx (m)</TableHead>
+                <TableHead>Multiplicador</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {providers?.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <span className="h-5 w-5 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                  </TableCell>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell>{p.max_lpu_distance_m}</TableCell>
+                  <TableCell>{p.multiplier}</TableCell>
+                  <TableCell className="text-right space-x-1">
+                    <Button variant="ghost" size="icon" onClick={() => setLpuProviderId(p.id)} title="LPU">
+                      <Package className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={async () => {
+                        if (confirm("Excluir este provedor?")) {
+                          await deleteProvider.mutateAsync(p.id);
+                          toast({ title: "Provedor excluído" });
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!providers?.length && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    Nenhum provedor cadastrado
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* LPU Dialog */}
+      {lpuProviderId && (
+        <LpuDialog providerId={lpuProviderId} providerName={providers?.find((p) => p.id === lpuProviderId)?.name || ""} onClose={() => setLpuProviderId(null)} />
+      )}
+    </div>
+  );
+}
+
+function LpuDialog({ providerId, providerName, onClose }: { providerId: string; providerName: string; onClose: () => void }) {
+  const { data: items } = useLpuItems(providerId);
+  const createItem = useCreateLpuItem();
+  const deleteItem = useDeleteLpuItem();
+  const [linkType, setLinkType] = useState("");
+  const [value, setValue] = useState("");
+  const { toast } = useToast();
+
+  const handleAdd = async () => {
+    if (!linkType.trim() || !value) return;
+    await createItem.mutateAsync({ provider_id: providerId, link_type: linkType.trim(), value: parseFloat(value) });
+    setLinkType("");
+    setValue("");
+    toast({ title: "Item LPU adicionado" });
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>LPU - {providerName}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Input placeholder="Tipo de link" value={linkType} onChange={(e) => setLinkType(e.target.value)} className="flex-1" />
+            <Input placeholder="Valor R$" type="number" value={value} onChange={(e) => setValue(e.target.value)} className="w-32" />
+            <Button onClick={handleAdd} size="sm">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tipo de Link</TableHead>
+                <TableHead>Valor (R$)</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items?.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.link_type}</TableCell>
+                  <TableCell>R$ {item.value.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => deleteItem.mutateAsync(item.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
