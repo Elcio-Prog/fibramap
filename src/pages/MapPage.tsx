@@ -3,10 +3,11 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements, useBulkCreateGeoElements } from "@/hooks/useGeoElements";
+import { useComprasLM } from "@/hooks/useComprasLM";
 import { parseKML, parseKMZ, parseGeoJSON, getGeometryType } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Layers, Eye, EyeOff } from "lucide-react";
+import { Upload, Layers, Eye, EyeOff, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
 
@@ -22,13 +23,16 @@ export default function MapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
+  const lmLayerRef = useRef<L.LayerGroup | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: providers } = useProviders();
   const { data: geoElements } = useGeoElements();
+  const { data: comprasLM } = useComprasLM();
   const bulkCreate = useBulkCreateGeoElements();
   const { toast } = useToast();
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [visibleProviders, setVisibleProviders] = useState<Set<string>>(new Set());
+  const [showLMLayer, setShowLMLayer] = useState(true);
 
   // Init map
   useEffect(() => {
@@ -98,6 +102,42 @@ export default function MapPage() {
       }
     }
   }, [geoElements, providers, visibleProviders]);
+
+  // Render LM layer
+  useEffect(() => {
+    if (!mapInstance.current || !comprasLM) return;
+    if (lmLayerRef.current) { lmLayerRef.current.clearLayers(); }
+    else { lmLayerRef.current = L.layerGroup(); }
+
+    const partnerColors: Record<string, string> = {};
+    const colors = ["#e74c3c", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e", "#3498db"];
+    let ci = 0;
+
+    for (const r of comprasLM) {
+      if (!r.lat || !r.lng) continue;
+      if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
+      const color = partnerColors[r.parceiro];
+      const precoMbps = r.banda_mbps && r.banda_mbps > 0 ? `<br/>R$/Mbps: ${(r.valor_mensal / r.banda_mbps).toFixed(2)}` : "";
+      const marker = L.circleMarker([r.lat, r.lng], {
+        radius: 5, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.85,
+      }).bindPopup(
+        `<b>${r.parceiro}</b>` +
+        `${r.cliente ? `<br/>Cliente: ${r.cliente}` : ""}` +
+        `${r.banda_mbps ? `<br/>Banda: ${r.banda_mbps} Mbps` : ""}` +
+        `<br/>Valor: R$ ${r.valor_mensal.toFixed(2)}` +
+        precoMbps +
+        `${r.nr_contrato ? `<br/>Contrato: ${r.nr_contrato}` : ""}` +
+        `${r.id_etiqueta ? `<br/>Etiqueta: ${r.id_etiqueta}` : ""}` +
+        `${r.status ? `<br/>Status: ${r.status}` : ""}` +
+        `${r.codigo_sap ? `<br/>SAP: ${r.codigo_sap}` : ""}` +
+        `<br/><small>${r.endereco}</small>`
+      );
+      lmLayerRef.current.addLayer(marker);
+    }
+
+    if (showLMLayer) lmLayerRef.current.addTo(mapInstance.current);
+    else lmLayerRef.current.removeFrom(mapInstance.current);
+  }, [comprasLM, showLMLayer]);
 
   const toggleProvider = (id: string) => {
     setVisibleProviders((prev) => {
@@ -236,6 +276,28 @@ export default function MapPage() {
               )}
             </button>
           ))}
+        </div>
+        {/* LM Layer toggle */}
+        <div className="border-t pt-2 mt-2">
+          <button
+            onClick={() => {
+              setShowLMLayer(prev => {
+                const next = !prev;
+                if (next) lmLayerRef.current?.addTo(mapInstance.current!);
+                else lmLayerRef.current?.removeFrom(mapInstance.current!);
+                return next;
+              });
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+          >
+            <Database className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="flex-1 text-left">Compras LM</span>
+            {showLMLayer ? (
+              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
         </div>
       </div>
     </div>
