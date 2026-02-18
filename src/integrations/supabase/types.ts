@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      compras_lm: {
+        Row: {
+          banda_mbps: number | null
+          cidade: string | null
+          cliente: string | null
+          codigo_sap: string | null
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          endereco: string
+          geocoding_status: string
+          id: string
+          id_etiqueta: string | null
+          lat: number | null
+          lng: number | null
+          nr_contrato: string | null
+          observacoes: string | null
+          parceiro: string
+          setup: number | null
+          status: string
+          uf: string | null
+          updated_at: string
+          user_id: string | null
+          valor_mensal: number
+        }
+        Insert: {
+          banda_mbps?: number | null
+          cidade?: string | null
+          cliente?: string | null
+          codigo_sap?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          endereco: string
+          geocoding_status?: string
+          id?: string
+          id_etiqueta?: string | null
+          lat?: number | null
+          lng?: number | null
+          nr_contrato?: string | null
+          observacoes?: string | null
+          parceiro: string
+          setup?: number | null
+          status?: string
+          uf?: string | null
+          updated_at?: string
+          user_id?: string | null
+          valor_mensal: number
+        }
+        Update: {
+          banda_mbps?: number | null
+          cidade?: string | null
+          cliente?: string | null
+          codigo_sap?: string | null
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          endereco?: string
+          geocoding_status?: string
+          id?: string
+          id_etiqueta?: string | null
+          lat?: number | null
+          lng?: number | null
+          nr_contrato?: string | null
+          observacoes?: string | null
+          parceiro?: string
+          setup?: number | null
+          status?: string
+          uf?: string | null
+          updated_at?: string
+          user_id?: string | null
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       feasibility_queries: {
         Row: {
           calculated_distance_m: number | null
@@ -104,6 +179,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      import_profiles: {
+        Row: {
+          column_mapping: Json
+          created_at: string
+          id: string
+          key_field: string
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          column_mapping?: Json
+          created_at?: string
+          id?: string
+          key_field?: string
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          column_mapping?: Json
+          created_at?: string
+          id?: string
+          key_field?: string
+          name?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       lpu_items: {
         Row: {
