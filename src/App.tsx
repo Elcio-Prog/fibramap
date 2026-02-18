@@ -10,6 +10,7 @@ import MapPage from "@/pages/MapPage";
 import ProvidersPage from "@/pages/ProvidersPage";
 import FeasibilityPage from "@/pages/FeasibilityPage";
 import HistoryPage from "@/pages/HistoryPage";
+import BaseLMPage from "@/pages/BaseLMPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ function ProtectedRoutes() {
         <Route path="/" element={<MapPage />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/feasibility" element={<FeasibilityPage />} />
+        <Route path="/base-lm" element={<BaseLMPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
