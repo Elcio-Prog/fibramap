@@ -32,12 +32,27 @@ export function useComprasLM() {
   return useQuery({
     queryKey: ["compras_lm"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("compras_lm")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as CompraLM[];
+      // Fetch all rows using pagination (Supabase default limit is 1000)
+      const allData: CompraLM[] = [];
+      let offset = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("compras_lm")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + batchSize - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allData.push(...(data as CompraLM[]));
+          offset += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+      return allData;
     },
   });
 }
