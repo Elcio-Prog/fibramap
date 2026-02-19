@@ -163,12 +163,12 @@ export default function RadiusSearch() {
     setMetrics(m);
   };
 
-  // Render map when results change
+  // Render map when center or results change
   useEffect(() => {
-    if (!results || !center || !mapRef.current) return;
+    if (!center || !mapRef.current) return;
     if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
 
-    const map = L.map(mapRef.current).setView([center.lat, center.lng], 11);
+    const map = L.map(mapRef.current).setView([center.lat, center.lng], results && results.length > 0 ? 11 : 14);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OSM",
     }).addTo(map);
@@ -179,22 +179,24 @@ export default function RadiusSearch() {
     // Center marker
     L.marker([center.lat, center.lng]).addTo(map).bindPopup("Centro da busca");
 
-    // Partner colors
-    const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e"];
-    const partnerColors: Record<string, string> = {};
-    let ci = 0;
+    if (results) {
+      // Partner colors
+      const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e"];
+      const partnerColors: Record<string, string> = {};
+      let ci = 0;
 
-    for (const r of results) {
-      if (!r.lat || !r.lng) continue;
-      if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
-      const color = partnerColors[r.parceiro];
-      const dist = haversineDistance(center.lat, center.lng, r.lat, r.lng);
-      const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(0)} m`;
-      L.circleMarker([r.lat, r.lng], {
-        radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9,
-      }).addTo(map).bindPopup(
-        `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
-      );
+      for (const r of results) {
+        if (!r.lat || !r.lng) continue;
+        if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
+        const color = partnerColors[r.parceiro];
+        const dist = haversineDistance(center.lat, center.lng, r.lat, r.lng);
+        const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(0)} m`;
+        L.circleMarker([r.lat, r.lng], {
+          radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9,
+        }).addTo(map).bindPopup(
+          `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
+        );
+      }
     }
 
     mapInstance.current = map;
@@ -275,10 +277,13 @@ export default function RadiusSearch() {
           <MapPin className="h-4 w-4" /> Analisar
         </Button>
 
+        {/* Map - show as soon as center is found */}
+        {center && (
+          <div ref={mapRef} className="h-64 rounded-lg border" />
+        )}
+
         {results && (
           <>
-            {/* Map */}
-            <div ref={mapRef} className="h-64 rounded-lg border" />
 
             {/* Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
