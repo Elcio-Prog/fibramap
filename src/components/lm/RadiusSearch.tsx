@@ -59,18 +59,21 @@ export default function RadiusSearch() {
         toast.error("CEP não encontrado");
         return;
       }
-      // Use structured Nominatim search with city/state for accuracy
-      const params = new URLSearchParams({
-        format: "json",
-        street: data.logradouro,
-        city: data.localidade,
-        state: data.uf,
-        country: "BR",
-        limit: "1",
-      });
-      let res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
-      let results = await res.json();
-      // Fallback: search by postalcode
+      let results: any[] = [];
+      // Step 1: structured search (only if logradouro is not empty)
+      if (data.logradouro) {
+        const params = new URLSearchParams({
+          format: "json",
+          street: data.logradouro,
+          city: data.localidade,
+          state: data.uf,
+          country: "BR",
+          limit: "1",
+        });
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+        results = await res.json();
+      }
+      // Step 2: search by postalcode
       if (results.length === 0) {
         const params2 = new URLSearchParams({
           format: "json",
@@ -78,13 +81,23 @@ export default function RadiusSearch() {
           country: "BR",
           limit: "1",
         });
-        res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
         results = await res.json();
       }
-      // Fallback 2: free text search with city
+      // Step 3: free text with city/state
       if (results.length === 0) {
-        res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${data.logradouro}, ${data.localidade}, ${data.uf}`)}&limit=1&countrycodes=br`
+        const query = data.logradouro
+          ? `${data.logradouro}, ${data.localidade}, ${data.uf}`
+          : `${data.localidade}, ${data.uf}`;
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`
+        );
+        results = await res.json();
+      }
+      // Step 4: search just by city name
+      if (results.length === 0) {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&city=${encodeURIComponent(data.localidade)}&state=${encodeURIComponent(data.uf)}&country=BR&limit=1`
         );
         results = await res.json();
       }
