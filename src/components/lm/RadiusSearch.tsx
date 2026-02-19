@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { useComprasLM, CompraLM } from "@/hooks/useComprasLM";
 import { haversineDistance } from "@/lib/geo-utils";
-import { Search, MapPin } from "lucide-react";
+import { fetchCep } from "@/lib/cep-utils";
+import { geocodeAddress } from "@/lib/geo-utils";
+import { Search, MapPin, Loader2 } from "lucide-react";
 
 // Fix leaflet default icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -33,9 +37,39 @@ export default function RadiusSearch() {
   const [radius, setRadius] = useState(5);
   const [results, setResults] = useState<CompraLM[] | null>(null);
   const [metrics, setMetrics] = useState<PartnerMetrics[]>([]);
+  const [searchTab, setSearchTab] = useState("address");
+  const [cep, setCep] = useState("");
+  const [coordLat, setCoordLat] = useState("");
+  const [coordLng, setCoordLng] = useState("");
+  const [loadingCep, setLoadingCep] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const { data: allData } = useComprasLM();
+
+  const handleCepSearch = async () => {
+    setLoadingCep(true);
+    try {
+      const data = await fetchCep(cep);
+      if (!data) return;
+      const fullAddr = `${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`;
+      const geo = await geocodeAddress(fullAddr);
+      if (geo) {
+        setCenter({ lat: geo.lat, lng: geo.lng });
+        setAddress(fullAddr);
+      }
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  const handleCoordSearch = () => {
+    const lat = parseFloat(coordLat);
+    const lng = parseFloat(coordLng);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setCenter({ lat, lng });
+      setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    }
+  };
 
   const analyze = () => {
     if (!center || !allData) return;
@@ -124,12 +158,53 @@ export default function RadiusSearch() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <AddressAutocomplete
-          value={address}
-          onChange={setAddress}
-          onSelect={r => setCenter({ lat: r.lat, lng: r.lng })}
-          placeholder="Endereço do centro da busca..."
-        />
+        <Tabs value={searchTab} onValueChange={setSearchTab}>
+          <TabsList className="w-full">
+            <TabsTrigger value="address" className="flex-1">Endereço</TabsTrigger>
+            <TabsTrigger value="cep" className="flex-1">CEP</TabsTrigger>
+            <TabsTrigger value="coords" className="flex-1">Coordenadas</TabsTrigger>
+          </TabsList>
+          <TabsContent value="address" className="mt-2">
+            <AddressAutocomplete
+              value={address}
+              onChange={setAddress}
+              onSelect={r => setCenter({ lat: r.lat, lng: r.lng })}
+              placeholder="Endereço do centro da busca..."
+            />
+          </TabsContent>
+          <TabsContent value="cep" className="mt-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Digite o CEP (ex: 13015-100)"
+                value={cep}
+                onChange={e => setCep(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCepSearch()}
+              />
+              <Button onClick={handleCepSearch} disabled={loadingCep} size="sm">
+                {loadingCep ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
+              </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="coords" className="mt-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Latitude (ex: -22.9068)"
+                value={coordLat}
+                onChange={e => setCoordLat(e.target.value)}
+                type="number"
+                step="any"
+              />
+              <Input
+                placeholder="Longitude (ex: -47.0616)"
+                value={coordLng}
+                onChange={e => setCoordLng(e.target.value)}
+                type="number"
+                step="any"
+              />
+              <Button onClick={handleCoordSearch} size="sm">OK</Button>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <div className="space-y-1">
           <label className="text-sm text-muted-foreground">Raio: {radius} km</label>
