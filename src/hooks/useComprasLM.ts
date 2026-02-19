@@ -62,18 +62,17 @@ export function useUpsertComprasLM() {
   return useMutation({
     mutationFn: async ({
       items,
-      keyField,
     }: {
       items: Partial<CompraLM>[];
-      keyField: "id_etiqueta" | "nr_contrato" | "endereco";
+      keyField?: string;
     }) => {
-      // Process in batches of 500
+      // Process in batches of 500 using insert (no unique constraints to upsert against)
       const batchSize = 500;
       for (let i = 0; i < items.length; i += batchSize) {
         const batch = items.slice(i, i + batchSize);
         const { error } = await supabase
           .from("compras_lm")
-          .upsert(batch as any, { onConflict: keyField, ignoreDuplicates: false });
+          .insert(batch as any);
         if (error) throw error;
       }
     },
