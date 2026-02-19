@@ -377,7 +377,7 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__ignore__">Ignorar / Não existe</SelectItem>
-                      {headers.map(h => (
+                      {headers.filter(h => h !== "").map(h => (
                         <SelectItem key={h} value={h}>{h}</SelectItem>
                       ))}
                     </SelectContent>
