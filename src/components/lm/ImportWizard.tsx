@@ -202,9 +202,13 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
       const enderecoFull = endereco ? String(endereco) : `${getValue("cidade") || ""}, ${getValue("uf") || ""}`;
 
-      // Auto-extrair cidade e UF do endereço quando não mapeados
+      // Auto-extrair cidade e UF do endereço quando não mapeados ou mapeados para a mesma coluna do endereço
       let cidadeVal = getValue("cidade");
       let ufVal = getValue("uf");
+      // Se cidade/uf estão mapeados para a mesma coluna que endereço, tratar como auto-extração
+      const enderecoCol = mapping["endereco"];
+      if (enderecoCol && mapping["cidade"] === enderecoCol) cidadeVal = undefined;
+      if (enderecoCol && mapping["uf"] === enderecoCol) ufVal = undefined;
       if ((!cidadeVal || !ufVal) && enderecoFull) {
         const parsed = parseCidadeUF(enderecoFull);
         if (!cidadeVal && parsed.cidade) cidadeVal = parsed.cidade;
@@ -298,21 +302,21 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
   };
 
   const geocodeInBackground = async (items: any[]) => {
-    // Geocode first 50 in background (rate limited)
+    // Geocode all items in background (rate limited by Nominatim ~1req/s)
     const { supabase } = await import("@/integrations/supabase/client");
-    for (const item of items.slice(0, 50)) {
+    for (const item of items) {
       try {
         const result = await geocodeAddress(item.endereco);
         if (result) {
           await supabase
             .from("compras_lm")
             .update({ lat: result.lat, lng: result.lng, geocoding_status: "done" } as any)
-            .eq(keyField, item[keyField]);
+            .eq("endereco", item.endereco);
         } else {
           await supabase
             .from("compras_lm")
             .update({ geocoding_status: "failed" } as any)
-            .eq(keyField, item[keyField]);
+            .eq("endereco", item.endereco);
         }
         await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit
       } catch {}
