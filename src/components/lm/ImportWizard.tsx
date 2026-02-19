@@ -155,6 +155,9 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       const valorStr = getValue("valor_mensal");
       const keyValue = keyIdx >= 0 ? row[keyIdx] : undefined;
 
+      // Skip completely empty rows silently
+      if (!parceiro && !endereco && !valorStr) { continue; }
+      
       // Validate required
       if (!parceiro) { errors.push(`Linha ${lineNum}: Parceiro vazio`); continue; }
       
@@ -215,19 +218,29 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
         if (!ufVal && parsed.uf) ufVal = parsed.uf;
       }
 
-      const finalKeyValue = keyField === "endereco" 
-        ? enderecoFull 
-        : (keyValue ? String(keyValue) : "não encontrado");
+      // Determinar chave: se a chave primária está vazia, usar endereço como fallback
+      let effectiveKeyField = keyField;
+      let finalKeyValue: string;
+      if (keyField === "endereco") {
+        finalKeyValue = enderecoFull;
+      } else if (keyValue && String(keyValue).trim()) {
+        finalKeyValue = String(keyValue).trim();
+      } else {
+        // Fallback: usar endereço como chave quando id_etiqueta/nr_contrato está vazio
+        effectiveKeyField = "endereco" as any;
+        finalKeyValue = enderecoFull;
+      }
 
       const item: any = {
         parceiro: String(parceiro),
         endereco: enderecoFull,
         valor_mensal: valor,
-        [keyField]: finalKeyValue,
+        [effectiveKeyField]: finalKeyValue,
         user_id: user?.id,
         geocoding_status: "pending",
         ...(cidadeVal ? { cidade: String(cidadeVal) } : {}),
         ...(ufVal ? { uf: String(ufVal) } : {}),
+        __matchField: effectiveKeyField,
       };
 
       // Optional fields
@@ -272,21 +285,16 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
     if (unique.length > 0) {
       try {
-        if (isComplement) {
-          // Group by match field and upsert each group
-          const groups: Record<string, any[]> = {};
-          for (const item of unique) {
-            const mf = item.__matchField || keyField;
-            if (!groups[mf]) groups[mf] = [];
-            const { __matchField, ...clean } = item;
-            groups[mf].push(clean);
-          }
-          for (const [mf, groupItems] of Object.entries(groups)) {
-            await upsertCompras.mutateAsync({ items: groupItems, keyField: mf as any });
-          }
-        } else {
-          const cleanUnique = unique.map(({ __matchField, ...rest }) => rest);
-          await upsertCompras.mutateAsync({ items: cleanUnique, keyField });
+        // Group by match field and upsert each group separately
+        const groups: Record<string, any[]> = {};
+        for (const item of unique) {
+          const mf = item.__matchField || keyField;
+          if (!groups[mf]) groups[mf] = [];
+          const { __matchField, ...clean } = item;
+          groups[mf].push(clean);
+        }
+        for (const [mf, groupItems] of Object.entries(groups)) {
+          await upsertCompras.mutateAsync({ items: groupItems, keyField: mf as any });
         }
         toast({ title: `${unique.length} registros importados com sucesso!` });
 
