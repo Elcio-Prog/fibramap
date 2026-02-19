@@ -109,14 +109,9 @@ export default function MapPage() {
     if (lmLayerRef.current) { lmLayerRef.current.clearLayers(); }
     else { lmLayerRef.current = L.layerGroup(); }
 
-    const partnerColors: Record<string, string> = {};
-    const colors = ["#e74c3c", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e", "#3498db"];
-    let ci = 0;
-
     for (const r of comprasLM) {
       if (!r.lat || !r.lng) continue;
-      if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
-      const color = partnerColors[r.parceiro];
+      const color = r.status?.toUpperCase() === "ATIVO" ? "#2ecc71" : "#e74c3c";
       const precoMbps = r.banda_mbps && r.banda_mbps > 0 ? `<br/>R$/Mbps: ${(r.valor_mensal / r.banda_mbps).toFixed(2)}` : "";
       const marker = L.circleMarker([r.lat, r.lng], {
         radius: 5, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.85,
