@@ -257,18 +257,21 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       items.push(item);
     }
 
-    // Dedup: by key field value (for items with key) or by endereco (for items without)
-    const seenByKey = new Set<string>();
+    // Dedup in-memory by key field value
+    const seenKeys = new Set<string>();
     const unique: any[] = [];
     
     for (const item of items) {
-      const dedupKey = item.__hasKey && keyField !== "endereco"
-        ? `key:${String(item[keyField])}`
+      // Build dedup key from the selected key field or endereco as fallback
+      const kv = keyField !== "endereco" && item[keyField] 
+        ? `key:${String(item[keyField]).trim()}`
         : `end:${String(item.endereco || "").trim().toUpperCase()}`;
       
-      if (seenByKey.has(dedupKey)) { ignored++; continue; }
-      seenByKey.add(dedupKey);
-      unique.push(item);
+      if (seenKeys.has(kv)) { ignored++; continue; }
+      seenKeys.add(kv);
+      // Remove internal flags
+      const { __hasKey, __matchField, ...clean } = item;
+      unique.push(clean);
     }
 
     setSummary({
@@ -281,26 +284,11 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
     if (unique.length > 0) {
       try {
-        // Split into items WITH key (upsert) and WITHOUT key (insert)
-        const withKey = unique.filter(i => i.__hasKey && keyField !== "endereco").map(({ __hasKey, ...r }) => r);
-        const withoutKey = unique.filter(i => !i.__hasKey || keyField === "endereco").map(({ __hasKey, ...r }) => r);
-
-        if (withKey.length > 0) {
-          await upsertCompras.mutateAsync({ items: withKey, keyField });
-        }
-        if (withoutKey.length > 0) {
-          // Insert without upsert - just insert new records
-          const { supabase } = await import("@/integrations/supabase/client");
-          const batchSize = 500;
-          for (let i = 0; i < withoutKey.length; i += batchSize) {
-            const batch = withoutKey.slice(i, i + batchSize);
-            await supabase.from("compras_lm").insert(batch as any);
-          }
-        }
+        await upsertCompras.mutateAsync({ items: unique });
         toast({ title: `${unique.length} registros importados com sucesso!` });
 
         // Background geocoding
-        const itemsToGeocode = unique.filter(i => i.endereco && i.geocoding_status === "pending").map(({ __hasKey, ...r }) => r);
+        const itemsToGeocode = unique.filter(i => i.endereco && i.geocoding_status === "pending");
         geocodeInBackground(itemsToGeocode);
       } catch (err: any) {
         toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
