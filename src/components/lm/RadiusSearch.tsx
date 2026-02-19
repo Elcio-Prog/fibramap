@@ -347,9 +347,10 @@ export default function RadiusSearch() {
                     </thead>
                     <tbody>
                       {results.map(r => {
-                        const distLabel = r.distanceM >= 1000
-                          ? `${(r.distanceM / 1000).toFixed(1)} km`
-                          : `${r.distanceM.toFixed(0)} m`;
+                        const d = r.distanceM ?? 0;
+                        const distLabel = d >= 1000
+                          ? `${(d / 1000).toFixed(1)} km`
+                          : `${d.toFixed(0)} m`;
                         return (
                           <tr key={r.id} className="border-t">
                             <td className="px-2 py-1 font-medium whitespace-nowrap">{distLabel}</td>
