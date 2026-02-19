@@ -51,11 +51,33 @@ export default function RadiusSearch() {
     try {
       const data = await fetchCep(cep);
       if (!data) return;
-      const fullAddr = `${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`;
-      const geo = await geocodeAddress(fullAddr);
-      if (geo) {
-        setCenter({ lat: geo.lat, lng: geo.lng });
-        setAddress(fullAddr);
+      // Use structured Nominatim search with city/state for accuracy
+      const params = new URLSearchParams({
+        format: "json",
+        street: data.logradouro,
+        city: data.localidade,
+        state: data.uf,
+        country: "BR",
+        limit: "1",
+      });
+      let res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+      let results = await res.json();
+      // Fallback: search by postalcode
+      if (results.length === 0) {
+        const params2 = new URLSearchParams({
+          format: "json",
+          postalcode: data.cep.replace("-", ""),
+          country: "BR",
+          limit: "1",
+        });
+        res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
+        results = await res.json();
+      }
+      if (results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+        const lng = parseFloat(results[0].lon);
+        setCenter({ lat, lng });
+        setAddress(`${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`);
       }
     } finally {
       setLoadingCep(false);
