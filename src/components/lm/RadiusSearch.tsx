@@ -277,10 +277,8 @@ export default function RadiusSearch() {
           <MapPin className="h-4 w-4" /> Analisar
         </Button>
 
-        {/* Map - show as soon as center is found */}
-        {center && (
-          <div ref={mapRef} className="h-64 rounded-lg border" />
-        )}
+        {/* Map - always render div so ref is available */}
+        <div ref={mapRef} className={`h-64 rounded-lg border ${center ? '' : 'hidden'}`} />
 
         {results && (
           <>
