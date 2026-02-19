@@ -31,6 +31,23 @@ const SYSTEM_FIELDS = [
 
 type Step = "upload" | "sheet" | "mapping" | "summary";
 
+/** Tenta extrair cidade e UF de um endereço brasileiro completo */
+function parseCidadeUF(endereco: string): { cidade?: string; uf?: string } {
+  if (!endereco) return {};
+  // Padrões comuns: "Rua X, 123, Bairro, Cidade - UF, CEP" ou "Cidade/UF" ou "Cidade, UF"
+  const ufMatch = endereco.match(/[-–,/\s]\s*([A-Z]{2})\s*(?:[,\s-–]|$)/);
+  const uf = ufMatch ? ufMatch[1] : undefined;
+
+  // Tenta pegar a cidade: texto antes do UF, depois da última vírgula/traço
+  if (uf) {
+    const beforeUF = endereco.substring(0, endereco.lastIndexOf(uf)).replace(/[-–,/\s]+$/, "");
+    const parts = beforeUF.split(/[,\-–]+/).map(s => s.trim()).filter(Boolean);
+    const cidade = parts.length > 0 ? parts[parts.length - 1].replace(/^\d{5}-?\d{3}\s*/, "").trim() : undefined;
+    return { cidade: cidade || undefined, uf };
+  }
+  return {};
+}
+
 interface ImportSummary {
   total: number;
   newRecords: number;
@@ -47,7 +64,7 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
   const [rows, setRows] = useState<any[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [keyField, setKeyField] = useState<"id_etiqueta" | "nr_contrato">("id_etiqueta");
+  const [keyField, setKeyField] = useState<"id_etiqueta" | "nr_contrato" | "endereco">("id_etiqueta");
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [importing, setImporting] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -159,12 +176,24 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
       if (!endereco && !getValue("cidade")) { errors.push(`Linha ${lineNum}: Endereço ou Cidade vazio`); continue; }
       if (!valorStr && valorStr !== 0) { errors.push(`Linha ${lineNum}: Valor mensal vazio`); continue; }
-      const finalKeyValue = keyValue ? String(keyValue) : "não encontrado";
 
       const valor = parseFloat(String(valorStr));
       if (isNaN(valor)) { errors.push(`Linha ${lineNum}: Valor mensal inválido`); continue; }
 
       const enderecoFull = endereco ? String(endereco) : `${getValue("cidade") || ""}, ${getValue("uf") || ""}`;
+
+      // Auto-extrair cidade e UF do endereço quando não mapeados
+      let cidadeVal = getValue("cidade");
+      let ufVal = getValue("uf");
+      if ((!cidadeVal || !ufVal) && enderecoFull) {
+        const parsed = parseCidadeUF(enderecoFull);
+        if (!cidadeVal && parsed.cidade) cidadeVal = parsed.cidade;
+        if (!ufVal && parsed.uf) ufVal = parsed.uf;
+      }
+
+      const finalKeyValue = keyField === "endereco" 
+        ? enderecoFull 
+        : (keyValue ? String(keyValue) : "não encontrado");
 
       const item: any = {
         parceiro: String(parceiro),
@@ -173,18 +202,19 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
         [keyField]: finalKeyValue,
         user_id: user?.id,
         geocoding_status: "pending",
+        ...(cidadeVal ? { cidade: String(cidadeVal) } : {}),
+        ...(ufVal ? { uf: String(ufVal) } : {}),
       };
 
       // Optional fields
       const optMap: Record<string, string> = {
-        cliente: "string", cidade: "string", uf: "string",
-        status: "string", codigo_sap: "string", observacoes: "string",
+        cliente: "string", status: "string", codigo_sap: "string", observacoes: "string",
         nr_contrato: "string", id_etiqueta: "string",
         banda_mbps: "number", setup: "number",
         data_inicio: "string", data_fim: "string",
       };
       for (const [f, type] of Object.entries(optMap)) {
-        if (f === keyField) continue; // already set
+        if (f === keyField || f === "cidade" || f === "uf") continue;
         const v = getValue(f);
         if (v !== undefined) {
           item[f] = type === "number" ? (parseFloat(String(v)) || null) : String(v);
@@ -355,6 +385,7 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
                 <SelectContent>
                   <SelectItem value="id_etiqueta">ID Etiqueta</SelectItem>
                   <SelectItem value="nr_contrato">Nº Contrato</SelectItem>
+                  <SelectItem value="endereco">Endereço</SelectItem>
                 </SelectContent>
               </Select>
             </div>

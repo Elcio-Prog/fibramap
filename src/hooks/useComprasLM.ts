@@ -50,7 +50,7 @@ export function useUpsertComprasLM() {
       keyField,
     }: {
       items: Partial<CompraLM>[];
-      keyField: "id_etiqueta" | "nr_contrato";
+      keyField: "id_etiqueta" | "nr_contrato" | "endereco";
     }) => {
       // Process in batches of 500
       const batchSize = 500;
