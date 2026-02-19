@@ -31,11 +31,15 @@ interface PartnerMetrics {
   avgPrecoPorMbps: number | null;
 }
 
+interface ResultWithDistance extends CompraLM {
+  distanceM: number;
+}
+
 export default function RadiusSearch() {
   const [address, setAddress] = useState("");
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(5);
-  const [results, setResults] = useState<CompraLM[] | null>(null);
+  const [results, setResults] = useState<ResultWithDistance[] | null>(null);
   const [metrics, setMetrics] = useState<PartnerMetrics[]>([]);
   const [searchTab, setSearchTab] = useState("address");
   const [cep, setCep] = useState("");
@@ -111,10 +115,14 @@ export default function RadiusSearch() {
   const analyze = () => {
     if (!center || !allData) return;
     const radiusM = radius * 1000;
-    const filtered = allData.filter(r => {
-      if (!r.lat || !r.lng) return false;
-      return haversineDistance(center.lat, center.lng, r.lat, r.lng) <= radiusM;
-    });
+    const filtered: ResultWithDistance[] = allData
+      .filter(r => r.lat && r.lng)
+      .map(r => ({
+        ...r,
+        distanceM: haversineDistance(center.lat, center.lng, r.lat!, r.lng!),
+      }))
+      .filter(r => r.distanceM <= radiusM)
+      .sort((a, b) => a.distanceM - b.distanceM);
     setResults(filtered);
 
     // Group by partner
@@ -167,10 +175,12 @@ export default function RadiusSearch() {
       if (!r.lat || !r.lng) continue;
       if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
       const color = partnerColors[r.parceiro];
+      const dist = haversineDistance(center.lat, center.lng, r.lat, r.lng);
+      const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(0)} m`;
       L.circleMarker([r.lat, r.lng], {
         radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9,
       }).addTo(map).bindPopup(
-        `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}`
+        `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
       );
     }
 
@@ -316,6 +326,44 @@ export default function RadiusSearch() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Detailed results with distance */}
+            {results.length > 0 && (
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-muted-foreground">Detalhamento por endereço (ordenado por distância)</h4>
+                <div className="overflow-x-auto border rounded-md max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0">
+                      <tr className="bg-muted text-left">
+                        <th className="px-2 py-1.5">Distância</th>
+                        <th className="px-2 py-1.5">Parceiro</th>
+                        <th className="px-2 py-1.5">Cliente</th>
+                        <th className="px-2 py-1.5">Endereço</th>
+                        <th className="px-2 py-1.5 text-right">Valor</th>
+                        <th className="px-2 py-1.5 text-right">Banda</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.map(r => {
+                        const distLabel = r.distanceM >= 1000
+                          ? `${(r.distanceM / 1000).toFixed(1)} km`
+                          : `${r.distanceM.toFixed(0)} m`;
+                        return (
+                          <tr key={r.id} className="border-t">
+                            <td className="px-2 py-1 font-medium whitespace-nowrap">{distLabel}</td>
+                            <td className="px-2 py-1 whitespace-nowrap">{r.parceiro}</td>
+                            <td className="px-2 py-1 whitespace-nowrap">{r.cliente || "—"}</td>
+                            <td className="px-2 py-1 max-w-[200px] truncate" title={r.endereco}>{r.endereco}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">R$ {r.valor_mensal.toFixed(2)}</td>
+                            <td className="px-2 py-1 text-right whitespace-nowrap">{r.banda_mbps ? `${r.banda_mbps} Mbps` : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </>
