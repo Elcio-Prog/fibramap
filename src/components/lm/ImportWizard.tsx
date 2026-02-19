@@ -160,10 +160,30 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       
       // For complement mode, we only need the key and merge fields
       if (isComplement) {
-        if (!keyValue) { errors.push(`Linha ${lineNum}: Chave (${keyField}) vazia`); continue; }
-        const item: any = { [keyField]: String(keyValue) };
+        // Tenta encontrar a melhor chave disponível na linha
+        const possibleKeys: Array<"id_etiqueta" | "nr_contrato" | "endereco"> = ["id_etiqueta", "nr_contrato", "endereco"];
+        let matchKey: string | undefined;
+        let matchField: string | undefined;
+        
+        // Prioriza a chave selecionada, depois tenta as outras
+        const orderedKeys = [keyField, ...possibleKeys.filter(k => k !== keyField)];
+        for (const k of orderedKeys) {
+          const v = k === "endereco" ? (endereco ? String(endereco) : undefined) : getValue(k);
+          if (v) {
+            matchKey = String(v);
+            matchField = k;
+            break;
+          }
+        }
+        
+        if (!matchKey || !matchField) { 
+          errors.push(`Linha ${lineNum}: Nenhuma chave encontrada (ID, Contrato ou Endereço)`); 
+          continue; 
+        }
+        
+        const item: any = { [matchField]: matchKey, __matchField: matchField };
         // Only map merge-able fields
-        const mergeFields = ["banda_mbps", "data_inicio", "data_fim", "setup", "status", "valor_mensal"];
+        const mergeFields = ["banda_mbps", "data_inicio", "data_fim", "setup", "status", "valor_mensal", "cliente", "observacoes", "codigo_sap"];
         for (const f of mergeFields) {
           const v = getValue(f);
           if (v !== undefined) {
@@ -228,23 +248,42 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
     const seen = new Set<string>();
     const unique: any[] = [];
     for (const item of items) {
-      const k = String(item[keyField]);
+      // For complement, detect key from item
+      const itemKey = item.__matchField || keyField;
+      const k = `${itemKey}:${String(item[itemKey])}`;
       if (seen.has(k)) { ignored++; continue; }
       seen.add(k);
-      unique.push(item);
+      // Remove internal marker
+      const { __matchField, ...cleanItem } = item;
+      unique.push({ ...cleanItem, __matchField: itemKey });
     }
 
     setSummary({
       total: rows.length,
       newRecords: unique.length,
-      updated: 0, // We can't know exact split without querying
+      updated: 0,
       ignored,
       errors,
     });
 
     if (unique.length > 0) {
       try {
-        await upsertCompras.mutateAsync({ items: unique, keyField });
+        if (isComplement) {
+          // Group by match field and upsert each group
+          const groups: Record<string, any[]> = {};
+          for (const item of unique) {
+            const mf = item.__matchField || keyField;
+            if (!groups[mf]) groups[mf] = [];
+            const { __matchField, ...clean } = item;
+            groups[mf].push(clean);
+          }
+          for (const [mf, groupItems] of Object.entries(groups)) {
+            await upsertCompras.mutateAsync({ items: groupItems, keyField: mf as any });
+          }
+        } else {
+          const cleanUnique = unique.map(({ __matchField, ...rest }) => rest);
+          await upsertCompras.mutateAsync({ items: cleanUnique, keyField });
+        }
         toast({ title: `${unique.length} registros importados com sucesso!` });
 
         // Background geocoding
