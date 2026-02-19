@@ -218,30 +218,26 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
         if (!ufVal && parsed.uf) ufVal = parsed.uf;
       }
 
-      // Determinar chave: se a chave primária está vazia, usar endereço como fallback
-      let effectiveKeyField = keyField;
-      let finalKeyValue: string;
-      if (keyField === "endereco") {
-        finalKeyValue = enderecoFull;
-      } else if (keyValue && String(keyValue).trim()) {
-        finalKeyValue = String(keyValue).trim();
-      } else {
-        // Fallback: usar endereço como chave quando id_etiqueta/nr_contrato está vazio
-        effectiveKeyField = "endereco" as any;
-        finalKeyValue = enderecoFull;
-      }
+      // Usar a chave selecionada se disponível, senão não definir (será INSERT puro)
+      const hasKey = keyField === "endereco" 
+        ? true 
+        : (keyValue && String(keyValue).trim());
 
       const item: any = {
         parceiro: String(parceiro),
         endereco: enderecoFull,
         valor_mensal: valor,
-        [effectiveKeyField]: finalKeyValue,
         user_id: user?.id,
         geocoding_status: "pending",
         ...(cidadeVal ? { cidade: String(cidadeVal) } : {}),
         ...(ufVal ? { uf: String(ufVal) } : {}),
-        __matchField: effectiveKeyField,
+        __hasKey: !!hasKey,
       };
+      
+      // Set the key field value
+      if (keyField !== "endereco" && hasKey) {
+        item[keyField] = String(keyValue).trim();
+      }
 
       // Optional fields
       const optMap: Record<string, string> = {
@@ -261,22 +257,18 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       items.push(item);
     }
 
-    // Check for duplicates within import — dedup by match key AND by endereco
+    // Dedup: by key field value (for items with key) or by endereco (for items without)
     const seenByKey = new Set<string>();
-    const seenByEndereco = new Set<string>();
     const unique: any[] = [];
+    
     for (const item of items) {
-      const itemKey = item.__matchField || keyField;
-      const k = `${itemKey}:${String(item[itemKey])}`;
-      const endKey = String(item.endereco || "").trim().toUpperCase();
+      const dedupKey = item.__hasKey && keyField !== "endereco"
+        ? `key:${String(item[keyField])}`
+        : `end:${String(item.endereco || "").trim().toUpperCase()}`;
       
-      if (seenByKey.has(k) || (endKey && seenByEndereco.has(endKey))) { 
-        ignored++; continue; 
-      }
-      seenByKey.add(k);
-      if (endKey) seenByEndereco.add(endKey);
-      const { __matchField, ...cleanItem } = item;
-      unique.push({ ...cleanItem, __matchField: itemKey });
+      if (seenByKey.has(dedupKey)) { ignored++; continue; }
+      seenByKey.add(dedupKey);
+      unique.push(item);
     }
 
     setSummary({
@@ -289,14 +281,27 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
     if (unique.length > 0) {
       try {
-        // Upsert all items using endereco as the primary conflict key
-        // (since all records have an endereco and it has a unique constraint)
-        const cleanUnique = unique.map(({ __matchField, ...rest }) => rest);
-        await upsertCompras.mutateAsync({ items: cleanUnique, keyField: "endereco" });
+        // Split into items WITH key (upsert) and WITHOUT key (insert)
+        const withKey = unique.filter(i => i.__hasKey && keyField !== "endereco").map(({ __hasKey, ...r }) => r);
+        const withoutKey = unique.filter(i => !i.__hasKey || keyField === "endereco").map(({ __hasKey, ...r }) => r);
+
+        if (withKey.length > 0) {
+          await upsertCompras.mutateAsync({ items: withKey, keyField });
+        }
+        if (withoutKey.length > 0) {
+          // Insert without upsert - just insert new records
+          const { supabase } = await import("@/integrations/supabase/client");
+          const batchSize = 500;
+          for (let i = 0; i < withoutKey.length; i += batchSize) {
+            const batch = withoutKey.slice(i, i + batchSize);
+            await supabase.from("compras_lm").insert(batch as any);
+          }
+        }
         toast({ title: `${unique.length} registros importados com sucesso!` });
 
         // Background geocoding
-        geocodeInBackground(unique.filter(i => i.endereco && i.geocoding_status === "pending"));
+        const itemsToGeocode = unique.filter(i => i.endereco && i.geocoding_status === "pending").map(({ __hasKey, ...r }) => r);
+        geocodeInBackground(itemsToGeocode);
       } catch (err: any) {
         toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
       }
