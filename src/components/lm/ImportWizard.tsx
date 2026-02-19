@@ -159,7 +159,7 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
       if (!endereco && !getValue("cidade")) { errors.push(`Linha ${lineNum}: Endereço ou Cidade vazio`); continue; }
       if (!valorStr && valorStr !== 0) { errors.push(`Linha ${lineNum}: Valor mensal vazio`); continue; }
-      if (!keyValue) { errors.push(`Linha ${lineNum}: Chave (${keyField}) vazia`); continue; }
+      const finalKeyValue = keyValue ? String(keyValue) : "não encontrado";
 
       const valor = parseFloat(String(valorStr));
       if (isNaN(valor)) { errors.push(`Linha ${lineNum}: Valor mensal inválido`); continue; }
@@ -170,7 +170,7 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
         parceiro: String(parceiro),
         endereco: enderecoFull,
         valor_mensal: valor,
-        [keyField]: String(keyValue),
+        [keyField]: finalKeyValue,
         user_id: user?.id,
         geocoding_status: "pending",
       };
