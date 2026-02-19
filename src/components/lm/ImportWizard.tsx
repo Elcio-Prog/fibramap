@@ -261,16 +261,20 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       items.push(item);
     }
 
-    // Check for duplicates within import
-    const seen = new Set<string>();
+    // Check for duplicates within import — dedup by match key AND by endereco
+    const seenByKey = new Set<string>();
+    const seenByEndereco = new Set<string>();
     const unique: any[] = [];
     for (const item of items) {
-      // For complement, detect key from item
       const itemKey = item.__matchField || keyField;
       const k = `${itemKey}:${String(item[itemKey])}`;
-      if (seen.has(k)) { ignored++; continue; }
-      seen.add(k);
-      // Remove internal marker
+      const endKey = String(item.endereco || "").trim().toUpperCase();
+      
+      if (seenByKey.has(k) || (endKey && seenByEndereco.has(endKey))) { 
+        ignored++; continue; 
+      }
+      seenByKey.add(k);
+      if (endKey) seenByEndereco.add(endKey);
       const { __matchField, ...cleanItem } = item;
       unique.push({ ...cleanItem, __matchField: itemKey });
     }
@@ -285,17 +289,10 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
 
     if (unique.length > 0) {
       try {
-        // Group by match field and upsert each group separately
-        const groups: Record<string, any[]> = {};
-        for (const item of unique) {
-          const mf = item.__matchField || keyField;
-          if (!groups[mf]) groups[mf] = [];
-          const { __matchField, ...clean } = item;
-          groups[mf].push(clean);
-        }
-        for (const [mf, groupItems] of Object.entries(groups)) {
-          await upsertCompras.mutateAsync({ items: groupItems, keyField: mf as any });
-        }
+        // Upsert all items using endereco as the primary conflict key
+        // (since all records have an endereco and it has a unique constraint)
+        const cleanUnique = unique.map(({ __matchField, ...rest }) => rest);
+        await upsertCompras.mutateAsync({ items: cleanUnique, keyField: "endereco" });
         toast({ title: `${unique.length} registros importados com sucesso!` });
 
         // Background geocoding
