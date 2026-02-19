@@ -90,8 +90,12 @@ export default function FeasibilityPage() {
     setMapZoom(value);
     localStorage.setItem("feasibility_map_zoom", String(value));
   };
+  const [cepGeo, setCepGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null);
+
   const handleCepLookup = async (value: string) => {
     setCep(value);
+    setCepGeo(null);
     const clean = value.replace(/\D/g, "");
     if (clean.length === 8) {
       setCepLoading(true);
@@ -100,11 +104,61 @@ export default function FeasibilityPage() {
       if (result) {
         const fullAddr = `${result.logradouro}, ${result.bairro}, ${result.localidade} - ${result.uf}`;
         setCepAddress(fullAddr);
+        setCepData({ logradouro: result.logradouro, bairro: result.bairro, localidade: result.localidade, uf: result.uf });
       } else {
         toast({ title: "CEP não encontrado", variant: "destructive" });
         setCepAddress("");
+        setCepData(null);
       }
     }
+  };
+
+  /** Geocode CEP using structured Nominatim search with multiple fallbacks (same as RadiusSearch) */
+  const geocodeCepAddress = async (number?: string): Promise<{ lat: number; lng: number; display: string } | null> => {
+    if (!cepData) return null;
+    const street = number ? `${cepData.logradouro}, ${number}` : cepData.logradouro;
+
+    // Fallback 1: structured search
+    const params1 = new URLSearchParams({
+      format: "json",
+      street,
+      city: cepData.localidade,
+      state: cepData.uf,
+      country: "BR",
+      limit: "1",
+    });
+    let res = await fetch(`https://nominatim.openstreetmap.org/search?${params1}`);
+    let results = await res.json();
+
+    // Fallback 2: postalcode search
+    if (results.length === 0) {
+      const clean = cep.replace(/\D/g, "");
+      const params2 = new URLSearchParams({
+        format: "json",
+        postalcode: clean,
+        country: "BR",
+        limit: "1",
+      });
+      res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
+      results = await res.json();
+    }
+
+    // Fallback 3: free text search
+    if (results.length === 0) {
+      const q = `${cepData.logradouro}, ${cepData.localidade}, ${cepData.uf}`;
+      res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`
+      );
+      results = await res.json();
+    }
+
+    if (results.length > 0) {
+      const lat = parseFloat(results[0].lat);
+      const lng = parseFloat(results[0].lon);
+      const display = results[0].display_name || cepAddress;
+      return { lat, lng, display };
+    }
+    return null;
   };
 
   const handleCalculate = async () => {
@@ -135,13 +189,12 @@ export default function FeasibilityPage() {
         }
         geo = { lat, lng, display: `${lat}, ${lng}` };
       } else if (inputMode === "cep") {
-        if (!cepAddress) {
+        if (!cepAddress || !cepData) {
           toast({ title: "Busque um CEP válido primeiro", variant: "destructive" });
           setLoading(false);
           return;
         }
-        const fullAddr = cepNumber ? `${cepAddress}, ${cepNumber}` : cepAddress;
-        geo = await geocodeAddress(fullAddr);
+        geo = await geocodeCepAddress(cepNumber || undefined);
         if (!geo) {
           toast({ title: "Endereço do CEP não encontrado", variant: "destructive" });
           setLoading(false);
