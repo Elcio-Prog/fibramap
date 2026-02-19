@@ -174,11 +174,39 @@ export async function getRouteDistance(
   }
 }
 
+/** Clean address for better geocoding: remove CEP, special chars, extra info */
+function cleanAddressForGeocoding(address: string): string {
+  let clean = address;
+  // Remove CEP patterns: 13.300-065, 13300-065, 13300065, CEP 13.300-065
+  clean = clean.replace(/,?\s*CEP[:\s]?\s*\d{2}\.?\d{3}-?\d{3}/gi, "");
+  clean = clean.replace(/,?\s*\d{2}\.\d{3}-\d{3}/g, "");
+  clean = clean.replace(/,?\s*\d{5}-\d{3}/g, "");
+  // Remove parenthetical notes like (Shopping Iguatemi)
+  clean = clean.replace(/\([^)]*\)/g, "");
+  // Remove "ID XXXX - " prefixes
+  clean = clean.replace(/ID\s*\d+\s*[-–]\s*/gi, "");
+  // Replace common abbreviations
+  clean = clean.replace(/\bAV\.\s*/gi, "Avenida ");
+  clean = clean.replace(/\bR\.\s*/gi, "Rua ");
+  clean = clean.replace(/\bROD\.\s*/gi, "Rodovia ");
+  // Replace / with - for city/state (e.g. CAMPINAS/SP -> CAMPINAS, SP)
+  clean = clean.replace(/\/([A-Z]{2})\b/g, ", $1");
+  // Remove S/Nº
+  clean = clean.replace(/,?\s*S\/N[º°]?\b/gi, "");
+  // Remove non-breaking spaces and extra whitespace
+  clean = clean.replace(/\u00A0/g, " ");
+  clean = clean.replace(/\s+/g, " ").trim();
+  // Remove trailing commas/dashes
+  clean = clean.replace(/[,\-–\s]+$/, "").trim();
+  return clean;
+}
+
 /** Geocode an address using Nominatim */
 export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number; display: string } | null> {
   try {
+    const cleaned = cleanAddressForGeocoding(address);
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=br`
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=1&countrycodes=br`
     );
     const data = await res.json();
     if (data.length > 0) {

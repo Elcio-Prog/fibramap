@@ -257,21 +257,18 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
       items.push(item);
     }
 
-    // Dedup in-memory by key field value
+    // Only dedup by business key (id_etiqueta/nr_contrato) if selected and available
+    // Do NOT dedup by endereco — multiple contracts at same address are allowed
     const seenKeys = new Set<string>();
     const unique: any[] = [];
     
     for (const item of items) {
-      // Build dedup key from the selected key field or endereco as fallback
-      const kv = keyField !== "endereco" && item[keyField] 
-        ? `key:${String(item[keyField]).trim()}`
-        : `end:${String(item.endereco || "").trim().toUpperCase()}`;
-      
-      if (seenKeys.has(kv)) { ignored++; continue; }
-      seenKeys.add(kv);
-      // Remove internal flags
-      const { __hasKey, __matchField, ...clean } = item;
-      unique.push(clean);
+      if (keyField !== "endereco" && item[keyField]) {
+        const kv = String(item[keyField]).trim();
+        if (seenKeys.has(kv)) { ignored++; continue; }
+        seenKeys.add(kv);
+      }
+      unique.push(item);
     }
 
     setSummary({
