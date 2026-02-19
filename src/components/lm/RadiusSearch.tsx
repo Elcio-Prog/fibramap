@@ -10,8 +10,8 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { useComprasLM, CompraLM } from "@/hooks/useComprasLM";
 import { haversineDistance } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
-import { geocodeAddress } from "@/lib/geo-utils";
 import { Search, MapPin, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Fix leaflet default icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -47,10 +47,14 @@ export default function RadiusSearch() {
   const { data: allData } = useComprasLM();
 
   const handleCepSearch = async () => {
+    if (loadingCep) return;
     setLoadingCep(true);
     try {
       const data = await fetchCep(cep);
-      if (!data) return;
+      if (!data) {
+        toast.error("CEP não encontrado");
+        return;
+      }
       // Use structured Nominatim search with city/state for accuracy
       const params = new URLSearchParams({
         format: "json",
@@ -73,11 +77,22 @@ export default function RadiusSearch() {
         res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
         results = await res.json();
       }
+      // Fallback 2: free text search with city
+      if (results.length === 0) {
+        res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${data.logradouro}, ${data.localidade}, ${data.uf}`)}&limit=1&countrycodes=br`
+        );
+        results = await res.json();
+      }
       if (results.length > 0) {
         const lat = parseFloat(results[0].lat);
         const lng = parseFloat(results[0].lon);
         setCenter({ lat, lng });
-        setAddress(`${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`);
+        const addr = `${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`;
+        setAddress(addr);
+        toast.success(`Endereço encontrado: ${addr}`);
+      } else {
+        toast.error("Não foi possível geocodificar o CEP");
       }
     } finally {
       setLoadingCep(false);
