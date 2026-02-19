@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin, Loader2 } from "lucide-react";
+import { cleanAddressForSearch } from "@/lib/geo-utils";
 
 interface NominatimResult {
   place_id: number;
@@ -30,19 +31,20 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     }
     setLoading(true);
     try {
-      // First try standard search
+      // Clean address before searching
+      const cleaned = cleanAddressForSearch(query);
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
       );
       let data: NominatimResult[] = await res.json();
 
       // If no results, try simplified query (remove number and neighborhood)
       if (data.length === 0) {
-        const simplified = query
-          .replace(/,?\s*\d+\s*/g, " ") // remove house numbers
-          .replace(/\s*-\s*[^,]+/g, "") // remove "- Bairro"
+        const simplified = cleaned
+          .replace(/,?\s*\d+\s*/g, " ")
+          .replace(/\s*-\s*[^,]+/g, "")
           .trim();
-        if (simplified !== query) {
+        if (simplified !== cleaned) {
           const res2 = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
           );

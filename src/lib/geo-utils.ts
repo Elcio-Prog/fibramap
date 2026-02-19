@@ -175,6 +175,10 @@ export async function getRouteDistance(
 }
 
 /** Clean address for better geocoding: remove CEP, special chars, extra info */
+export function cleanAddressForSearch(address: string): string {
+  return cleanAddressForGeocoding(address);
+}
+
 function cleanAddressForGeocoding(address: string): string {
   let clean = address;
   // Remove CEP patterns: 13.300-065, 13300-065, 13300065, CEP 13.300-065
