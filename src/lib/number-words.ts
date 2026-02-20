@@ -93,3 +93,44 @@ export function convertNumberWords(input: string): string {
 
   return result.join(" ");
 }
+
+/**
+ * Reverse: convert digits in a string to Portuguese number words.
+ * E.g. "Rua 42" → "Rua Quarenta e Dois"
+ */
+export function convertDigitsToWords(input: string): string {
+  return input.replace(/\b(\d+)\b/g, (_, numStr) => {
+    const n = parseInt(numStr, 10);
+    if (isNaN(n) || n < 0 || n > 999) return numStr;
+    return numberToWords(n) || numStr;
+  });
+}
+
+function numberToWords(n: number): string {
+  if (n === 0) return "zero";
+
+  const unitWords = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove",
+    "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+  const tenWords = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+  const hundredWords = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos",
+    "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+  if (n === 100) return "cem";
+
+  const parts: string[] = [];
+  const h = Math.floor(n / 100);
+  const rest = n % 100;
+
+  if (h > 0) parts.push(hundredWords[h]);
+
+  if (rest > 0 && rest < 20) {
+    parts.push(unitWords[rest]);
+  } else if (rest >= 20) {
+    const t = Math.floor(rest / 10);
+    const u = rest % 10;
+    parts.push(tenWords[t]);
+    if (u > 0) parts.push(unitWords[u]);
+  }
+
+  return parts.join(" e ");
+}

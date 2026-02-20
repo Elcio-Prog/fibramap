@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin, Loader2 } from "lucide-react";
 import { cleanAddressForSearch } from "@/lib/geo-utils";
-import { convertNumberWords } from "@/lib/number-words";
+import { convertNumberWords, convertDigitsToWords } from "@/lib/number-words";
 
 interface NominatimResult {
   place_id: number;
@@ -39,17 +39,28 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
       );
       let data: NominatimResult[] = await res.json();
 
-      // If no results, try simplified query (remove number and neighborhood)
+      // Fallback 1: try with numbers converted to words (e.g. "Rua 42" → "Rua Quarenta e Dois")
+      if (data.length === 0 && /\d/.test(cleaned)) {
+        const withWords = convertDigitsToWords(cleaned);
+        if (withWords !== cleaned) {
+          const res2 = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(withWords)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
+          );
+          data = await res2.json();
+        }
+      }
+
+      // Fallback 2: try simplified query (remove number and neighborhood)
       if (data.length === 0) {
         const simplified = cleaned
           .replace(/,?\s*\d+\s*/g, " ")
           .replace(/\s*-\s*[^,]+/g, "")
           .trim();
         if (simplified !== cleaned) {
-          const res2 = await fetch(
+          const res3 = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
           );
-          data = await res2.json();
+          data = await res3.json();
         }
       }
 
