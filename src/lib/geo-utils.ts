@@ -199,6 +199,8 @@ function cleanAddressForGeocoding(address: string): string {
   clean = clean.replace(/ID\s*\d+\s*[-–]\s*/gi, "");
   // Remove "Número:" prefix (e.g. "MendesNúmero: 451" → "Mendes 451")
   clean = clean.replace(/N[úu]mero:\s*/gi, " ");
+  // Remove "SEQ ...: NNNN -" prefixes (e.g. "SEQ BRADESCO: 2166 -")
+  clean = clean.replace(/SEQ\s+[^:]+:\s*\d+\s*[-–]\s*/gi, "");
   // Replace common abbreviations
   clean = clean.replace(/\bAV\.\s*/gi, "Avenida ");
   clean = clean.replace(/\bR\.\s*/gi, "Rua ");
@@ -206,6 +208,15 @@ function cleanAddressForGeocoding(address: string): string {
   clean = clean.replace(/\bAL\.\s*/gi, "Alameda ");
   clean = clean.replace(/\bTV\.\s*/gi, "Travessa ");
   clean = clean.replace(/\bPÇA?\.\s*/gi, "Praça ");
+  clean = clean.replace(/\bPRES\.\s*/gi, "Presidente ");
+  clean = clean.replace(/\bGOV\.\s*/gi, "Governador ");
+  clean = clean.replace(/\bDR\.\s*/gi, "Doutor ");
+  clean = clean.replace(/\bPROF\.\s*/gi, "Professor ");
+  clean = clean.replace(/\bENG\.\s*/gi, "Engenheiro ");
+  clean = clean.replace(/\bSTA\.\s*/gi, "Santa ");
+  clean = clean.replace(/\bSTO\.\s*/gi, "Santo ");
+  // Remove ordinal indicators (º, ª) attached to numbers or words
+  clean = clean.replace(/[º°ª]/g, "");
   // Replace / with , for city/state (e.g. CAMPINAS/SP -> CAMPINAS, SP)
   clean = clean.replace(/\/([A-Z]{2})\b/g, ", $1");
   // Remove S/Nº
@@ -236,8 +247,9 @@ function simplifyAddress(address: string): string {
 
 /** Extract city and UF from address string */
 function extractCityUf(address: string): { city: string; uf: string } | null {
-  // Match patterns like "Cidade/SP", "Cidade - SP", "Cidade, SP"
-  const m = address.match(/([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-Za-zÀ-ú]+)*)\s*[/,\-–]\s*([A-Z]{2})\b/);
+  // Match patterns like "Cidade/SP", "Cidade - SP", "Cidade, SP", "CIDADE/SP", "CIDADE - SP"
+  // Support both mixed case and ALL CAPS city names
+  const m = address.match(/([A-ZÀ-Úa-zà-ú][A-Za-zÀ-ú]+(?:\s+[A-Za-zÀ-ú]+)*)\s*[/,\-–]\s*([A-Z]{2})\b/);
   if (m) return { city: m[1].trim(), uf: m[2] };
   return null;
 }
