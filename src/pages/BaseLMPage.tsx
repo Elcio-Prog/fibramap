@@ -35,7 +35,7 @@ export default function BaseLMPage() {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       try {
-        const result = await geocodeAddress(item.endereco);
+        const result = await geocodeAddress(item.endereco, item.cidade, item.uf);
         if (result) {
           await supabase
             .from("compras_lm")
