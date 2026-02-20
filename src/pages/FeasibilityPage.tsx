@@ -220,23 +220,8 @@ export default function FeasibilityPage() {
 
         const isNetTurbo = provider.id === netTurboProvider?.id;
 
-        // Check polygon coverage (for providers with polygons)
-        const polygonElements = providerElements.filter((e) => {
-          const geoObj = typeof e.geometry === "string" ? JSON.parse(e.geometry) : e.geometry;
-          return geoObj?.type === "Polygon" || geoObj?.type === "MultiPolygon";
-        });
-        // Ensure geometry is parsed object for polygon check
-        const parsedPolygonElements = polygonElements.map((e) => ({
-          ...e,
-          geometry: typeof e.geometry === "string" ? JSON.parse(e.geometry as string) : e.geometry,
-        }));
-        console.log(`[Feasibility] Provider ${provider.name}: ${polygonElements.length} polygons, checking point (${geo.lat}, ${geo.lng})`);
-        if (parsedPolygonElements.length > 0) {
-          const sample = parsedPolygonElements[0].geometry as any;
-          console.log(`[Feasibility] Sample polygon type: ${sample?.type}, coords sample:`, sample?.coordinates?.[0]?.slice(0, 2));
-        }
-        const inside = parsedPolygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, parsedPolygonElements);
-        console.log(`[Feasibility] Provider ${provider.name}: inside = ${inside}`);
+        // Check coverage: polygons AND closed LineStrings (manchas)
+        const inside = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
 
         // Find LPU value
         const providerLpu = allLpuItems?.filter((l) => l.provider_id === provider.id) || [];
@@ -249,7 +234,7 @@ export default function FeasibilityPage() {
 
         if (isNetTurbo) {
           // Net Turbo: own network - check if inside coverage polygon first
-          const insideNT = parsedPolygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, parsedPolygonElements);
+          const insideNT = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
 
           let distance = 0;
           let routeGeometry: any = null;

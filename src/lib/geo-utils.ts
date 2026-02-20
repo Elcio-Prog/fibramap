@@ -91,7 +91,7 @@ function extractPoints(geometry: any): [number, number][] {
   }
 }
 
-/** Extract all polygons from a geometry as arrays of [lng, lat] rings */
+/** Extract all polygon rings from a geometry, including closed LineStrings */
 function extractPolygonRings(geometry: any): number[][][] {
   if (!geometry) return [];
   switch (geometry.type) {
@@ -99,12 +99,37 @@ function extractPolygonRings(geometry: any): number[][][] {
       return geometry.coordinates.map((ring: number[][]) => ring);
     case "MultiPolygon":
       return geometry.coordinates.flat().map((ring: number[][]) => ring);
+    case "LineString": {
+      // Treat closed LineStrings (first point = last point) as polygon rings
+      const coords = geometry.coordinates;
+      if (coords && coords.length >= 4) {
+        const first = coords[0];
+        const last = coords[coords.length - 1];
+        if (first[0] === last[0] && first[1] === last[1]) {
+          return [coords];
+        }
+      }
+      return [];
+    }
+    case "MultiLineString": {
+      const rings: number[][][] = [];
+      for (const line of geometry.coordinates) {
+        if (line && line.length >= 4) {
+          const first = line[0];
+          const last = line[line.length - 1];
+          if (first[0] === last[0] && first[1] === last[1]) {
+            rings.push(line);
+          }
+        }
+      }
+      return rings;
+    }
     default:
       return [];
   }
 }
 
-/** Ray-casting point-in-polygon test. Point is [lng, lat], ring is array of [lng, lat]. */
+/** Ray-casting point-in-polygon test. Point is [lng, lat], ring is array of [lng, lat, ...]. */
 function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -116,14 +141,15 @@ function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
   return inside;
 }
 
-/** Check if a lat/lng point is inside any polygon of the given geo elements */
+/** Check if a lat/lng point is inside any polygon or closed line of the given geo elements */
 export function isInsideCoverage(
   lat: number,
   lng: number,
   elements: Array<{ geometry: any }>
 ): boolean {
   for (const el of elements) {
-    const rings = extractPolygonRings(el.geometry);
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    const rings = extractPolygonRings(geo);
     for (const ring of rings) {
       if (pointInRing(lng, lat, ring)) return true;
     }
