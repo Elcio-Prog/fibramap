@@ -1,0 +1,1 @@
+ALTER TABLE public.providers ADD COLUMN has_cross_ntt boolean NOT NULL DEFAULT false;
