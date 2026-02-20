@@ -236,7 +236,62 @@ export default function FeasibilityPage() {
         const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
         const maxDist = provider.max_lpu_distance_m;
 
-        if (inside && !isNetTurbo) {
+        if (isNetTurbo) {
+          // Net Turbo: own network - always check first, calculate distance to nearest point
+          const nearest = findNearestPoint(
+            geo.lat, geo.lng,
+            providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
+          );
+          if (!nearest) continue;
+
+          let distance = nearest.distance;
+          let routeGeometry: any = null;
+          try {
+            const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
+            if (route) {
+              distance = route.distance;
+              routeGeometry = route.geometry;
+            }
+          } catch {}
+
+          const isViableNT = distance <= maxDist;
+          const result: FeasibilityResult = {
+            address: geo.display,
+            lat: geo.lat,
+            lng: geo.lng,
+            providerName: provider.name,
+            providerColor: provider.color,
+            distance: Math.round(distance),
+            maxDistance: maxDist,
+            lpuValue: 0,
+            lpuType: "Rede Própria",
+            multiplier: 1,
+            finalValue: 0,
+            status: isViableNT ? "outside_viable" : "outside_not_viable",
+            providerId: provider.id,
+            routeGeometry: isViableNT ? routeGeometry : undefined,
+            nearestPoint: isViableNT ? nearest.point : undefined,
+            isOwnNetwork: true,
+          };
+          // Always show Net Turbo (viable or not) as informational
+          newResults.push(result);
+
+          await createFeasibility.mutateAsync({
+            user_id: user?.id,
+            customer_address: address || geo.display,
+            customer_lat: geo.lat,
+            customer_lng: geo.lng,
+            provider_id: provider.id,
+            calculated_distance_m: Math.round(distance),
+            lpu_value: 0,
+            multiplier: 1,
+            final_value: 0,
+            is_viable: isViableNT,
+            notes: isViableNT ? "Rede própria Net Turbo - Viável" : "Rede própria Net Turbo - Não atende",
+          });
+
+          // If Net Turbo is viable, we still continue to show other providers for comparison
+        } else if (inside) {
           // Client is inside coverage polygon - viable, distance = 0
           const result: FeasibilityResult = {
             address: geo.display,
@@ -267,58 +322,6 @@ export default function FeasibilityPage() {
             multiplier: mult,
             final_value: finalValue,
             is_viable: true,
-          });
-        } else if (isNetTurbo) {
-          // Net Turbo: own network - calculate distance to nearest point on network
-          const nearest = findNearestPoint(
-            geo.lat, geo.lng,
-            providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
-          );
-          if (!nearest) continue;
-
-          let distance = nearest.distance;
-          let routeGeometry: any = null;
-          try {
-            const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-            if (route) {
-              distance = route.distance;
-              routeGeometry = route.geometry;
-            }
-          } catch {}
-
-          const result: FeasibilityResult = {
-            address: geo.display,
-            lat: geo.lat,
-            lng: geo.lng,
-            providerName: provider.name,
-            providerColor: provider.color,
-            distance: Math.round(distance),
-            maxDistance: maxDist,
-            lpuValue: 0,
-            lpuType: "Rede Própria",
-            multiplier: 1,
-            finalValue: 0,
-            status: distance <= maxDist ? "outside_viable" : "outside_not_viable",
-            providerId: provider.id,
-            routeGeometry,
-            nearestPoint: nearest.point,
-            isOwnNetwork: true,
-          };
-          // Always show Net Turbo regardless of distance (it's informational)
-          newResults.push(result);
-
-          await createFeasibility.mutateAsync({
-            user_id: user?.id,
-            customer_address: address || geo.display,
-            customer_lat: geo.lat,
-            customer_lng: geo.lng,
-            provider_id: provider.id,
-            calculated_distance_m: Math.round(distance),
-            lpu_value: 0,
-            multiplier: 1,
-            final_value: 0,
-            is_viable: distance <= maxDist,
-            notes: "Rede própria Net Turbo",
           });
         } else {
           // Client is outside coverage - calculate distance to nearest boundary
@@ -718,8 +721,11 @@ function ResultCard({
 
   // Badge config
   const getBadgeConfig = () => {
-    if (r.isOwnNetwork) {
-      return { label: "REDE PRÓPRIA", variant: "secondary" as const, icon: Wifi, color: "text-blue-600" };
+    if (r.isOwnNetwork && r.status === "outside_viable") {
+      return { label: "REDE PRÓPRIA - VIÁVEL", variant: "secondary" as const, icon: CheckCircle, color: "text-blue-600" };
+    }
+    if (r.isOwnNetwork && r.status === "outside_not_viable") {
+      return { label: "REDE PRÓPRIA - NÃO ATENDE", variant: "destructive" as const, icon: Ban, color: "text-red-600" };
     }
     if (r.status === "inside") {
       return { label: "DENTRO DA COBERTURA", variant: "default" as const, icon: CheckCircle, color: "text-green-600" };
@@ -756,18 +762,30 @@ function ResultCard({
           <div ref={mapContainerRef} style={{ width: "100%", height: "200px" }} className="rounded-lg overflow-hidden border" />
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-            {r.isOwnNetwork ? (
-              <>
-                <p className="col-span-2">
-                  <span className="text-muted-foreground">Distância até a rede:</span>{" "}
-                  <strong className="text-blue-600">{r.distance}m</strong>
-                </p>
-                <p className="col-span-2 text-xs text-muted-foreground">
-                  ⚡ Rede própria - distância calculada até o ponto mais próximo da rede. No futuro, o cálculo será até a caixa disponível mais próxima.
-                </p>
-              </>
-            ) : r.status === "inside" ? (
-              <p className="col-span-2 text-green-600 font-medium">📍 Cliente está dentro da área de cobertura — distância: 0m</p>
+              {r.isOwnNetwork && r.status === "outside_viable" ? (
+                <>
+                  <p className="col-span-2">
+                    <span className="text-muted-foreground">Distância até a rede:</span>{" "}
+                    <strong className="text-blue-600">{r.distance}m</strong>
+                    <span className="text-muted-foreground ml-2">(máx: {r.maxDistance}m)</span>
+                  </p>
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    ⚡ Rede própria - distância calculada até o ponto mais próximo da rede.
+                  </p>
+                </>
+              ) : r.isOwnNetwork && r.status === "outside_not_viable" ? (
+                <>
+                  <p className="col-span-2">
+                    <span className="text-muted-foreground">Distância até a rede:</span>{" "}
+                    <strong className="text-destructive">{r.distance}m</strong>
+                    <span className="text-muted-foreground ml-2">(máx: {r.maxDistance}m)</span>
+                  </p>
+                  <p className="col-span-2 text-sm text-destructive font-medium">
+                    ❌ A rede própria da Net Turbo não atende este cliente. Distância excede o limite configurado.
+                  </p>
+                </>
+              ) : r.status === "inside" ? (
+                <p className="col-span-2 text-green-600 font-medium">📍 Cliente está dentro da área de cobertura — distância: 0m</p>
             ) : (
               <>
                 <p><span className="text-muted-foreground">Distância:</span> <strong className="text-green-600">{r.distance}m</strong></p>
