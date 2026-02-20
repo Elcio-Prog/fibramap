@@ -92,20 +92,20 @@ function extractPoints(geometry: any): [number, number][] {
 }
 
 /** Extract all polygons from a geometry as arrays of [lng, lat] rings */
-function extractPolygonRings(geometry: any): [number, number][][] {
+function extractPolygonRings(geometry: any): number[][][] {
   if (!geometry) return [];
   switch (geometry.type) {
     case "Polygon":
-      return geometry.coordinates.map((ring: [number, number][]) => ring);
+      return geometry.coordinates.map((ring: number[][]) => ring);
     case "MultiPolygon":
-      return geometry.coordinates.flat().map((ring: [number, number][]) => ring);
+      return geometry.coordinates.flat().map((ring: number[][]) => ring);
     default:
       return [];
   }
 }
 
 /** Ray-casting point-in-polygon test. Point is [lng, lat], ring is array of [lng, lat]. */
-function pointInRing(lng: number, lat: number, ring: [number, number][]): boolean {
+function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const xi = ring[i][0], yi = ring[i][1];
