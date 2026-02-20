@@ -237,24 +237,39 @@ export default function FeasibilityPage() {
         const maxDist = provider.max_lpu_distance_m;
 
         if (isNetTurbo) {
-          // Net Turbo: own network - always check first, calculate distance to nearest point
-          const nearest = findNearestPoint(
-            geo.lat, geo.lng,
-            providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
-          );
-          if (!nearest) continue;
+          // Net Turbo: own network - check if inside coverage polygon first
+          const insideNT = polygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, polygonElements);
 
-          let distance = nearest.distance;
+          let distance = 0;
           let routeGeometry: any = null;
-          try {
-            const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-            if (route) {
-              distance = route.distance;
-              routeGeometry = route.geometry;
-            }
-          } catch {}
+          let nearestPt: [number, number] | undefined = undefined;
+          let isViableNT = false;
 
-          const isViableNT = distance <= maxDist;
+          if (insideNT) {
+            // Inside coverage polygon - distance is 0, always viable
+            distance = 0;
+            isViableNT = true;
+          } else {
+            // Outside polygon - calculate distance to nearest point
+            const nearest = findNearestPoint(
+              geo.lat, geo.lng,
+              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
+            );
+            if (!nearest) continue;
+
+            distance = nearest.distance;
+            nearestPt = nearest.point;
+            try {
+              const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
+              if (route) {
+                distance = route.distance;
+                routeGeometry = route.geometry;
+              }
+            } catch {}
+
+            isViableNT = distance <= maxDist;
+          }
+
           const result: FeasibilityResult = {
             address: geo.display,
             lat: geo.lat,
@@ -267,13 +282,12 @@ export default function FeasibilityPage() {
             lpuType: "Rede Própria",
             multiplier: 1,
             finalValue: 0,
-            status: isViableNT ? "outside_viable" : "outside_not_viable",
+            status: insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id,
-            routeGeometry: isViableNT ? routeGeometry : undefined,
-            nearestPoint: isViableNT ? nearest.point : undefined,
+            routeGeometry: isViableNT && !insideNT ? routeGeometry : undefined,
+            nearestPoint: isViableNT && !insideNT ? nearestPt : undefined,
             isOwnNetwork: true,
           };
-          // Always show Net Turbo (viable or not) as informational
           newResults.push(result);
 
           await createFeasibility.mutateAsync({
@@ -287,7 +301,7 @@ export default function FeasibilityPage() {
             multiplier: 1,
             final_value: 0,
             is_viable: isViableNT,
-            notes: isViableNT ? "Rede própria Net Turbo - Viável" : "Rede própria Net Turbo - Não atende",
+            notes: insideNT ? "Rede própria Net Turbo - Dentro da cobertura" : isViableNT ? "Rede própria Net Turbo - Viável" : "Rede própria Net Turbo - Não atende",
           });
 
           // If Net Turbo is viable, we still continue to show other providers for comparison
