@@ -34,23 +34,36 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     try {
       // Clean address before searching
       const cleaned = convertNumberWords(cleanAddressForSearch(query));
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
-      );
-      let data: NominatimResult[] = await res.json();
+      
+      // Build search promises - always search with digits version
+      const promises: Promise<NominatimResult[]>[] = [
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
+          .then(r => r.json()).catch(() => []),
+      ];
 
-      // Fallback 1: try with numbers converted to words (e.g. "Rua 42" → "Rua Quarenta e Dois")
-      if (data.length === 0 && /\d/.test(cleaned)) {
-        const withWords = convertDigitsToWords(cleaned);
-        if (withWords !== cleaned) {
-          const res2 = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(withWords)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
-          );
-          data = await res2.json();
+      // If query contains digits, also search with number words (e.g. "42" → "quarenta e dois")
+      const withWords = /\d/.test(cleaned) ? convertDigitsToWords(cleaned) : null;
+      if (withWords && withWords !== cleaned) {
+        promises.push(
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(withWords)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
+            .then(r => r.json()).catch(() => [])
+        );
+      }
+
+      const results = await Promise.all(promises);
+      // Merge and deduplicate by place_id
+      const seen = new Set<number>();
+      let data: NominatimResult[] = [];
+      for (const arr of results) {
+        for (const item of arr) {
+          if (!seen.has(item.place_id)) {
+            seen.add(item.place_id);
+            data.push(item);
+          }
         }
       }
 
-      // Fallback 2: try simplified query (remove number and neighborhood)
+      // Fallback: try simplified query (remove number and neighborhood)
       if (data.length === 0) {
         const simplified = cleaned
           .replace(/,?\s*\d+\s*/g, " ")
