@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useProviders, useCreateProvider, useUpdateProvider, useDeleteProvider } from "@/hooks/useProviders";
+import { useProviders, useCreateProvider, useUpdateProvider, useDeleteProvider, Provider } from "@/hooks/useProviders";
 import { useLpuItems, useCreateLpuItem, useDeleteLpuItem } from "@/hooks/useLpuItems";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Settings, Package } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Trash2, Pencil, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProvidersPage() {
@@ -26,6 +26,7 @@ export default function ProvidersPage() {
   const [telefoneGerente, setTelefoneGerente] = useState("");
 
   const [lpuProviderId, setLpuProviderId] = useState<string | null>(null);
+  const [editProvider, setEditProvider] = useState<Provider | null>(null);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -123,6 +124,9 @@ export default function ProvidersPage() {
                   <TableCell>{p.gerente_comercial || "—"}</TableCell>
                   <TableCell>{p.telefone_gerente || "—"}</TableCell>
                   <TableCell className="text-right space-x-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditProvider(p)} title="Editar">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setLpuProviderId(p.id)} title="LPU">
                       <Package className="h-4 w-4" />
                     </Button>
@@ -153,11 +157,85 @@ export default function ProvidersPage() {
         </CardContent>
       </Card>
 
+      {/* Edit Dialog */}
+      {editProvider && (
+        <EditProviderDialog provider={editProvider} onClose={() => setEditProvider(null)} />
+      )}
+
       {/* LPU Dialog */}
       {lpuProviderId && (
         <LpuDialog providerId={lpuProviderId} providerName={providers?.find((p) => p.id === lpuProviderId)?.name || ""} onClose={() => setLpuProviderId(null)} />
       )}
     </div>
+  );
+}
+
+function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose: () => void }) {
+  const updateProvider = useUpdateProvider();
+  const { toast } = useToast();
+  const [name, setName] = useState(provider.name);
+  const [color, setColor] = useState(provider.color);
+  const [maxDist, setMaxDist] = useState(String(provider.max_lpu_distance_m));
+  const [multiplier, setMultiplier] = useState(String(provider.multiplier));
+  const [gerenteComercial, setGerenteComercial] = useState(provider.gerente_comercial || "");
+  const [telefoneGerente, setTelefoneGerente] = useState(provider.telefone_gerente || "");
+
+  const handleSave = async () => {
+    try {
+      await updateProvider.mutateAsync({
+        id: provider.id,
+        name: name.trim(),
+        color,
+        max_lpu_distance_m: parseFloat(maxDist),
+        multiplier: parseFloat(multiplier),
+        gerente_comercial: gerenteComercial.trim() || null,
+        telefone_gerente: telefoneGerente.trim() || null,
+      });
+      toast({ title: "Provedor atualizado!" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar Provedor</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Nome</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label>Cor</Label>
+            <div className="flex gap-2">
+              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-14 cursor-pointer rounded border" />
+              <Input value={color} onChange={(e) => setColor(e.target.value)} className="flex-1" />
+            </div>
+          </div>
+          <div>
+            <Label>Distância máx. LPU (m)</Label>
+            <Input type="number" value={maxDist} onChange={(e) => setMaxDist(e.target.value)} />
+          </div>
+          <div>
+            <Label>Multiplicador</Label>
+            <Input type="number" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
+          </div>
+          <div>
+            <Label>Gerente Comercial</Label>
+            <Input value={gerenteComercial} onChange={(e) => setGerenteComercial(e.target.value)} placeholder="Nome do gerente" />
+          </div>
+          <div>
+            <Label>Telefone do Gerente</Label>
+            <Input value={telefoneGerente} onChange={(e) => setTelefoneGerente(e.target.value)} placeholder="(00) 00000-0000" />
+          </div>
+        </div>
+        <Button onClick={handleSave} disabled={updateProvider.isPending} className="mt-2">Salvar</Button>
+      </DialogContent>
+    </Dialog>
   );
 }
 
