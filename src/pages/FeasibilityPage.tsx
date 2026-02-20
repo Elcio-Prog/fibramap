@@ -28,7 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash } from "lucide-react";
+import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash, Wifi, Building2 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import html2canvas from "html2canvas";
@@ -59,6 +59,8 @@ interface FeasibilityResult {
   providerId: string;
   routeGeometry?: any;
   nearestPoint?: [number, number];
+  isOwnNetwork?: boolean;
+  hasCrossNtt?: boolean;
 }
 
 export default function FeasibilityPage() {
@@ -113,50 +115,32 @@ export default function FeasibilityPage() {
     }
   };
 
-  /** Geocode CEP using structured Nominatim search with multiple fallbacks (same as RadiusSearch) */
+  /** Geocode CEP using structured Nominatim search with multiple fallbacks */
   const geocodeCepAddress = async (number?: string): Promise<{ lat: number; lng: number; display: string } | null> => {
     if (!cepData) return null;
     const street = number ? `${cepData.logradouro}, ${number}` : cepData.logradouro;
 
-    // Fallback 1: structured search
     const params1 = new URLSearchParams({
-      format: "json",
-      street,
-      city: cepData.localidade,
-      state: cepData.uf,
-      country: "BR",
-      limit: "1",
+      format: "json", street, city: cepData.localidade, state: cepData.uf, country: "BR", limit: "1",
     });
     let res = await fetch(`https://nominatim.openstreetmap.org/search?${params1}`);
     let results = await res.json();
 
-    // Fallback 2: postalcode search
     if (results.length === 0) {
       const clean = cep.replace(/\D/g, "");
-      const params2 = new URLSearchParams({
-        format: "json",
-        postalcode: clean,
-        country: "BR",
-        limit: "1",
-      });
+      const params2 = new URLSearchParams({ format: "json", postalcode: clean, country: "BR", limit: "1" });
       res = await fetch(`https://nominatim.openstreetmap.org/search?${params2}`);
       results = await res.json();
     }
 
-    // Fallback 3: free text search
     if (results.length === 0) {
       const q = `${cepData.logradouro}, ${cepData.localidade}, ${cepData.uf}`;
-      res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`
-      );
+      res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
       results = await res.json();
     }
 
     if (results.length > 0) {
-      const lat = parseFloat(results[0].lat);
-      const lng = parseFloat(results[0].lon);
-      const display = results[0].display_name || cepAddress;
-      return { lat, lng, display };
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon), display: results[0].display_name || cepAddress };
     }
     return null;
   };
@@ -216,12 +200,32 @@ export default function FeasibilityPage() {
 
       const newResults: FeasibilityResult[] = [];
 
-      for (const provider of providers) {
+      // Identify Net Turbo (own network) - prioritize
+      const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
+      
+      // Sort providers: Net Turbo first, then Cross NTT, then others
+      const sortedProviders = [...providers].sort((a, b) => {
+        const aIsNT = a.id === netTurboProvider?.id;
+        const bIsNT = b.id === netTurboProvider?.id;
+        if (aIsNT && !bIsNT) return -1;
+        if (!aIsNT && bIsNT) return 1;
+        if (a.has_cross_ntt && !b.has_cross_ntt) return -1;
+        if (!a.has_cross_ntt && b.has_cross_ntt) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      for (const provider of sortedProviders) {
         const providerElements = allGeoElements.filter((e) => e.provider_id === provider.id);
         if (!providerElements.length) continue;
 
-        // Check if client is inside coverage polygon
-        const inside = isInsideCoverage(geo.lat, geo.lng, providerElements);
+        const isNetTurbo = provider.id === netTurboProvider?.id;
+
+        // Check polygon coverage (for providers with polygons)
+        const polygonElements = providerElements.filter((e) => {
+          const geo = e.geometry as any;
+          return geo?.type === "Polygon" || geo?.type === "MultiPolygon";
+        });
+        const inside = polygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, polygonElements);
 
         // Find LPU value
         const providerLpu = allLpuItems?.filter((l) => l.provider_id === provider.id) || [];
@@ -232,8 +236,8 @@ export default function FeasibilityPage() {
         const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
         const maxDist = provider.max_lpu_distance_m;
 
-        if (inside) {
-          // Client is inside coverage - viable, distance = 0
+        if (inside && !isNetTurbo) {
+          // Client is inside coverage polygon - viable, distance = 0
           const result: FeasibilityResult = {
             address: geo.display,
             lat: geo.lat,
@@ -248,12 +252,13 @@ export default function FeasibilityPage() {
             finalValue: Math.round(finalValue * 100) / 100,
             status: "inside",
             providerId: provider.id,
+            hasCrossNtt: provider.has_cross_ntt,
           };
           newResults.push(result);
 
           await createFeasibility.mutateAsync({
             user_id: user?.id,
-            customer_address: address,
+            customer_address: address || geo.display,
             customer_lat: geo.lat,
             customer_lng: geo.lng,
             provider_id: provider.id,
@@ -263,22 +268,71 @@ export default function FeasibilityPage() {
             final_value: finalValue,
             is_viable: true,
           });
+        } else if (isNetTurbo) {
+          // Net Turbo: own network - calculate distance to nearest point on network
+          const nearest = findNearestPoint(
+            geo.lat, geo.lng,
+            providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
+          );
+          if (!nearest) continue;
+
+          let distance = nearest.distance;
+          let routeGeometry: any = null;
+          try {
+            const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
+            if (route) {
+              distance = route.distance;
+              routeGeometry = route.geometry;
+            }
+          } catch {}
+
+          const result: FeasibilityResult = {
+            address: geo.display,
+            lat: geo.lat,
+            lng: geo.lng,
+            providerName: provider.name,
+            providerColor: provider.color,
+            distance: Math.round(distance),
+            maxDistance: maxDist,
+            lpuValue: 0,
+            lpuType: "Rede Própria",
+            multiplier: 1,
+            finalValue: 0,
+            status: distance <= maxDist ? "outside_viable" : "outside_not_viable",
+            providerId: provider.id,
+            routeGeometry,
+            nearestPoint: nearest.point,
+            isOwnNetwork: true,
+          };
+          // Always show Net Turbo regardless of distance (it's informational)
+          newResults.push(result);
+
+          await createFeasibility.mutateAsync({
+            user_id: user?.id,
+            customer_address: address || geo.display,
+            customer_lat: geo.lat,
+            customer_lng: geo.lng,
+            provider_id: provider.id,
+            calculated_distance_m: Math.round(distance),
+            lpu_value: 0,
+            multiplier: 1,
+            final_value: 0,
+            is_viable: distance <= maxDist,
+            notes: "Rede própria Net Turbo",
+          });
         } else {
           // Client is outside coverage - calculate distance to nearest boundary
           const nearest = findNearestBoundaryPoint(geo.lat, geo.lng, providerElements);
           if (!nearest) continue;
 
-          // Also try nearest point (for non-polygon elements like lines/points)
           const nearestAny = findNearestPoint(
-            geo.lat,
-            geo.lng,
+            geo.lat, geo.lng,
             providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
           );
 
           const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
           let distance = bestNearest.distance;
 
-          // Try OSRM route
           let routeGeometry: any = null;
           try {
             const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
@@ -288,11 +342,12 @@ export default function FeasibilityPage() {
             }
           } catch {}
 
-          // If distance > 2x max, don't even show map - just "denied"
           const tooFar = distance > maxDist * 2;
           const isViable = distance <= maxDist;
-
           const status: ResultStatus = tooFar ? "too_far" : isViable ? "outside_viable" : "outside_not_viable";
+
+          // Only include viable providers in the report
+          if (status === "too_far" || status === "outside_not_viable") continue;
 
           const result: FeasibilityResult = {
             address: geo.display,
@@ -310,13 +365,14 @@ export default function FeasibilityPage() {
             providerId: provider.id,
             routeGeometry,
             nearestPoint: bestNearest.point,
+            hasCrossNtt: provider.has_cross_ntt,
           };
 
           newResults.push(result);
 
           await createFeasibility.mutateAsync({
             user_id: user?.id,
-            customer_address: address,
+            customer_address: address || geo.display,
             customer_lat: geo.lat,
             customer_lng: geo.lng,
             provider_id: provider.id,
@@ -329,12 +385,24 @@ export default function FeasibilityPage() {
         }
       }
 
-      // Sort: inside first, then viable, then not viable, then too far
-      const order: Record<ResultStatus, number> = { inside: 0, outside_viable: 1, outside_not_viable: 2, too_far: 3 };
-      setResults(newResults.sort((a, b) => order[a.status] - order[b.status] || a.distance - b.distance));
+      // Sort: Net Turbo first, then inside, then cross NTT viable, then others viable
+      setResults(newResults.sort((a, b) => {
+        // Net Turbo always first
+        if (a.isOwnNetwork && !b.isOwnNetwork) return -1;
+        if (!a.isOwnNetwork && b.isOwnNetwork) return 1;
+        // Inside before outside
+        const statusOrder: Record<ResultStatus, number> = { inside: 0, outside_viable: 1, outside_not_viable: 2, too_far: 3 };
+        const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+        if (statusDiff !== 0) return statusDiff;
+        // Cross NTT before non-cross
+        if (a.hasCrossNtt && !b.hasCrossNtt) return -1;
+        if (!a.hasCrossNtt && b.hasCrossNtt) return 1;
+        // Then by distance
+        return a.distance - b.distance;
+      }));
 
       if (newResults.length === 0) {
-        toast({ title: "Nenhum provedor com dados geográficos importados" });
+        toast({ title: "Nenhum provedor viável encontrado para este endereço" });
       }
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -344,9 +412,10 @@ export default function FeasibilityPage() {
   };
 
   const shareResult = (r: FeasibilityResult, via: "whatsapp" | "email") => {
-    const statusText = r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
-    const distanceLine = r.status === "inside" ? "" : `\nDistância: ${r.distance}m (máx ${r.maxDistance}m)`;
-    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}${distanceLine}\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
+    const statusText = r.isOwnNetwork ? "🔵 REDE PRÓPRIA" : r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
+    const distanceLine = r.status === "inside" && !r.isOwnNetwork ? "" : `\nDistância: ${r.distance}m`;
+    const valueLine = r.isOwnNetwork ? "" : `\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
+    const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\n${r.isOwnNetwork ? "Rede" : "Provedor"}: ${r.providerName}\nStatus: ${statusText}${distanceLine}${valueLine}`;
 
     if (via === "whatsapp") {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -401,23 +470,11 @@ export default function FeasibilityPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Latitude</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="-22.8231"
-                    value={coordLat}
-                    onChange={(e) => setCoordLat(e.target.value)}
-                  />
+                  <Input type="number" step="any" placeholder="-22.8231" value={coordLat} onChange={(e) => setCoordLat(e.target.value)} />
                 </div>
                 <div>
                   <Label>Longitude</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="-47.2668"
-                    value={coordLng}
-                    onChange={(e) => setCoordLng(e.target.value)}
-                  />
+                  <Input type="number" step="any" placeholder="-47.2668" value={coordLng} onChange={(e) => setCoordLng(e.target.value)} />
                 </div>
               </div>
             </TabsContent>
@@ -427,15 +484,8 @@ export default function FeasibilityPage() {
                 <div className="col-span-1">
                   <Label>CEP</Label>
                   <div className="relative">
-                    <Input
-                      placeholder="13170-000"
-                      value={cep}
-                      onChange={(e) => handleCepLookup(e.target.value)}
-                      maxLength={9}
-                    />
-                    {cepLoading && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
+                    <Input placeholder="13170-000" value={cep} onChange={(e) => handleCepLookup(e.target.value)} maxLength={9} />
+                    {cepLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
                   </div>
                 </div>
                 <div className="col-span-2">
@@ -445,11 +495,7 @@ export default function FeasibilityPage() {
               </div>
               <div className="w-32">
                 <Label>Número</Label>
-                <Input
-                  placeholder="275"
-                  value={cepNumber}
-                  onChange={(e) => setCepNumber(e.target.value)}
-                />
+                <Input placeholder="275" value={cepNumber} onChange={(e) => setCepNumber(e.target.value)} />
               </div>
             </TabsContent>
           </Tabs>
@@ -470,13 +516,7 @@ export default function FeasibilityPage() {
             </div>
             <div>
               <Label>Multiplicador customizado (opcional)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="Usar padrão do provedor"
-                value={customMultiplier}
-                onChange={(e) => setCustomMultiplier(e.target.value)}
-              />
+              <Input type="number" step="0.01" placeholder="Usar padrão do provedor" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} />
             </div>
           </div>
 
@@ -491,14 +531,11 @@ export default function FeasibilityPage() {
       {results.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Resultados ({results.length} provedores)</h2>
+            <h2 className="text-lg font-semibold">Resultados ({results.length} {results.length === 1 ? "opção" : "opções"})</h2>
             <div className="flex items-center gap-3 bg-muted px-3 py-1.5 rounded-lg">
               <span className="text-xs text-muted-foreground whitespace-nowrap">Zoom do mapa:</span>
               <input
-                type="range"
-                min={10}
-                max={50}
-                value={mapZoom}
+                type="range" min={10} max={50} value={mapZoom}
                 onChange={(e) => handleZoomChange(parseInt(e.target.value, 10))}
                 className="w-24 h-1.5 accent-primary"
               />
@@ -535,10 +572,7 @@ function ResultCard({
     if (!cardRef.current) return null;
     try {
       const canvas = await html2canvas(cardRef.current, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        scale: 2,
+        useCORS: true, allowTaint: true, backgroundColor: "#ffffff", scale: 2,
       });
       return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
     } catch {
@@ -552,17 +586,12 @@ function ResultCard({
       const blob = await captureCardImage();
       if (blob && navigator.share) {
         const file = new File([blob], `viabilidade-${r.providerName}.png`, { type: "image/png" });
-        const statusText = r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : r.status === "outside_not_viable" ? "⚠️ FORA DO LPU" : "❌ SEM COBERTURA";
-        const distanceLine = r.status === "inside" ? "" : `\nDistância: ${r.distance}m (máx ${r.maxDistance}m)`;
-        const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\nProvedor: ${r.providerName}\nStatus: ${statusText}${distanceLine}\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
-
-        await navigator.share({
-          title: `Viabilidade - ${r.providerName}`,
-          text,
-          files: [file],
-        });
+        const statusText = r.isOwnNetwork ? "🔵 REDE PRÓPRIA" : r.status === "inside" ? "✅ DENTRO DA COBERTURA" : r.status === "outside_viable" ? "✅ VIÁVEL" : "⚠️ FORA DO LPU";
+        const distanceLine = r.status === "inside" && !r.isOwnNetwork ? "" : `\nDistância: ${r.distance}m`;
+        const valueLine = r.isOwnNetwork ? "" : `\nTipo: ${r.lpuType}\nValor Mínimo: R$ ${r.finalValue.toFixed(2)}`;
+        const text = `📍 Viabilidade de Fibra\n\nEndereço: ${r.address}\n${r.isOwnNetwork ? "Rede" : "Provedor"}: ${r.providerName}\nStatus: ${statusText}${distanceLine}${valueLine}`;
+        await navigator.share({ title: `Viabilidade - ${r.providerName}`, text, files: [file] });
       } else {
-        // Fallback: download image + share text
         if (blob) {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -574,67 +603,53 @@ function ResultCard({
         onShare(r, via);
       }
     } catch (err: any) {
-      if (err.name !== "AbortError") {
-        onShare(r, via);
-      }
+      if (err.name !== "AbortError") onShare(r, via);
     } finally {
       setCapturing(false);
     }
   };
 
-  const statusConfig: Record<ResultStatus, { label: string; variant: "default" | "destructive" | "secondary" | "outline"; icon: any; color: string }> = {
-    inside: { label: "DENTRO DA COBERTURA", variant: "default", icon: CheckCircle, color: "text-green-600" },
-    outside_viable: { label: "VIÁVEL", variant: "default", icon: CheckCircle, color: "text-green-600" },
-    outside_not_viable: { label: "FORA DO LPU", variant: "destructive", icon: XCircle, color: "text-red-600" },
-    too_far: { label: "SEM COBERTURA", variant: "destructive", icon: Ban, color: "text-red-600" },
-  };
-
-  const config = statusConfig[r.status];
-  const Icon = config.icon;
-  const showMap = r.status !== "too_far";
+  const showMap = true; // Always show map for viable results
 
   useEffect(() => {
     if (!showMap || !mapContainerRef.current) return;
-    // Destroy previous map if zoom changed
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
     }
 
     const map = L.map(mapContainerRef.current, {
-      zoomControl: false,
-      attributionControl: false,
-      maxZoom: 50,
+      zoomControl: false, attributionControl: false, maxZoom: 50,
     }).setView([r.lat, r.lng], mapZoom);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxNativeZoom: 19,
-      maxZoom: 50,
+      maxNativeZoom: 19, maxZoom: 50,
     }).addTo(map);
     mapRef.current = map;
 
     // Customer marker
     L.marker([r.lat, r.lng]).addTo(map).bindPopup(`<b>Cliente</b><br/>${r.address}`);
 
-    // Draw provider coverage polygons
     const providerElements = allGeoElements.filter((e) => e.provider_id === r.providerId);
     const bounds = L.latLngBounds([[r.lat, r.lng]]);
 
     for (const el of providerElements) {
       try {
         const geo = el.geometry as any;
+        const props = (el.properties as any) || {};
         if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
           const layer = L.geoJSON(
             { type: "Feature", geometry: geo, properties: {} } as any,
-            {
-              style: () => ({
-                color: r.providerColor,
-                weight: 2,
-                opacity: 0.6,
-                fillColor: r.providerColor,
-                fillOpacity: 0.15,
-              }),
-            }
+            { style: () => ({ color: r.providerColor, weight: 2, opacity: 0.6, fillColor: r.providerColor, fillOpacity: 0.15 }) }
+          ).addTo(map);
+          bounds.extend(layer.getBounds());
+        } else if (r.isOwnNetwork && (geo.type === "LineString" || geo.type === "MultiLineString")) {
+          // Show network lines for own network
+          const color = props.stroke || r.providerColor;
+          const weight = props["stroke-width"] || 3;
+          const layer = L.geoJSON(
+            { type: "Feature", geometry: geo, properties: {} } as any,
+            { style: () => ({ color, weight, opacity: 0.7 }) }
           ).addTo(map);
           bounds.extend(layer.getBounds());
         }
@@ -642,8 +657,8 @@ function ResultCard({
     }
 
     // Draw route if outside coverage
-    if (r.status !== "inside" && r.nearestPoint) {
-      const routeColor = r.status === "outside_viable" ? "#22c55e" : "#ef4444";
+    if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint) {
+      const routeColor = r.isOwnNetwork ? "#3b82f6" : r.status === "outside_viable" ? "#22c55e" : "#ef4444";
 
       if (r.routeGeometry) {
         L.geoJSON(r.routeGeometry, {
@@ -651,10 +666,7 @@ function ResultCard({
         }).addTo(map);
       } else {
         L.polyline([[r.lat, r.lng], r.nearestPoint], {
-          color: routeColor,
-          weight: 4,
-          opacity: 0.8,
-          dashArray: "10 6",
+          color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6",
         }).addTo(map);
       }
 
@@ -665,35 +677,29 @@ function ResultCard({
         icon: L.divIcon({
           className: "distance-label",
           html: `<div style="background:${routeColor};color:white;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:bold;white-space:nowrap;">${r.distance}m</div>`,
-          iconSize: [80, 24],
-          iconAnchor: [40, 12],
+          iconSize: [80, 24], iconAnchor: [40, 12],
         }),
       }).addTo(map);
 
       // Nearest point marker
       L.circleMarker(r.nearestPoint, {
-        radius: 8,
-        fillColor: r.providerColor,
-        color: "#fff",
-        weight: 2,
-        fillOpacity: 0.9,
-      }).addTo(map).bindPopup(`<b>Rede ${r.providerName}</b>`);
+        radius: 8, fillColor: r.providerColor, color: "#fff", weight: 2, fillOpacity: 0.9,
+      }).addTo(map).bindPopup(`<b>${r.isOwnNetwork ? "Rede" : "Rede"} ${r.providerName}</b>`);
 
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    // Use user-configured zoom
-    if (r.status === "inside") {
+    // Set view
+    if (r.status === "inside" && !r.isOwnNetwork) {
       map.setView([r.lat, r.lng], mapZoom);
     } else {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
     }
 
-    // Force re-render after container is fully visible
     const timer = setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.invalidateSize();
-        if (r.status === "inside") {
+        if (r.status === "inside" && !r.isOwnNetwork) {
           mapRef.current.setView([r.lat, r.lng], mapZoom);
         } else {
           mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
@@ -710,66 +716,81 @@ function ResultCard({
     };
   }, [showMap, r.lat, r.lng, mapZoom]);
 
+  // Badge config
+  const getBadgeConfig = () => {
+    if (r.isOwnNetwork) {
+      return { label: "REDE PRÓPRIA", variant: "secondary" as const, icon: Wifi, color: "text-blue-600" };
+    }
+    if (r.status === "inside") {
+      return { label: "DENTRO DA COBERTURA", variant: "default" as const, icon: CheckCircle, color: "text-green-600" };
+    }
+    if (r.status === "outside_viable") {
+      return { label: "VIÁVEL", variant: "default" as const, icon: CheckCircle, color: "text-green-600" };
+    }
+    return { label: "FORA DO LPU", variant: "destructive" as const, icon: XCircle, color: "text-red-600" };
+  };
+
+  const config = getBadgeConfig();
+  const Icon = config.icon;
+
   return (
-    <Card className="border-l-4 overflow-hidden" style={{ borderLeftColor: r.providerColor }}>
+    <Card className="border-l-4 overflow-hidden" style={{ borderLeftColor: r.isOwnNetwork ? "#3b82f6" : r.providerColor }}>
       <CardContent className="pt-4 space-y-3">
-        {/* Capturable area */}
         <div ref={cardRef} className="space-y-3 bg-background p-2 rounded">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: r.providerColor }} />
-            <span className="font-semibold text-lg">{r.providerName}</span>
-          </div>
-          <Badge variant={config.variant} className="gap-1">
-            <Icon className="h-3.5 w-3.5" />
-            {config.label}
-          </Badge>
-        </div>
-
-        {r.status === "too_far" ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <Ban className="h-12 w-12 mx-auto mb-2 opacity-40" />
-            <p className="font-medium">Viabilidade negada</p>
-            <p className="text-sm">Nenhuma cobertura do provedor na região do cliente.</p>
-            <p className="text-xs mt-1">Distância: {r.distance}m (máx {r.maxDistance}m)</p>
-          </div>
-        ) : (
-          <>
-            {showMap && (
-              <div
-                ref={mapContainerRef}
-                style={{ width: "100%", height: "200px" }}
-                className="rounded-lg overflow-hidden border"
-              />
-            )}
-
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-              {r.status === "inside" ? (
-                <p className="col-span-2 text-green-600 font-medium">📍 Cliente está dentro da área de cobertura</p>
-              ) : (
-                <>
-                  <p><span className="text-muted-foreground">Distância:</span> <strong className={r.status === "outside_viable" ? "text-green-600" : "text-red-600"}>{r.distance}m</strong></p>
-                  <p><span className="text-muted-foreground">Máx. permitida:</span> {r.maxDistance}m</p>
-                </>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-4 w-4 rounded-full" style={{ backgroundColor: r.isOwnNetwork ? "#3b82f6" : r.providerColor }} />
+              <span className="font-semibold text-lg">{r.providerName}</span>
+              {r.hasCrossNtt && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <Building2 className="h-3 w-3" /> Cross NTT
+                </Badge>
               )}
-              <p><span className="text-muted-foreground">Tipo link:</span> {r.lpuType}</p>
-              <p><span className="text-muted-foreground">LPU:</span> R$ {r.lpuValue.toFixed(2)}</p>
-              <p className="col-span-2"><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
             </div>
-          </> 
-        )}
-        </div>
-        {/* Share buttons outside capturable area */}
-        {r.status !== "too_far" && (
-          <div className="flex gap-2 pt-1">
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("whatsapp")} disabled={capturing}>
-              {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} WhatsApp
-            </Button>
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("email")} disabled={capturing}>
-              {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} Email
-            </Button>
+            <Badge variant={config.variant} className="gap-1">
+              <Icon className="h-3.5 w-3.5" />
+              {config.label}
+            </Badge>
           </div>
-        )}
+
+          <div ref={mapContainerRef} style={{ width: "100%", height: "200px" }} className="rounded-lg overflow-hidden border" />
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            {r.isOwnNetwork ? (
+              <>
+                <p className="col-span-2">
+                  <span className="text-muted-foreground">Distância até a rede:</span>{" "}
+                  <strong className="text-blue-600">{r.distance}m</strong>
+                </p>
+                <p className="col-span-2 text-xs text-muted-foreground">
+                  ⚡ Rede própria - distância calculada até o ponto mais próximo da rede. No futuro, o cálculo será até a caixa disponível mais próxima.
+                </p>
+              </>
+            ) : r.status === "inside" ? (
+              <p className="col-span-2 text-green-600 font-medium">📍 Cliente está dentro da área de cobertura — distância: 0m</p>
+            ) : (
+              <>
+                <p><span className="text-muted-foreground">Distância:</span> <strong className="text-green-600">{r.distance}m</strong></p>
+                <p><span className="text-muted-foreground">Máx. permitida:</span> {r.maxDistance}m</p>
+              </>
+            )}
+            {!r.isOwnNetwork && (
+              <>
+                <p><span className="text-muted-foreground">Tipo link:</span> {r.lpuType}</p>
+                <p><span className="text-muted-foreground">LPU:</span> R$ {r.lpuValue.toFixed(2)}</p>
+                <p className="col-span-2"><span className="text-muted-foreground">Valor Mínimo:</span> <strong className="text-lg">R$ {r.finalValue.toFixed(2)}</strong></p>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("whatsapp")} disabled={capturing}>
+            {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} WhatsApp
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => shareWithImage("email")} disabled={capturing}>
+            {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />} Email
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
