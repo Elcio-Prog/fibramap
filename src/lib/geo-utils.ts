@@ -39,6 +39,35 @@ export function getGeometryType(geometry: GeoJSON.Geometry): string {
   }
 }
 
+/** Check if a LineString is closed (first point equals last point, with at least 4 coords) */
+function isClosedLine(coords: number[][]): boolean {
+  if (!coords || coords.length < 4) return false;
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  return first[0] === last[0] && first[1] === last[1];
+}
+
+/** Convert closed LineStrings to Polygons for proper filled rendering on the map.
+ *  Returns the original geometry if no conversion is needed. */
+export function closedLineToPolygon(geometry: any): any {
+  if (!geometry) return geometry;
+  if (geometry.type === "LineString" && isClosedLine(geometry.coordinates)) {
+    return { type: "Polygon", coordinates: [geometry.coordinates] };
+  }
+  if (geometry.type === "MultiLineString") {
+    const closedRings = geometry.coordinates.filter((line: number[][]) => isClosedLine(line));
+    const openLines = geometry.coordinates.filter((line: number[][]) => !isClosedLine(line));
+    if (closedRings.length === 0) return geometry;
+    // If all lines are closed, return a single MultiPolygon
+    if (openLines.length === 0) {
+      return { type: "MultiPolygon", coordinates: closedRings.map((ring: number[][]) => [ring]) };
+    }
+    // Mixed: can't convert cleanly, return as-is (rare case)
+    return geometry;
+  }
+  return geometry;
+}
+
 /** Haversine distance in meters */
 export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;

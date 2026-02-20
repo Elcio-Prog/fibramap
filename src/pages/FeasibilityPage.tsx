@@ -11,6 +11,7 @@ import {
   isInsideCoverage,
   findNearestBoundaryPoint,
   haversineDistance,
+  closedLineToPolygon,
 } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
@@ -665,7 +666,8 @@ function ResultCard({
 
     for (const el of nearbyElements) {
       try {
-        const geo = el.geometry as any;
+        const rawGeo = el.geometry as any;
+        const geo = closedLineToPolygon(rawGeo);
         const props = (el.properties as any) || {};
         if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
           const layer = L.geoJSON(
