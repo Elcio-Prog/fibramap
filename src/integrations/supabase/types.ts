@@ -265,6 +265,7 @@ export type Database = {
           color: string
           created_at: string
           gerente_comercial: string | null
+          has_cross_ntt: boolean
           id: string
           max_lpu_distance_m: number
           multiplier: number
@@ -276,6 +277,7 @@ export type Database = {
           color?: string
           created_at?: string
           gerente_comercial?: string | null
+          has_cross_ntt?: boolean
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number
@@ -287,6 +289,7 @@ export type Database = {
           color?: string
           created_at?: string
           gerente_comercial?: string | null
+          has_cross_ntt?: boolean
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number

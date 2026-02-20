@@ -24,6 +24,7 @@ export default function ProvidersPage() {
   const [multiplier, setMultiplier] = useState("0.33");
   const [gerenteComercial, setGerenteComercial] = useState("");
   const [telefoneGerente, setTelefoneGerente] = useState("");
+  const [hasCrossNtt, setHasCrossNtt] = useState(false);
 
   const [lpuProviderId, setLpuProviderId] = useState<string | null>(null);
   const [editProvider, setEditProvider] = useState<Provider | null>(null);
@@ -38,6 +39,7 @@ export default function ProvidersPage() {
         multiplier: parseFloat(multiplier),
         gerente_comercial: gerenteComercial.trim() || null,
         telefone_gerente: telefoneGerente.trim() || null,
+        has_cross_ntt: hasCrossNtt,
       });
       setName("");
       setColor("#3388ff");
@@ -45,6 +47,7 @@ export default function ProvidersPage() {
       setMultiplier("0.33");
       setGerenteComercial("");
       setTelefoneGerente("");
+      setHasCrossNtt(false);
       setShowForm(false);
       toast({ title: "Provedor criado!" });
     } catch (err: any) {
@@ -92,6 +95,17 @@ export default function ProvidersPage() {
                 <Label>Telefone do Gerente</Label>
                 <Input value={telefoneGerente} onChange={(e) => setTelefoneGerente(e.target.value)} placeholder="(00) 00000-0000" />
               </div>
+              <div className="flex items-center gap-3 col-span-2">
+                <Label>Tem Cross com NTT?</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="cross_ntt" checked={hasCrossNtt} onChange={() => setHasCrossNtt(true)} /> Sim
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="cross_ntt" checked={!hasCrossNtt} onChange={() => setHasCrossNtt(false)} /> Não
+                  </label>
+                </div>
+              </div>
             </div>
             <Button onClick={handleCreate} disabled={createProvider.isPending}>Salvar</Button>
           </CardContent>
@@ -109,6 +123,7 @@ export default function ProvidersPage() {
                 <TableHead>Multiplicador</TableHead>
                 <TableHead>Gerente Comercial</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Cross NTT</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -123,6 +138,7 @@ export default function ProvidersPage() {
                   <TableCell>{p.multiplier}</TableCell>
                   <TableCell>{p.gerente_comercial || "—"}</TableCell>
                   <TableCell>{p.telefone_gerente || "—"}</TableCell>
+                  <TableCell>{p.has_cross_ntt ? "Sim" : "Não"}</TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => setEditProvider(p)} title="Editar">
                       <Pencil className="h-4 w-4" />
@@ -147,7 +163,7 @@ export default function ProvidersPage() {
               ))}
               {!providers?.length && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhum provedor cadastrado
                   </TableCell>
                 </TableRow>
@@ -179,6 +195,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
   const [multiplier, setMultiplier] = useState(String(provider.multiplier));
   const [gerenteComercial, setGerenteComercial] = useState(provider.gerente_comercial || "");
   const [telefoneGerente, setTelefoneGerente] = useState(provider.telefone_gerente || "");
+  const [hasCrossNtt, setHasCrossNtt] = useState(provider.has_cross_ntt ?? false);
 
   const handleSave = async () => {
     try {
@@ -190,6 +207,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
         multiplier: parseFloat(multiplier),
         gerente_comercial: gerenteComercial.trim() || null,
         telefone_gerente: telefoneGerente.trim() || null,
+        has_cross_ntt: hasCrossNtt,
       });
       toast({ title: "Provedor atualizado!" });
       onClose();
@@ -231,8 +249,19 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
           <div>
             <Label>Telefone do Gerente</Label>
             <Input value={telefoneGerente} onChange={(e) => setTelefoneGerente(e.target.value)} placeholder="(00) 00000-0000" />
-          </div>
-        </div>
+           </div>
+           <div className="flex items-center gap-3 col-span-2">
+             <Label>Tem Cross com NTT?</Label>
+             <div className="flex gap-4">
+               <label className="flex items-center gap-1.5 cursor-pointer">
+                 <input type="radio" name="edit_cross_ntt" checked={hasCrossNtt} onChange={() => setHasCrossNtt(true)} /> Sim
+               </label>
+               <label className="flex items-center gap-1.5 cursor-pointer">
+                 <input type="radio" name="edit_cross_ntt" checked={!hasCrossNtt} onChange={() => setHasCrossNtt(false)} /> Não
+               </label>
+             </div>
+           </div>
+         </div>
         <Button onClick={handleSave} disabled={updateProvider.isPending} className="mt-2">Salvar</Button>
       </DialogContent>
     </Dialog>
