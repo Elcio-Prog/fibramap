@@ -72,7 +72,7 @@ export default function MapPage() {
         layerGroups.current[provider.id] = L.layerGroup();
       }
 
-      const color = provider.color;
+      const providerColor = provider.color;
       const geo = el.geometry as any;
       const props = (el.properties as Record<string, any>) || {};
 
@@ -80,9 +80,16 @@ export default function MapPage() {
         const layer = L.geoJSON(
           { type: "Feature", geometry: geo, properties: props } as any,
           {
-            style: () => ({ color, weight: 3, opacity: 0.8, fillColor: color, fillOpacity: 0.2 }),
-            pointToLayer: (_f, latlng) =>
-              L.circleMarker(latlng, { radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9 }),
+            style: () => {
+              // Use original KML stroke color if available, fallback to provider color
+              const color = props.stroke || providerColor;
+              const weight = props["stroke-width"] || 3;
+              return { color, weight, opacity: 0.8, fillColor: color, fillOpacity: 0.2 };
+            },
+            pointToLayer: (_f, latlng) => {
+              const pColor = ((_f.properties as any)?.stroke) || providerColor;
+              return L.circleMarker(latlng, { radius: 6, fillColor: pColor, color: "#fff", weight: 2, fillOpacity: 0.9 });
+            },
             onEachFeature: (_f, layer) => {
               const name = props.name || props.Name || el.element_type;
               const content = `<b>${provider.name}</b><br/>${name}<br/><small>${el.element_type}</small>`;
@@ -203,6 +210,17 @@ export default function MapPage() {
       console.log("[KML Import] Inserting", items.length, "elements...");
       await bulkCreate.mutateAsync(items);
       toast({ title: `${items.length} elementos importados!` });
+
+      // Auto-zoom to imported elements
+      if (mapInstance.current && fc.features.length > 0) {
+        try {
+          const geoLayer = L.geoJSON(fc as any);
+          const bounds = geoLayer.getBounds();
+          if (bounds.isValid()) {
+            mapInstance.current.fitBounds(bounds, { padding: [40, 40] });
+          }
+        } catch {}
+      }
     } catch (err: any) {
       console.error("[KML Import] Error:", err);
       toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
