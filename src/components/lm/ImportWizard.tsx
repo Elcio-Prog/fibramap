@@ -297,7 +297,6 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
   };
 
   const geocodeInBackground = async (items: any[]) => {
-    // Geocode all items in background (rate limited by Nominatim ~1req/s)
     const { supabase } = await import("@/integrations/supabase/client");
     for (const item of items) {
       try {
@@ -313,8 +312,11 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
             .update({ geocoding_status: "failed" } as any)
             .eq("endereco", item.endereco);
         }
-        await new Promise(r => setTimeout(r, 1100)); // Nominatim rate limit
-      } catch {}
+        // Rate limit between items
+        await new Promise(r => setTimeout(r, 1100));
+      } catch {
+        // Continue with next item even if one fails
+      }
     }
   };
 
