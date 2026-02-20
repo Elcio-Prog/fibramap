@@ -264,28 +264,34 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          gerente_comercial: string | null
           id: string
           max_lpu_distance_m: number
           multiplier: number
           name: string
+          telefone_gerente: string | null
           updated_at: string
         }
         Insert: {
           color?: string
           created_at?: string
+          gerente_comercial?: string | null
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number
           name: string
+          telefone_gerente?: string | null
           updated_at?: string
         }
         Update: {
           color?: string
           created_at?: string
+          gerente_comercial?: string | null
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number
           name?: string
+          telefone_gerente?: string | null
           updated_at?: string
         }
         Relationships: []
