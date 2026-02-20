@@ -214,11 +214,8 @@ export default function FeasibilityPage() {
         return a.name.localeCompare(b.name);
       });
 
-      console.log("[Feasibility] Total geo elements loaded:", allGeoElements.length);
-      
       for (const provider of sortedProviders) {
         const providerElements = allGeoElements.filter((e) => e.provider_id === provider.id);
-        console.log(`[Feasibility] Provider ${provider.name}: ${providerElements.length} elements`);
         if (!providerElements.length) continue;
 
         const isNetTurbo = provider.id === netTurboProvider?.id;
@@ -229,7 +226,6 @@ export default function FeasibilityPage() {
           return geo?.type === "Polygon" || geo?.type === "MultiPolygon";
         });
         const inside = polygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, polygonElements);
-        console.log(`[Feasibility] Provider ${provider.name}: ${polygonElements.length} polygons, inside=${inside}, isNetTurbo=${isNetTurbo}`);
 
         // Find LPU value
         const providerLpu = allLpuItems?.filter((l) => l.provider_id === provider.id) || [];
@@ -640,7 +636,24 @@ function ResultCard({
     const providerElements = allGeoElements.filter((e) => e.provider_id === r.providerId);
     const bounds = L.latLngBounds([[r.lat, r.lng]]);
 
-    for (const el of providerElements) {
+    // For large datasets, only render elements near the customer (within ~20km)
+    const maxRenderDist = 20000; // 20km
+    const nearbyElements = providerElements.filter((el) => {
+      const geo = el.geometry as any;
+      if (!geo?.coordinates) return false;
+      // Quick check: get first coordinate point
+      let sampleCoord: number[] | null = null;
+      if (geo.type === "Point") sampleCoord = geo.coordinates;
+      else if (geo.type === "Polygon") sampleCoord = geo.coordinates?.[0]?.[0];
+      else if (geo.type === "MultiPolygon") sampleCoord = geo.coordinates?.[0]?.[0]?.[0];
+      else if (geo.type === "LineString") sampleCoord = geo.coordinates?.[0];
+      else if (geo.type === "MultiLineString") sampleCoord = geo.coordinates?.[0]?.[0];
+      if (!sampleCoord) return false;
+      const dist = haversineDistance(r.lat, r.lng, sampleCoord[1], sampleCoord[0]);
+      return dist <= maxRenderDist;
+    });
+
+    for (const el of nearbyElements) {
       try {
         const geo = el.geometry as any;
         const props = (el.properties as any) || {};
@@ -650,8 +663,7 @@ function ResultCard({
             { style: () => ({ color: r.providerColor, weight: 2, opacity: 0.6, fillColor: r.providerColor, fillOpacity: 0.15 }) }
           ).addTo(map);
           bounds.extend(layer.getBounds());
-        } else if (r.isOwnNetwork && (geo.type === "LineString" || geo.type === "MultiLineString")) {
-          // Show network lines for own network
+        } else if (geo.type === "LineString" || geo.type === "MultiLineString") {
           const color = props.stroke || r.providerColor;
           const weight = props["stroke-width"] || 3;
           const layer = L.geoJSON(
