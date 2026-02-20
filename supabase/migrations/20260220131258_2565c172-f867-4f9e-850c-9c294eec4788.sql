@@ -1,0 +1,1 @@
+ALTER TABLE public.providers ADD COLUMN gerente_comercial text, ADD COLUMN telefone_gerente text;

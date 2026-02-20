@@ -22,6 +22,8 @@ export default function ProvidersPage() {
   const [color, setColor] = useState("#3388ff");
   const [maxDist, setMaxDist] = useState("500");
   const [multiplier, setMultiplier] = useState("0.33");
+  const [gerenteComercial, setGerenteComercial] = useState("");
+  const [telefoneGerente, setTelefoneGerente] = useState("");
 
   const [lpuProviderId, setLpuProviderId] = useState<string | null>(null);
 
@@ -33,11 +35,15 @@ export default function ProvidersPage() {
         color,
         max_lpu_distance_m: parseFloat(maxDist),
         multiplier: parseFloat(multiplier),
+        gerente_comercial: gerenteComercial.trim() || null,
+        telefone_gerente: telefoneGerente.trim() || null,
       });
       setName("");
       setColor("#3388ff");
       setMaxDist("500");
       setMultiplier("0.33");
+      setGerenteComercial("");
+      setTelefoneGerente("");
       setShowForm(false);
       toast({ title: "Provedor criado!" });
     } catch (err: any) {
@@ -77,6 +83,14 @@ export default function ProvidersPage() {
                 <Label>Multiplicador (ex: 0.33)</Label>
                 <Input type="number" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
               </div>
+              <div>
+                <Label>Gerente Comercial</Label>
+                <Input value={gerenteComercial} onChange={(e) => setGerenteComercial(e.target.value)} placeholder="Nome do gerente" />
+              </div>
+              <div>
+                <Label>Telefone do Gerente</Label>
+                <Input value={telefoneGerente} onChange={(e) => setTelefoneGerente(e.target.value)} placeholder="(00) 00000-0000" />
+              </div>
             </div>
             <Button onClick={handleCreate} disabled={createProvider.isPending}>Salvar</Button>
           </CardContent>
@@ -92,6 +106,8 @@ export default function ProvidersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Dist. Máx (m)</TableHead>
                 <TableHead>Multiplicador</TableHead>
+                <TableHead>Gerente Comercial</TableHead>
+                <TableHead>Telefone</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -104,6 +120,8 @@ export default function ProvidersPage() {
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>{p.max_lpu_distance_m}</TableCell>
                   <TableCell>{p.multiplier}</TableCell>
+                  <TableCell>{p.gerente_comercial || "—"}</TableCell>
+                  <TableCell>{p.telefone_gerente || "—"}</TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => setLpuProviderId(p.id)} title="LPU">
                       <Package className="h-4 w-4" />
@@ -125,7 +143,7 @@ export default function ProvidersPage() {
               ))}
               {!providers?.length && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     Nenhum provedor cadastrado
                   </TableCell>
                 </TableRow>
