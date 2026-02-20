@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements, useBulkCreateGeoElements } from "@/hooks/useGeoElements";
 import { useComprasLM } from "@/hooks/useComprasLM";
-import { parseKML, parseKMZ, parseGeoJSON, getGeometryType } from "@/lib/geo-utils";
+import { parseKML, parseKMZ, parseGeoJSON, getGeometryType, closedLineToPolygon } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Layers, Eye, EyeOff, Database } from "lucide-react";
@@ -73,8 +73,10 @@ export default function MapPage() {
       }
 
       const providerColor = provider.color;
-      const geo = el.geometry as any;
+      const rawGeo = el.geometry as any;
+      const geo = closedLineToPolygon(rawGeo);
       const props = (el.properties as Record<string, any>) || {};
+      const isConvertedPolygon = geo.type !== rawGeo.type;
 
       try {
         const layer = L.geoJSON(
@@ -83,8 +85,9 @@ export default function MapPage() {
             style: () => {
               // Use original KML stroke color if available, fallback to provider color
               const color = props.stroke || providerColor;
-              const weight = props["stroke-width"] || 3;
-              return { color, weight, opacity: 0.8, fillColor: color, fillOpacity: 0.2 };
+              const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
+              const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
+              return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
             },
             pointToLayer: (_f, latlng) => {
               const pColor = ((_f.properties as any)?.stroke) || providerColor;
