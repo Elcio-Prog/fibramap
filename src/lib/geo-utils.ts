@@ -47,22 +47,33 @@ function isClosedLine(coords: number[][]): boolean {
   return first[0] === last[0] && first[1] === last[1];
 }
 
-/** Convert closed LineStrings to Polygons for proper filled rendering on the map.
- *  Returns the original geometry if no conversion is needed. */
+/** Check if a closed ring encloses a significant area (not a tiny network loop) */
+function isSignificantPolygon(coords: number[][]): boolean {
+  if (coords.length < 10) return false;
+  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  for (const c of coords) {
+    if (c[0] < minLng) minLng = c[0];
+    if (c[0] > maxLng) maxLng = c[0];
+    if (c[1] < minLat) minLat = c[1];
+    if (c[1] > maxLat) maxLat = c[1];
+  }
+  return (maxLng - minLng) > 0.003 && (maxLat - minLat) > 0.003;
+}
+
+/** Convert closed LineStrings to Polygons for filled rendering.
+ *  Only converts lines that enclose a significant area (coverage "manchas"). */
 export function closedLineToPolygon(geometry: any): any {
   if (!geometry) return geometry;
-  if (geometry.type === "LineString" && isClosedLine(geometry.coordinates)) {
+  if (geometry.type === "LineString" && isClosedLine(geometry.coordinates) && isSignificantPolygon(geometry.coordinates)) {
     return { type: "Polygon", coordinates: [geometry.coordinates] };
   }
   if (geometry.type === "MultiLineString") {
-    const closedRings = geometry.coordinates.filter((line: number[][]) => isClosedLine(line));
-    const openLines = geometry.coordinates.filter((line: number[][]) => !isClosedLine(line));
-    if (closedRings.length === 0) return geometry;
-    // If all lines are closed, return a single MultiPolygon
-    if (openLines.length === 0) {
-      return { type: "MultiPolygon", coordinates: closedRings.map((ring: number[][]) => [ring]) };
+    const significant = geometry.coordinates.filter((line: number[][]) => isClosedLine(line) && isSignificantPolygon(line));
+    const rest = geometry.coordinates.filter((line: number[][]) => !(isClosedLine(line) && isSignificantPolygon(line)));
+    if (significant.length === 0) return geometry;
+    if (rest.length === 0) {
+      return { type: "MultiPolygon", coordinates: significant.map((ring: number[][]) => [ring]) };
     }
-    // Mixed: can't convert cleanly, return as-is (rare case)
     return geometry;
   }
   return geometry;
