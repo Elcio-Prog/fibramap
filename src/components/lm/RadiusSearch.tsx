@@ -200,6 +200,8 @@ export default function RadiusSearch() {
     }
 
     mapInstance.current = map;
+    // Fix Leaflet sizing when container transitions from hidden to visible
+    setTimeout(() => { map.invalidateSize(); }, 100);
     return () => { map.remove(); mapInstance.current = null; };
   }, [results, center, radius]);
 
