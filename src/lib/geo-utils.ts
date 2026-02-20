@@ -1,6 +1,6 @@
 import { kml } from "@tmcw/togeojson";
 import JSZip from "jszip";
-import { convertNumberWords } from "@/lib/number-words";
+import { convertNumberWords, convertDigitsToWords } from "@/lib/number-words";
 
 export function parseKML(text: string): GeoJSON.FeatureCollection {
   const parser = new DOMParser();
@@ -342,6 +342,16 @@ export async function geocodeAddress(
   // Step 1: Full cleaned free-text
   let result = await nominatimSearch(cleaned);
   if (result) return result;
+
+  // Step 1b: Try with digits converted to words (e.g. "Rua 42" → "Rua Quarenta e Dois")
+  if (/\d/.test(cleaned)) {
+    const withWords = convertDigitsToWords(cleaned);
+    if (withWords !== cleaned) {
+      await new Promise(r => setTimeout(r, 1100));
+      result = await nominatimSearch(withWords);
+      if (result) return result;
+    }
+  }
 
   // Step 2: Simplified (remove number and extra segments)
   const simplified = simplifyAddress(cleaned);
