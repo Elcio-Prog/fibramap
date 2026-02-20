@@ -35,19 +35,40 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
       // Clean address before searching
       const cleaned = convertNumberWords(cleanAddressForSearch(query));
       
-      // Build search promises - always search with digits version
+      const nominatimUrl = (q: string) =>
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
+      const fetchJson = (url: string): Promise<NominatimResult[]> =>
+        fetch(url).then(r => r.json()).catch(() => []);
+
+      // Build all search variants in parallel
       const promises: Promise<NominatimResult[]>[] = [
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
-          .then(r => r.json()).catch(() => []),
+        fetchJson(nominatimUrl(cleaned)),
       ];
 
       // If query contains digits, also search with number words (e.g. "42" → "quarenta e dois")
       const withWords = /\d/.test(cleaned) ? convertDigitsToWords(cleaned) : null;
       if (withWords && withWords !== cleaned) {
-        promises.push(
-          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(withWords)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
-            .then(r => r.json()).catch(() => [])
-        );
+        promises.push(fetchJson(nominatimUrl(withWords)));
+      }
+
+      // Always also search simplified (drop middle comma terms like "centro")
+      const parts = cleaned.split(/\s*,\s*/).filter(Boolean);
+      if (parts.length >= 3) {
+        const simpler = `${parts[0]} ${parts[parts.length - 1]}`;
+        promises.push(fetchJson(nominatimUrl(simpler)));
+        // Also simplified + number words
+        const simplerWords = /\d/.test(simpler) ? convertDigitsToWords(simpler) : null;
+        if (simplerWords && simplerWords !== simpler) {
+          promises.push(fetchJson(nominatimUrl(simplerWords)));
+        }
+        // And with words version simplified
+        if (withWords) {
+          const wordParts = withWords.split(/\s*,\s*/).filter(Boolean);
+          if (wordParts.length >= 3) {
+            const simplerW = `${wordParts[0]} ${wordParts[wordParts.length - 1]}`;
+            promises.push(fetchJson(nominatimUrl(simplerW)));
+          }
+        }
       }
 
       const results = await Promise.all(promises);
@@ -63,47 +84,14 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
         }
       }
 
-      // Fallback 1: try removing middle comma-separated terms (e.g. "centro")
-      // Keep first segment (street) and last segment (city), drop middle ones
-      if (data.length === 0) {
-        const parts = cleaned.split(/\s*,\s*/).filter(Boolean);
-        if (parts.length >= 3) {
-          const simpler = `${parts[0]} ${parts[parts.length - 1]}`;
-          const fallbackPromises: Promise<NominatimResult[]>[] = [
-            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simpler)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
-              .then(r => r.json()).catch(() => []),
-          ];
-          // Also try with number words version
-          const simplerWords = /\d/.test(simpler) ? convertDigitsToWords(simpler) : null;
-          if (simplerWords && simplerWords !== simpler) {
-            fallbackPromises.push(
-              fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplerWords)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`)
-                .then(r => r.json()).catch(() => [])
-            );
-          }
-          const fbResults = await Promise.all(fallbackPromises);
-          for (const arr of fbResults) {
-            for (const item of arr) {
-              if (!seen.has(item.place_id)) {
-                seen.add(item.place_id);
-                data.push(item);
-              }
-            }
-          }
-        }
-      }
-
-      // Fallback 2: try simplified query (remove number and neighborhood)
+      // Last resort: try simplified query (remove number and neighborhood)
       if (data.length === 0) {
         const simplified = cleaned
           .replace(/,?\s*\d+\s*/g, " ")
           .replace(/\s*-\s*[^,]+/g, "")
           .trim();
         if (simplified !== cleaned) {
-          const res3 = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
-          );
-          data = await res3.json();
+          data = await fetchJson(nominatimUrl(simplified));
         }
       }
 
