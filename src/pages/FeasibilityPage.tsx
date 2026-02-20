@@ -214,8 +214,11 @@ export default function FeasibilityPage() {
         return a.name.localeCompare(b.name);
       });
 
+      console.log("[Feasibility] Total geo elements loaded:", allGeoElements.length);
+      
       for (const provider of sortedProviders) {
         const providerElements = allGeoElements.filter((e) => e.provider_id === provider.id);
+        console.log(`[Feasibility] Provider ${provider.name}: ${providerElements.length} elements`);
         if (!providerElements.length) continue;
 
         const isNetTurbo = provider.id === netTurboProvider?.id;
@@ -226,6 +229,7 @@ export default function FeasibilityPage() {
           return geo?.type === "Polygon" || geo?.type === "MultiPolygon";
         });
         const inside = polygonElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, polygonElements);
+        console.log(`[Feasibility] Provider ${provider.name}: ${polygonElements.length} polygons, inside=${inside}, isNetTurbo=${isNetTurbo}`);
 
         // Find LPU value
         const providerLpu = allLpuItems?.filter((l) => l.provider_id === provider.id) || [];
