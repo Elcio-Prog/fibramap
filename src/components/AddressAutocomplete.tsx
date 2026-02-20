@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin, Loader2 } from "lucide-react";
 import { cleanAddressForSearch } from "@/lib/geo-utils";
+import { convertNumberWords } from "@/lib/number-words";
 
 interface NominatimResult {
   place_id: number;
@@ -32,7 +33,7 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
     setLoading(true);
     try {
       // Clean address before searching
-      const cleaned = cleanAddressForSearch(query);
+      const cleaned = convertNumberWords(cleanAddressForSearch(query));
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleaned)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`
       );

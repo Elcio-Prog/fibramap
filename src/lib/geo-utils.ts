@@ -1,5 +1,6 @@
 import { kml } from "@tmcw/togeojson";
 import JSZip from "jszip";
+import { convertNumberWords } from "@/lib/number-words";
 
 export function parseKML(text: string): GeoJSON.FeatureCollection {
   const parser = new DOMParser();
@@ -336,7 +337,7 @@ export async function geocodeAddress(
   dbCidade?: string | null,
   dbUf?: string | null
 ): Promise<{ lat: number; lng: number; display: string } | null> {
-  const cleaned = cleanAddressForGeocoding(address);
+  const cleaned = convertNumberWords(cleanAddressForGeocoding(address));
 
   // Step 1: Full cleaned free-text
   let result = await nominatimSearch(cleaned);
