@@ -181,26 +181,46 @@ export function cleanAddressForSearch(address: string): string {
 
 function cleanAddressForGeocoding(address: string): string {
   let clean = address;
+  // Handle multi-point addresses: "PONTA A ENDEREÇO: ... PONTA B ENDEREÇO: ..." → keep only first
+  if (/PONTA\s*[AB]\s*ENDERE[ÇC]O/i.test(clean)) {
+    clean = clean.replace(/\s*PONTA\s*B\s*ENDERE[ÇC]O\s*:.*$/gis, "");
+    clean = clean.replace(/PONTA\s*A\s*ENDERE[ÇC]O\s*:\s*/i, "");
+  }
+  // Handle "Endereço (A)...\nEndereço (B)..." → keep only first address line
+  if (/Endere[çc]o\s*\(B\)/i.test(clean)) {
+    clean = clean.replace(/\r?\nEndere[çc]o\s*\(B\).*$/gis, "");
+    clean = clean.replace(/^Endere[çc]o\s*\(A\)\s*/i, "");
+  }
+  // Remove multiple addresses separated by ///
+  clean = clean.replace(/\/{2,}.*$/g, "");
   // Remove CEP patterns: 13.300-065, 13300-065, 13300065, CEP 13.300-065, CEP: 13300065
   clean = clean.replace(/,?\s*CEP[:\s]?\s*\d{2}\.?\d{3}-?\d{3}/gi, "");
   clean = clean.replace(/,?\s*\d{2}\.\d{3}-\d{3}/g, "");
   clean = clean.replace(/,?\s*\d{5}-\d{3}/g, "");
   clean = clean.replace(/,?\s*\d{8}\b/g, "");
-  // Remove parenthetical notes like (Shopping Iguatemi), - ANEXO A, Protocolo XXXX
+  // Remove parenthetical notes like (Shopping Iguatemi)
   clean = clean.replace(/\([^)]*\)/g, "");
+  // Remove "- ANEXO A", "Protocolo XXXX"
   clean = clean.replace(/[-–]\s*ANEXO\s*\w*/gi, "");
   clean = clean.replace(/[-–]?\s*Protocolo\s*\d*/gi, "");
-  // Remove "Endereco (A)...\nEndereço (B)..." → keep only first address line
-  if (/Endere[çc]o\s*\(B\)/i.test(clean)) {
-    clean = clean.replace(/\r?\nEndere[çc]o\s*\(B\).*$/gis, "");
-    clean = clean.replace(/^Endere[çc]o\s*\(A\)\s*/i, "");
-  }
   // Remove "ID XXXX - " prefixes
   clean = clean.replace(/ID\s*\d+\s*[-–]\s*/gi, "");
-  // Remove "Número:" prefix (e.g. "MendesNúmero: 451" → "Mendes 451")
+  // Remove labeled fields: "Complemento:", "Bairro:", "Município:", "Estado:", "CIDADE UF CEP"
+  clean = clean.replace(/Complemento\s*:\s*[^,]*/gi, "");
+  clean = clean.replace(/Bairro\s*:\s*/gi, "");
+  clean = clean.replace(/Munic[ií]pio\s*:\s*/gi, "");
+  clean = clean.replace(/Estado\s*:\s*/gi, "");
+  clean = clean.replace(/\bCIDADE\s+UF\s+CEP\b/gi, "");
+  // Remove "Número:" prefix and "N:" prefix
   clean = clean.replace(/N[úu]mero:\s*/gi, " ");
+  clean = clean.replace(/\bN:\s*/gi, "");
   // Remove "SEQ ...: NNNN -" prefixes (e.g. "SEQ BRADESCO: 2166 -")
   clean = clean.replace(/SEQ\s+[^:]+:\s*\d+\s*[-–]\s*/gi, "");
+  // Remove "Quadra/Quadrag/Lote" info
+  clean = clean.replace(/,?\s*Quadr\w*\s*\d*\s*(Lote\s*\w*)?\s*/gi, "");
+  // Remove company/brand prefixes before actual address (e.g. "RA CATERING CONGONHAS PO 03 da Gol,")
+  // This is tricky - only remove if followed by a known street type
+  clean = clean.replace(/^[^,]*,\s*(?=(Rua|Avenida|Alameda|Travessa|Praça|Rodovia|Estrada|Pra[çc]a)\b)/i, "");
   // Replace common abbreviations
   clean = clean.replace(/\bAV\.\s*/gi, "Avenida ");
   clean = clean.replace(/\bR\.\s*/gi, "Rua ");
@@ -215,19 +235,34 @@ function cleanAddressForGeocoding(address: string): string {
   clean = clean.replace(/\bENG\.\s*/gi, "Engenheiro ");
   clean = clean.replace(/\bSTA\.\s*/gi, "Santa ");
   clean = clean.replace(/\bSTO\.\s*/gi, "Santo ");
+  clean = clean.replace(/\bJD\.\s*/gi, "Jardim ");
+  clean = clean.replace(/\bTRAB\.\s*/gi, "Trabalhadores ");
+  clean = clean.replace(/\bTERM\.\s*/gi, "Terminal ");
+  clean = clean.replace(/\bEST\.\s*/gi, "Estrada ");
   // Remove ordinal indicators (º, ª) attached to numbers or words
   clean = clean.replace(/[º°ª]/g, "");
   // Replace / with , for city/state (e.g. CAMPINAS/SP -> CAMPINAS, SP)
   clean = clean.replace(/\/([A-Z]{2})\b/g, ", $1");
-  // Remove S/Nº
+  // Remove S/Nº and SN variants
   clean = clean.replace(/,?\s*S\/N[º°]?\b/gi, "");
+  clean = clean.replace(/,?\s*\bSN\b/gi, "");
   // Remove "BAIRRO" prefix (Nominatim doesn't need it)
   clean = clean.replace(/\bBAIRRO\s+/gi, "");
+  // Remove "CENTRO." with trailing period
+  clean = clean.replace(/\bCENTRO\.\s*/gi, "Centro ");
+  // Remove "- SUC S414/415" type suffixes
+  clean = clean.replace(/[-–]\s*SUC\s+\S+/gi, "");
+  // Remove "KM XX" from addresses (except for highways which need it)
+  // Only remove if not preceded by Rodovia/Rod
+  // Remove "Parte ," filler
+  clean = clean.replace(/,?\s*Parte\s*,?/gi, ",");
   // Remove non-breaking spaces and extra whitespace
   clean = clean.replace(/\u00A0/g, " ");
   clean = clean.replace(/\s+/g, " ").trim();
   // Remove trailing commas/dashes
   clean = clean.replace(/[,\-–\s]+$/, "").trim();
+  // Remove leading commas/dashes
+  clean = clean.replace(/^[,\-–\s]+/, "").trim();
   return clean;
 }
 
@@ -247,10 +282,17 @@ function simplifyAddress(address: string): string {
 
 /** Extract city and UF from address string */
 function extractCityUf(address: string): { city: string; uf: string } | null {
-  // Match patterns like "Cidade/SP", "Cidade - SP", "Cidade, SP", "CIDADE/SP", "CIDADE - SP"
-  // Support both mixed case and ALL CAPS city names
+  // Match patterns like "Cidade/SP", "Cidade - SP", "Cidade, SP", "Cidade – SP"
   const m = address.match(/([A-ZÀ-Úa-zà-ú][A-Za-zÀ-ú]+(?:\s+[A-Za-zÀ-ú]+)*)\s*[/,\-–]\s*([A-Z]{2})\b/);
-  if (m) return { city: m[1].trim(), uf: m[2] };
+  if (m) {
+    const city = m[1].trim();
+    const uf = m[2];
+    // Validate UF is a real Brazilian state
+    const validUFs = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+    if (validUFs.includes(uf)) {
+      return { city, uf };
+    }
+  }
   return null;
 }
 
@@ -286,13 +328,14 @@ async function nominatimStructured(params: Record<string, string>): Promise<{ la
 }
 
 /** 
- * Geocode an address using Nominatim with multi-step fallback:
- * 1. Full cleaned address (free-text)
- * 2. Simplified address (no number/neighborhood)
- * 3. Structured search (street + city + state)
- * 4. City + UF only (at least pins in the right municipality)
+ * Geocode an address using Nominatim with multi-step fallback.
+ * Optionally accepts cidade/uf from database for better structured fallback.
  */
-export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number; display: string } | null> {
+export async function geocodeAddress(
+  address: string,
+  dbCidade?: string | null,
+  dbUf?: string | null
+): Promise<{ lat: number; lng: number; display: string } | null> {
   const cleaned = cleanAddressForGeocoding(address);
 
   // Step 1: Full cleaned free-text
@@ -307,11 +350,13 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     if (result) return result;
   }
 
-  // Step 3: Structured search with city/state
-  const cityUf = extractCityUf(address);
+  // Step 3: Structured search with city/state from address OR from DB fields
+  const cityUf = extractCityUf(address) || 
+    (dbCidade && dbUf ? { city: dbCidade, uf: dbUf } : null);
+  
   if (cityUf) {
     // Try street + city + state
-    const streetMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada)\s+[^,]+)/i);
+    const streetMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada|Praca)\s+[^,]+)/i);
     if (streetMatch) {
       await new Promise(r => setTimeout(r, 1100));
       result = await nominatimStructured({ street: streetMatch[1], city: cityUf.city, state: cityUf.uf });
@@ -322,6 +367,16 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     await new Promise(r => setTimeout(r, 1100));
     result = await nominatimStructured({ city: cityUf.city, state: cityUf.uf });
     if (result) return result;
+  }
+
+  // Step 5: If DB has cidade/uf and extractCityUf also returned something different, try DB values too
+  if (dbCidade && dbUf) {
+    const fromAddress = extractCityUf(address);
+    if (fromAddress && (fromAddress.city !== dbCidade || fromAddress.uf !== dbUf)) {
+      await new Promise(r => setTimeout(r, 1100));
+      result = await nominatimStructured({ city: dbCidade, state: dbUf });
+      if (result) return result;
+    }
   }
 
   return null;
