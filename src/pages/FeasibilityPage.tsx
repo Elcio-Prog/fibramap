@@ -7,11 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   geocodeAddress,
   findNearestPoint,
+  findBestTA,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
   haversineDistance,
   closedLineToPolygon,
+  type TAResult,
 } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
@@ -62,6 +64,7 @@ interface FeasibilityResult {
   nearestPoint?: [number, number];
   isOwnNetwork?: boolean;
   hasCrossNtt?: boolean;
+  taResult?: TAResult;
 }
 
 export default function FeasibilityPage() {
@@ -234,38 +237,74 @@ export default function FeasibilityPage() {
         const maxDist = provider.max_lpu_distance_m;
 
         if (isNetTurbo) {
-          // Net Turbo: own network - check if inside coverage polygon first
+          // Net Turbo: own network - check coverage polygon first, then use TA logic
           const insideNT = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
 
           let distance = 0;
           let routeGeometry: any = null;
           let nearestPt: [number, number] | undefined = undefined;
           let isViableNT = false;
+          let taResult: TAResult | undefined = undefined;
 
           if (insideNT) {
-            // Inside coverage polygon - distance is 0, always viable
+            // Inside coverage polygon - still find nearest TA for info
+            const ta = findBestTA(
+              geo.lat, geo.lng,
+              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
+              maxDist
+            );
+            if (ta) {
+              taResult = ta;
+              nearestPt = ta.point;
+            }
             distance = 0;
             isViableNT = true;
           } else {
-            // Outside polygon - calculate distance to nearest point
-            const nearest = findNearestPoint(
+            // Outside polygon - use TA-based logic
+            const ta = findBestTA(
               geo.lat, geo.lng,
-              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
+              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
+              maxDist
             );
-            if (!nearest) continue;
 
-            distance = nearest.distance;
-            nearestPt = nearest.point;
-            try {
-              const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-              if (route) {
-                distance = route.distance;
-                routeGeometry = route.geometry;
-              }
-            } catch {}
+            if (ta) {
+              taResult = ta;
+              distance = ta.distance;
+              nearestPt = ta.point;
 
-            isViableNT = distance <= maxDist;
+              // Get route via streets
+              try {
+                const route = await getRouteDistance(geo.lat, geo.lng, ta.point[0], ta.point[1]);
+                if (route) {
+                  distance = route.distance;
+                  routeGeometry = route.geometry;
+                }
+              } catch {}
+
+              isViableNT = distance <= maxDist;
+            } else {
+              // No TAs found - fallback to nearest point
+              const nearest = findNearestPoint(
+                geo.lat, geo.lng,
+                providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
+              );
+              if (!nearest) continue;
+              distance = nearest.distance;
+              nearestPt = nearest.point;
+              try {
+                const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
+                if (route) {
+                  distance = route.distance;
+                  routeGeometry = route.geometry;
+                }
+              } catch {}
+              isViableNT = distance <= maxDist;
+            }
           }
+
+          const taNote = taResult
+            ? `TA: ${taResult.nome} | Porta: ${taResult.portaDisponivel ? "Disponível" : "Saturado"} | ${taResult.motivo === "mais_proximo" ? "TA mais próximo" : taResult.motivo === "verde_mais_proximo" ? "TA verde mais próximo" : "Fallback saturado"}`
+            : "";
 
           const result: FeasibilityResult = {
             address: geo.display,
@@ -282,8 +321,9 @@ export default function FeasibilityPage() {
             status: insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id,
             routeGeometry: isViableNT && !insideNT ? routeGeometry : undefined,
-            nearestPoint: isViableNT && !insideNT ? nearestPt : undefined,
+            nearestPoint: nearestPt,
             isOwnNetwork: true,
+            taResult,
           };
           newResults.push(result);
 
@@ -298,7 +338,11 @@ export default function FeasibilityPage() {
             multiplier: 1,
             final_value: 0,
             is_viable: isViableNT,
-            notes: insideNT ? "Rede própria Net Turbo - Dentro da cobertura" : isViableNT ? "Rede própria Net Turbo - Viável" : "Rede própria Net Turbo - Não atende",
+            notes: insideNT
+              ? `Rede própria - Dentro da cobertura. ${taNote}`
+              : isViableNT
+                ? `Rede própria - Viável. ${taNote}`
+                : `Rede própria - Não atende. ${taNote}`,
           });
 
           // If Net Turbo is viable, we still continue to show other providers for comparison
@@ -712,10 +756,12 @@ function ResultCard({
         }),
       }).addTo(map);
 
-      // Nearest point marker
+      // Nearest point / TA marker
+      const taLabel = r.taResult ? `<b>${r.taResult.nome}</b><br/>${r.taResult.portaDisponivel ? "🟢 Porta disponível" : "⚫ Saturado"}` : `<b>Rede ${r.providerName}</b>`;
+      const taColor = r.taResult ? (r.taResult.portaDisponivel ? "#22c55e" : "#1a1a1a") : r.providerColor;
       L.circleMarker(r.nearestPoint, {
-        radius: 8, fillColor: r.providerColor, color: "#fff", weight: 2, fillOpacity: 0.9,
-      }).addTo(map).bindPopup(`<b>${r.isOwnNetwork ? "Rede" : "Rede"} ${r.providerName}</b>`);
+        radius: 8, fillColor: taColor, color: "#fff", weight: 2, fillOpacity: 0.9,
+      }).addTo(map).bindPopup(taLabel);
 
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
@@ -790,33 +836,53 @@ function ResultCard({
           <div ref={mapContainerRef} style={{ width: "100%", height: "200px" }} className="rounded-lg overflow-hidden border" />
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+              {r.isOwnNetwork && r.taResult && (
+                <>
+                  <p className="col-span-2">
+                    <span className="text-muted-foreground">TA destino:</span>{" "}
+                    <strong>{r.taResult.nome}</strong>
+                    <Badge variant={r.taResult.portaDisponivel ? "default" : "destructive"} className="ml-2 text-xs">
+                      {r.taResult.portaDisponivel ? "Porta disponível" : "Saturado"}
+                    </Badge>
+                  </p>
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    {r.taResult.motivo === "mais_proximo" && "📍 TA mais próximo com porta disponível"}
+                    {r.taResult.motivo === "verde_mais_proximo" && "🟢 TA verde mais próximo (o mais perto estava saturado)"}
+                    {r.taResult.motivo === "fallback_saturado" && "⚠️ Nenhum TA com porta disponível no raio — usando TA mais próximo (saturado)"}
+                  </p>
+                  {r.taResult.mensagem && (
+                    <p className="col-span-2 text-sm font-medium text-destructive bg-destructive/10 p-2 rounded">
+                      ⚠️ {r.taResult.mensagem}
+                    </p>
+                  )}
+                </>
+              )}
               {r.isOwnNetwork && r.status === "outside_viable" ? (
                 <>
                   <p className="col-span-2">
-                    <span className="text-muted-foreground">Distância até a rede:</span>{" "}
+                    <span className="text-muted-foreground">Distância até o TA:</span>{" "}
                     <strong className="text-blue-600">{r.distance}m</strong>
                     <span className="text-muted-foreground ml-2">(máx: {r.maxDistance}m)</span>
-                  </p>
-                  <p className="col-span-2 text-xs text-muted-foreground">
-                    ⚡ Rede própria - distância calculada até o ponto mais próximo da rede.
                   </p>
                 </>
               ) : r.isOwnNetwork && r.status === "outside_not_viable" ? (
                 <>
                   <p className="col-span-2">
-                    <span className="text-muted-foreground">Distância até a rede:</span>{" "}
+                    <span className="text-muted-foreground">Distância até o TA:</span>{" "}
                     <strong className="text-destructive">{r.distance}m</strong>
                     <span className="text-muted-foreground ml-2">(máx: {r.maxDistance}m)</span>
                   </p>
                   <p className="col-span-2 text-sm text-destructive font-medium">
-                    ❌ A rede própria da Net Turbo não atende este cliente. Distância excede o limite configurado.
+                    ❌ Distância excede o limite configurado.
                   </p>
                 </>
+              ) : r.isOwnNetwork && r.status === "inside" ? (
+                <p className="col-span-2 font-medium" style={{ color: "#22c55e" }}>📍 Cliente dentro da cobertura — distância: 0m</p>
               ) : r.status === "inside" ? (
-                <p className="col-span-2 text-green-600 font-medium">📍 Cliente está dentro da área de cobertura — distância: 0m</p>
+                <p className="col-span-2 font-medium" style={{ color: "#22c55e" }}>📍 Cliente está dentro da área de cobertura — distância: 0m</p>
             ) : (
               <>
-                <p><span className="text-muted-foreground">Distância:</span> <strong className="text-green-600">{r.distance}m</strong></p>
+                <p><span className="text-muted-foreground">Distância:</span> <strong style={{ color: "#22c55e" }}>{r.distance}m</strong></p>
                 <p><span className="text-muted-foreground">Máx. permitida:</span> {r.maxDistance}m</p>
               </>
             )}
