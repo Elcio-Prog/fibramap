@@ -329,18 +329,18 @@ export function findNearestBoundaryPoint(
   return nearest;
 }
 
-/** Calculate route distance via OSRM.
- *  Tries both "foot" (bidirectional, shortest) and "car" (may have better road data) profiles,
- *  then picks the shortest route. This avoids cases where one profile takes a detour. */
+/** Calculate route distance via OSRM while ignoring street direction.
+ *  Strategy: request A→B and B→A in driving profile and pick the shortest.
+ *  If B→A is shorter, reverse the geometry so it is still drawn from A to B. */
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
-  const fetchRoute = async (profile: string) => {
+  const fetchDriving = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/${profile}/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.code === "Ok" && data.routes?.length > 0) {
@@ -352,17 +352,40 @@ export async function getRouteDistance(
     }
   };
 
+  const reverseGeometry = (geometry: any) => {
+    if (!geometry) return geometry;
+    if (geometry.type === "LineString" && Array.isArray(geometry.coordinates)) {
+      return { ...geometry, coordinates: [...geometry.coordinates].reverse() };
+    }
+    if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+      return {
+        ...geometry,
+        coordinates: [...geometry.coordinates].reverse().map((line: number[][]) => [...line].reverse()),
+      };
+    }
+    return geometry;
+  };
+
   try {
-    const [footRoute, carRoute] = await Promise.all([
-      fetchRoute("foot"),
-      fetchRoute("driving"),
+    const [forward, reverse] = await Promise.all([
+      fetchDriving(fromLat, fromLng, toLat, toLng),
+      fetchDriving(toLat, toLng, fromLat, fromLng),
     ]);
 
-    // Pick the shortest valid route
-    const candidates = [footRoute, carRoute].filter(Boolean) as { distance: number; geometry: any }[];
-    if (candidates.length === 0) return null;
-    candidates.sort((a, b) => a.distance - b.distance);
-    return candidates[0];
+    if (!forward && !reverse) return null;
+    if (forward && !reverse) return forward;
+    if (!forward && reverse) {
+      return { distance: reverse.distance, geometry: reverseGeometry(reverse.geometry) };
+    }
+
+    if ((reverse as { distance: number }).distance < (forward as { distance: number }).distance) {
+      return {
+        distance: (reverse as { distance: number }).distance,
+        geometry: reverseGeometry((reverse as { geometry: any }).geometry),
+      };
+    }
+
+    return forward;
   } catch {
     return null;
   }
