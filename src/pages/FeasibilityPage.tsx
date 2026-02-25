@@ -269,35 +269,41 @@ export default function FeasibilityPage() {
 
             if (ta) {
               taResult = ta;
-              distance = ta.distance;
               nearestPt = ta.point;
 
-              // Get route via streets
+              // Get route via streets (mandatory - no straight fallback)
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, ta.point[0], ta.point[1]);
-                if (route) {
+                if (route?.geometry) {
                   distance = route.distance;
                   routeGeometry = route.geometry;
+                } else {
+                  continue;
                 }
-              } catch {}
+              } catch {
+                continue;
+              }
 
               isViableNT = distance <= maxDist;
             } else {
-              // No TAs found - fallback to nearest point
+              // No TAs found - fallback to nearest point, still requiring street route
               const nearest = findNearestPoint(
                 geo.lat, geo.lng,
                 providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
               );
               if (!nearest) continue;
-              distance = nearest.distance;
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-                if (route) {
+                if (route?.geometry) {
                   distance = route.distance;
                   routeGeometry = route.geometry;
+                } else {
+                  continue;
                 }
-              } catch {}
+              } catch {
+                continue;
+              }
               isViableNT = distance <= maxDist;
             }
           }
@@ -320,7 +326,7 @@ export default function FeasibilityPage() {
             finalValue: 0,
             status: insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id,
-            routeGeometry: isViableNT && !insideNT ? routeGeometry : undefined,
+            routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt,
             isOwnNetwork: true,
             taResult,
@@ -713,7 +719,24 @@ function ResultCard({
         const rawGeo = el.geometry as any;
         const geo = closedLineToPolygon(rawGeo);
         const props = (el.properties as any) || {};
-        if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
+        if (geo.type === "Point") {
+          const pointLatLng: [number, number] = [geo.coordinates[1], geo.coordinates[0]];
+          const tipo = props.tipo;
+          const nome = props.nome || "Ponto";
+
+          if (tipo === "TA") {
+            const taAvailable = props.porta_disponivel === true;
+            const taColor = taAvailable ? "#22c55e" : "#1a1a1a";
+            L.circleMarker(pointLatLng, {
+              radius: 8,
+              fillColor: taColor,
+              color: "#fff",
+              weight: 2,
+              fillOpacity: 0.95,
+            }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${taAvailable ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
+            bounds.extend(pointLatLng);
+          }
+        } else if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
           const layer = L.geoJSON(
             { type: "Feature", geometry: geo, properties: {} } as any,
             { style: () => ({ color: r.providerColor, weight: 2, opacity: 0.6, fillColor: r.providerColor, fillOpacity: 0.15 }) }
@@ -731,19 +754,13 @@ function ResultCard({
       } catch {}
     }
 
-    // Draw route if outside coverage
-    if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint) {
+    // Draw route only when route geometry exists (no straight-line fallback)
+    if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint && r.routeGeometry) {
       const routeColor = r.isOwnNetwork ? "#3b82f6" : r.status === "outside_viable" ? "#22c55e" : "#ef4444";
 
-      if (r.routeGeometry) {
-        L.geoJSON(r.routeGeometry, {
-          style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
-        }).addTo(map);
-      } else {
-        L.polyline([[r.lat, r.lng], r.nearestPoint], {
-          color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6",
-        }).addTo(map);
-      }
+      L.geoJSON(r.routeGeometry, {
+        style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
+      }).addTo(map);
 
       // Distance label
       const midLat = (r.lat + r.nearestPoint[0]) / 2;
@@ -756,13 +773,16 @@ function ResultCard({
         }),
       }).addTo(map);
 
-      // Nearest point / TA marker
+      bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
+    }
+
+    // Always show chosen TA / nearest marker
+    if (r.nearestPoint) {
       const taLabel = r.taResult ? `<b>${r.taResult.nome}</b><br/>${r.taResult.portaDisponivel ? "🟢 Porta disponível" : "⚫ Saturado"}` : `<b>Rede ${r.providerName}</b>`;
       const taColor = r.taResult ? (r.taResult.portaDisponivel ? "#22c55e" : "#1a1a1a") : r.providerColor;
       L.circleMarker(r.nearestPoint, {
         radius: 8, fillColor: taColor, color: "#fff", weight: 2, fillOpacity: 0.9,
       }).addTo(map).bindPopup(taLabel);
-
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
