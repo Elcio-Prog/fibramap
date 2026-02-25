@@ -222,27 +222,20 @@ export function findNearestBoundaryPoint(
   return nearest;
 }
 
-/** Calculate route distance via OSRM */
+/** Calculate straight-line distance for fiber drop estimation.
+ *  Uses haversine (direct distance) since fiber routes through conduits,
+ *  not following road directions or traffic rules. */
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
-  try {
-    const url = `https://router.project-osrm.org/route/v1/foot/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.code === "Ok" && data.routes?.length > 0) {
-      return {
-        distance: data.routes[0].distance,
-        geometry: data.routes[0].geometry,
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  const distance = haversineDistance(fromLat, fromLng, toLat, toLng);
+  return {
+    distance,
+    geometry: null, // straight line drawn by the caller
+  };
 }
 
 /** Clean address for better geocoding: remove CEP, special chars, extra info */
