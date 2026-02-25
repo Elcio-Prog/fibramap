@@ -1,0 +1,1 @@
+ALTER TABLE public.providers ADD COLUMN use_saturated_ta boolean NOT NULL DEFAULT false;

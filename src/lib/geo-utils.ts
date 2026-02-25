@@ -131,7 +131,8 @@ export function findBestTA(
   lat: number,
   lng: number,
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
-  limitMeters: number
+  limitMeters: number,
+  useSaturatedTa: boolean = false
 ): TAResult | null {
   // Filter only TA points
   const taElements: Array<{ lat: number; lng: number; nome: string; portaDisponivel: boolean; distance: number }> = [];
@@ -147,7 +148,7 @@ export function findBestTA(
       lat: lat2,
       lng: lng2,
       nome: props.nome || "TA",
-      portaDisponivel: props.porta_disponivel === true,
+      portaDisponivel: useSaturatedTa ? true : (props.porta_disponivel === true),
       distance: d,
     });
   }
@@ -328,26 +329,40 @@ export function findNearestBoundaryPoint(
   return nearest;
 }
 
-/** Calculate route distance via OSRM using "foot" profile.
- *  Foot profile treats all roads as bidirectional (no one-way restrictions),
- *  giving the shortest path along streets for fiber drop estimation. */
+/** Calculate route distance via OSRM.
+ *  Tries both "foot" (bidirectional, shortest) and "car" (may have better road data) profiles,
+ *  then picks the shortest route. This avoids cases where one profile takes a detour. */
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
-  try {
-    const url = `https://router.project-osrm.org/route/v1/foot/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.code === "Ok" && data.routes?.length > 0) {
-      return {
-        distance: data.routes[0].distance,
-        geometry: data.routes[0].geometry,
-      };
+  const fetchRoute = async (profile: string) => {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code === "Ok" && data.routes?.length > 0) {
+        return { distance: data.routes[0].distance as number, geometry: data.routes[0].geometry };
+      }
+      return null;
+    } catch {
+      return null;
     }
-    return null;
+  };
+
+  try {
+    const [footRoute, carRoute] = await Promise.all([
+      fetchRoute("foot"),
+      fetchRoute("driving"),
+    ]);
+
+    // Pick the shortest valid route
+    const candidates = [footRoute, carRoute].filter(Boolean) as { distance: number; geometry: any }[];
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => a.distance - b.distance);
+    return candidates[0];
   } catch {
     return null;
   }

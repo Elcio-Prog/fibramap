@@ -103,16 +103,16 @@ export default function MapPage() {
                   const color = isGreen ? "#22c55e" : "#1a1a1a";
                   const label = fp.nome || "TA";
                   return L.circleMarker(latlng, {
-                    radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.95,
+                    radius: 4, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.95,
                   }).bindTooltip(`<b>${label}</b><br/>${isGreen ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
                 }
                 if (fp.tipo === "CE") {
                   return L.circleMarker(latlng, {
-                    radius: 5, fillColor: "#f59e0b", color: "#fff", weight: 1.5, fillOpacity: 0.85,
+                    radius: 3, fillColor: "#f59e0b", color: "#fff", weight: 1, fillOpacity: 0.85,
                   }).bindTooltip(`<b>${fp.nome || "CE"}</b><br/>Caixa de Emenda`, { sticky: true, direction: "top", opacity: 0.95 });
                 }
                 const pColor = fp.stroke || providerColor;
-                return L.circleMarker(latlng, { radius: 6, fillColor: pColor, color: "#fff", weight: 2, fillOpacity: 0.9 });
+                return L.circleMarker(latlng, { radius: 3, fillColor: pColor, color: "#fff", weight: 1.5, fillOpacity: 0.9 });
               },
               onEachFeature: (_f, layer) => {
                 const fp = (_f.properties as any) || {};
@@ -159,7 +159,7 @@ export default function MapPage() {
       const precoMbps = r.banda_mbps && r.banda_mbps > 0 ? `<br/>R$/Mbps: ${(r.valor_mensal / r.banda_mbps).toFixed(2)}` : "";
       const tooltipText = `<b>${r.parceiro}</b>${r.cliente ? `<br/>${r.cliente}` : ""}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/>R$ ${r.valor_mensal.toFixed(2)}`;
       const marker = L.circleMarker([r.lat, r.lng], {
-        radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.85,
+        radius: 4, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.85,
       }).bindTooltip(tooltipText, { sticky: true, direction: "top", opacity: 0.95 }).bindPopup(
         `<b>${r.parceiro}</b>` +
         `${r.cliente ? `<br/>Cliente: ${r.cliente}` : ""}` +

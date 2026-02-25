@@ -25,6 +25,7 @@ export default function ProvidersPage() {
   const [gerenteComercial, setGerenteComercial] = useState("");
   const [telefoneGerente, setTelefoneGerente] = useState("");
   const [hasCrossNtt, setHasCrossNtt] = useState(false);
+  const [useSaturatedTa, setUseSaturatedTa] = useState(false);
 
   const [lpuProviderId, setLpuProviderId] = useState<string | null>(null);
   const [editProvider, setEditProvider] = useState<Provider | null>(null);
@@ -40,7 +41,8 @@ export default function ProvidersPage() {
         gerente_comercial: gerenteComercial.trim() || null,
         telefone_gerente: telefoneGerente.trim() || null,
         has_cross_ntt: hasCrossNtt,
-      });
+        use_saturated_ta: useSaturatedTa,
+      } as any);
       setName("");
       setColor("#3388ff");
       setMaxDist("500");
@@ -48,6 +50,7 @@ export default function ProvidersPage() {
       setGerenteComercial("");
       setTelefoneGerente("");
       setHasCrossNtt(false);
+      setUseSaturatedTa(false);
       setShowForm(false);
       toast({ title: "Provedor criado!" });
     } catch (err: any) {
@@ -106,6 +109,17 @@ export default function ProvidersPage() {
                   </label>
                 </div>
               </div>
+              <div className="flex items-center gap-3 col-span-2">
+                <Label>Usar TA saturado (sem porta)?</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="use_saturated" checked={useSaturatedTa} onChange={() => setUseSaturatedTa(true)} /> Sim
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" name="use_saturated" checked={!useSaturatedTa} onChange={() => setUseSaturatedTa(false)} /> Não
+                  </label>
+                </div>
+              </div>
             </div>
             <Button onClick={handleCreate} disabled={createProvider.isPending}>Salvar</Button>
           </CardContent>
@@ -124,6 +138,7 @@ export default function ProvidersPage() {
                 <TableHead>Gerente Comercial</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Cross NTT</TableHead>
+                <TableHead>TA Saturado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -139,6 +154,7 @@ export default function ProvidersPage() {
                   <TableCell>{p.gerente_comercial || "—"}</TableCell>
                   <TableCell>{p.telefone_gerente || "—"}</TableCell>
                   <TableCell>{p.has_cross_ntt ? "Sim" : "Não"}</TableCell>
+                  <TableCell>{(p as any).use_saturated_ta ? "Sim" : "Não"}</TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => setEditProvider(p)} title="Editar">
                       <Pencil className="h-4 w-4" />
@@ -163,7 +179,7 @@ export default function ProvidersPage() {
               ))}
               {!providers?.length && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Nenhum provedor cadastrado
                   </TableCell>
                 </TableRow>
@@ -196,6 +212,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
   const [gerenteComercial, setGerenteComercial] = useState(provider.gerente_comercial || "");
   const [telefoneGerente, setTelefoneGerente] = useState(provider.telefone_gerente || "");
   const [hasCrossNtt, setHasCrossNtt] = useState(provider.has_cross_ntt ?? false);
+  const [useSaturatedTa, setUseSaturatedTa] = useState((provider as any).use_saturated_ta ?? false);
 
   const handleSave = async () => {
     try {
@@ -208,7 +225,8 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
         gerente_comercial: gerenteComercial.trim() || null,
         telefone_gerente: telefoneGerente.trim() || null,
         has_cross_ntt: hasCrossNtt,
-      });
+        use_saturated_ta: useSaturatedTa,
+      } as any);
       toast({ title: "Provedor atualizado!" });
       onClose();
     } catch (err: any) {
@@ -258,6 +276,17 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
                </label>
                <label className="flex items-center gap-1.5 cursor-pointer">
                  <input type="radio" name="edit_cross_ntt" checked={!hasCrossNtt} onChange={() => setHasCrossNtt(false)} /> Não
+               </label>
+             </div>
+           </div>
+           <div className="flex items-center gap-3 col-span-2">
+             <Label>Usar TA saturado (sem porta)?</Label>
+             <div className="flex gap-4">
+               <label className="flex items-center gap-1.5 cursor-pointer">
+                 <input type="radio" name="edit_use_saturated" checked={useSaturatedTa} onChange={() => setUseSaturatedTa(true)} /> Sim
+               </label>
+               <label className="flex items-center gap-1.5 cursor-pointer">
+                 <input type="radio" name="edit_use_saturated" checked={!useSaturatedTa} onChange={() => setUseSaturatedTa(false)} /> Não
                </label>
              </div>
            </div>
