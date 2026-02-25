@@ -181,20 +181,24 @@ function pointInRing(lng: number, lat: number, ring: number[][]): boolean {
   return inside;
 }
 
-/** Check if a lat/lng point is inside any polygon or closed line of the given geo elements */
+/** Check if a lat/lng point is inside coverage of the given geo elements.
+ *  Uses even-odd rule: a small closed polygon inside a larger one represents a
+ *  coverage hole. The point is covered only if it falls inside an odd number of rings. */
 export function isInsideCoverage(
   lat: number,
   lng: number,
   elements: Array<{ geometry: any }>
 ): boolean {
+  let hitCount = 0;
   for (const el of elements) {
     const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
     const rings = extractPolygonRings(geo);
     for (const ring of rings) {
-      if (pointInRing(lng, lat, ring)) return true;
+      if (pointInRing(lng, lat, ring)) hitCount++;
     }
   }
-  return false;
+  // Odd = inside coverage, Even = inside a hole (not covered)
+  return hitCount > 0 && hitCount % 2 === 1;
 }
 
 /** Find the nearest point on the boundary of polygon elements */
