@@ -2,14 +2,24 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProviders } from "@/hooks/useProviders";
-import { useGeoElements, useBulkCreateGeoElements } from "@/hooks/useGeoElements";
+import { useGeoElements, useBulkCreateGeoElements, useDeleteGeoElementsByProvider } from "@/hooks/useGeoElements";
 import { useComprasLM } from "@/hooks/useComprasLM";
 import { parseKML, parseKMZ, parseGeoJSON, getGeometryType, closedLineToPolygon } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Layers, Eye, EyeOff, Database } from "lucide-react";
+import { Upload, Layers, Eye, EyeOff, Database, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Fix leaflet default icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -29,10 +39,13 @@ export default function MapPage() {
   const { data: geoElements } = useGeoElements();
   const { data: comprasLM } = useComprasLM();
   const bulkCreate = useBulkCreateGeoElements();
+  const deleteByProvider = useDeleteGeoElementsByProvider();
   const { toast } = useToast();
   const [selectedProvider, setSelectedProvider] = useState<string>("");
+  // Start with ALL layers OFF for performance
   const [visibleProviders, setVisibleProviders] = useState<Set<string>>(new Set());
-  const [showLMLayer, setShowLMLayer] = useState(true);
+  const [showLMLayer, setShowLMLayer] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Init map
   useEffect(() => {
@@ -48,69 +61,64 @@ export default function MapPage() {
     };
   }, []);
 
-  // Update visible providers set
-  useEffect(() => {
-    if (providers) {
-      setVisibleProviders(new Set(providers.map((p) => p.id)));
-    }
-  }, [providers]);
-
-  // Render geo elements on map
+  // Render geo elements on map — only for visible providers (lazy)
   useEffect(() => {
     if (!mapInstance.current || !geoElements || !providers) return;
 
-    // Clear existing layers
-    Object.values(layerGroups.current).forEach((lg) => lg.clearLayers());
-
     const providerMap = new Map(providers.map((p) => [p.id, p]));
 
-    for (const el of geoElements) {
-      const provider = providerMap.get(el.provider_id);
+    // Only build layers for visible providers
+    for (const providerId of visibleProviders) {
+      const provider = providerMap.get(providerId);
       if (!provider) continue;
 
-      if (!layerGroups.current[provider.id]) {
-        layerGroups.current[provider.id] = L.layerGroup();
+      // Skip if layer already built
+      if (layerGroups.current[providerId] && mapInstance.current.hasLayer(layerGroups.current[providerId])) continue;
+
+      const lg = L.layerGroup();
+      const providerElements = geoElements.filter((e) => e.provider_id === providerId);
+
+      for (const el of providerElements) {
+        const providerColor = provider.color;
+        const rawGeo = el.geometry as any;
+        const geo = closedLineToPolygon(rawGeo);
+        const props = (el.properties as Record<string, any>) || {};
+        const isConvertedPolygon = geo.type !== rawGeo.type;
+
+        try {
+          const layer = L.geoJSON(
+            { type: "Feature", geometry: geo, properties: props } as any,
+            {
+              style: () => {
+                const color = props.stroke || providerColor;
+                const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
+                const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
+                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
+              },
+              pointToLayer: (_f, latlng) => {
+                const pColor = ((_f.properties as any)?.stroke) || providerColor;
+                return L.circleMarker(latlng, { radius: 6, fillColor: pColor, color: "#fff", weight: 2, fillOpacity: 0.9 });
+              },
+              onEachFeature: (_f, layer) => {
+                const name = props.name || props.Name || el.element_type;
+                const content = `<b>${provider.name}</b><br/>${name}<br/><small>${el.element_type}</small>`;
+                layer.bindPopup(content);
+                layer.bindTooltip(`<b>${provider.name}</b><br/>${name}`, { sticky: true, direction: "top", opacity: 0.95 });
+              },
+            }
+          );
+          lg.addLayer(layer);
+        } catch {}
       }
 
-      const providerColor = provider.color;
-      const rawGeo = el.geometry as any;
-      const geo = closedLineToPolygon(rawGeo);
-      const props = (el.properties as Record<string, any>) || {};
-      const isConvertedPolygon = geo.type !== rawGeo.type;
-
-      try {
-        const layer = L.geoJSON(
-          { type: "Feature", geometry: geo, properties: props } as any,
-          {
-            style: () => {
-              // Use original KML stroke color if available, fallback to provider color
-              const color = props.stroke || providerColor;
-              const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
-              const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
-              return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
-            },
-            pointToLayer: (_f, latlng) => {
-              const pColor = ((_f.properties as any)?.stroke) || providerColor;
-              return L.circleMarker(latlng, { radius: 6, fillColor: pColor, color: "#fff", weight: 2, fillOpacity: 0.9 });
-            },
-            onEachFeature: (_f, layer) => {
-              const name = props.name || props.Name || el.element_type;
-              const content = `<b>${provider.name}</b><br/>${name}<br/><small>${el.element_type}</small>`;
-              layer.bindPopup(content);
-              layer.bindTooltip(`<b>${provider.name}</b><br/>${name}`, { sticky: true, direction: "top", opacity: 0.95 });
-            },
-          }
-        );
-        layerGroups.current[provider.id].addLayer(layer);
-      } catch {}
+      layerGroups.current[providerId] = lg;
+      lg.addTo(mapInstance.current);
     }
 
-    // Add/remove from map based on visibility
+    // Remove layers that are no longer visible
     for (const [id, lg] of Object.entries(layerGroups.current)) {
-      if (visibleProviders.has(id)) {
-        lg.addTo(mapInstance.current!);
-      } else {
-        lg.removeFrom(mapInstance.current!);
+      if (!visibleProviders.has(id) && mapInstance.current.hasLayer(lg)) {
+        lg.removeFrom(mapInstance.current);
       }
     }
   }, [geoElements, providers, visibleProviders]);
@@ -120,6 +128,11 @@ export default function MapPage() {
     if (!mapInstance.current || !comprasLM) return;
     if (lmLayerRef.current) { lmLayerRef.current.clearLayers(); }
     else { lmLayerRef.current = L.layerGroup(); }
+
+    if (!showLMLayer) {
+      lmLayerRef.current.removeFrom(mapInstance.current);
+      return;
+    }
 
     for (const r of comprasLM) {
       if (!r.lat || !r.lng) continue;
@@ -143,8 +156,7 @@ export default function MapPage() {
       lmLayerRef.current.addLayer(marker);
     }
 
-    if (showLMLayer) lmLayerRef.current.addTo(mapInstance.current);
-    else lmLayerRef.current.removeFrom(mapInstance.current);
+    lmLayerRef.current.addTo(mapInstance.current);
   }, [comprasLM, showLMLayer]);
 
   const toggleProvider = (id: string) => {
@@ -152,24 +164,43 @@ export default function MapPage() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
+        // Remove and clear cached layer
         layerGroups.current[id]?.removeFrom(mapInstance.current!);
+        layerGroups.current[id]?.clearLayers();
+        delete layerGroups.current[id];
       } else {
         next.add(id);
-        layerGroups.current[id]?.addTo(mapInstance.current!);
+        // Layer will be built in the useEffect
       }
       return next;
     });
   };
 
+  const handleDeleteLayer = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteByProvider.mutateAsync(deleteTarget.id);
+      // Remove from map
+      if (layerGroups.current[deleteTarget.id]) {
+        layerGroups.current[deleteTarget.id].removeFrom(mapInstance.current!);
+        layerGroups.current[deleteTarget.id].clearLayers();
+        delete layerGroups.current[deleteTarget.id];
+      }
+      setVisibleProviders((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteTarget.id);
+        return next;
+      });
+      toast({ title: `Camada "${deleteTarget.name}" removida com sucesso` });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover camada", description: err.message, variant: "destructive" });
+    }
+    setDeleteTarget(null);
+  };
+
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    console.log("[KML Import] File selected:", file?.name, "Provider:", selectedProvider);
-    
-    if (!file) {
-      console.log("[KML Import] No file selected");
-      return;
-    }
-    
+    if (!file) return;
     if (!selectedProvider) {
       toast({ title: "Selecione um provedor antes de importar", variant: "destructive" });
       return;
@@ -179,21 +210,15 @@ export default function MapPage() {
       let fc: GeoJSON.FeatureCollection;
       const fileName = file.name.toLowerCase();
       if (fileName.endsWith(".kmz")) {
-        console.log("[KMZ Import] Parsing as KMZ...");
         const buffer = await file.arrayBuffer();
         fc = await parseKMZ(buffer);
       } else if (fileName.endsWith(".kml")) {
         const text = await file.text();
-        console.log("[KML Import] Parsing as KML...");
         fc = parseKML(text);
       } else {
         const text = await file.text();
-        console.log("[Import] Parsing as GeoJSON...");
         fc = parseGeoJSON(text);
       }
-
-      console.log("[KML Import] Parsed features:", fc.features.length);
-      console.log("[KML Import] Features with geometry:", fc.features.filter(f => f.geometry != null).length);
 
       const items = fc.features
         .filter((f) => f.geometry != null)
@@ -210,11 +235,12 @@ export default function MapPage() {
         return;
       }
 
-      console.log("[KML Import] Inserting", items.length, "elements...");
       await bulkCreate.mutateAsync(items);
       toast({ title: `${items.length} elementos importados!` });
 
-      // Auto-zoom to imported elements
+      // Auto-enable and zoom to imported layer
+      setVisibleProviders((prev) => new Set(prev).add(selectedProvider));
+
       if (mapInstance.current && fc.features.length > 0) {
         try {
           const geoLayer = L.geoJSON(fc as any);
@@ -225,12 +251,14 @@ export default function MapPage() {
         } catch {}
       }
     } catch (err: any) {
-      console.error("[KML Import] Error:", err);
       toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  // Check which providers have geo data
+  const providersWithData = new Set(geoElements?.map((e) => e.provider_id) || []);
 
   return (
     <div className="relative flex h-full">
@@ -281,21 +309,32 @@ export default function MapPage() {
         {/* Provider toggles */}
         <div className="max-h-60 space-y-1 overflow-y-auto">
           {providers?.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => toggleProvider(p.id)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition-colors"
-            >
-              <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-              <span className="flex-1 text-left truncate">{p.name}</span>
-              {visibleProviders.has(p.id) ? (
-                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            <div key={p.id} className="flex items-center gap-1">
+              <button
+                onClick={() => toggleProvider(p.id)}
+                className="flex flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+              >
+                <span className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                <span className="flex-1 text-left truncate">{p.name}</span>
+                {visibleProviders.has(p.id) ? (
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </button>
+              {providersWithData.has(p.id) && (
+                <button
+                  onClick={() => setDeleteTarget({ id: p.id, name: p.name })}
+                  className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  title="Apagar camada"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               )}
-            </button>
+            </div>
           ))}
         </div>
+
         {/* LM Layer toggle */}
         <div className="border-t pt-2 mt-2">
           <button
@@ -319,6 +358,27 @@ export default function MapPage() {
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="z-[3000]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar camada</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja apagar todos os elementos geográficos (rede/mancha) do provedor <strong>{deleteTarget?.name}</strong>? Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteLayer}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Apagar camada
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

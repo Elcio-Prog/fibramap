@@ -230,7 +230,7 @@ export async function getRouteDistance(
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+    const url = `https://router.project-osrm.org/route/v1/foot/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
     const res = await fetch(url);
     const data = await res.json();
     if (data.code === "Ok" && data.routes?.length > 0) {
