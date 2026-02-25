@@ -222,20 +222,29 @@ export function findNearestBoundaryPoint(
   return nearest;
 }
 
-/** Calculate straight-line distance for fiber drop estimation.
- *  Uses haversine (direct distance) since fiber routes through conduits,
- *  not following road directions or traffic rules. */
+/** Calculate route distance via OSRM using "foot" profile.
+ *  Foot profile treats all roads as bidirectional (no one-way restrictions),
+ *  giving the shortest path along streets for fiber drop estimation. */
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
-  const distance = haversineDistance(fromLat, fromLng, toLat, toLng);
-  return {
-    distance,
-    geometry: null, // straight line drawn by the caller
-  };
+  try {
+    const url = `https://router.project-osrm.org/route/v1/foot/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.code === "Ok" && data.routes?.length > 0) {
+      return {
+        distance: data.routes[0].distance,
+        geometry: data.routes[0].geometry,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** Clean address for better geocoding: remove CEP, special chars, extra info */
@@ -402,6 +411,20 @@ export async function geocodeAddress(
 ): Promise<{ lat: number; lng: number; display: string } | null> {
   const cleaned = convertNumberWords(cleanAddressForGeocoding(address));
 
+  // Extract street name and number for structured search
+  const streetNumMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada|Praca)\s+[^,]+?)\s*,\s*(\d+)/i);
+  const streetOnlyMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada|Praca)\s+[^,]+)/i);
+  
+  const cityUf = extractCityUf(address) || 
+    (dbCidade && dbUf ? { city: dbCidade, uf: dbUf } : null);
+
+  // Step 0: Structured search with street + number + city (most precise for house numbers)
+  if (streetNumMatch && cityUf) {
+    const streetWithNum = `${streetNumMatch[1]}, ${streetNumMatch[2]}`;
+    let result = await nominatimStructured({ street: streetWithNum, city: cityUf.city, state: cityUf.uf });
+    if (result) return result;
+  }
+
   // Step 1: Full cleaned free-text
   let result = await nominatimSearch(cleaned);
   if (result) return result;
@@ -424,20 +447,15 @@ export async function geocodeAddress(
     if (result) return result;
   }
 
-  // Step 3: Structured search with city/state from address OR from DB fields
-  const cityUf = extractCityUf(address) || 
-    (dbCidade && dbUf ? { city: dbCidade, uf: dbUf } : null);
-  
-  if (cityUf) {
-    // Try street + city + state
-    const streetMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada|Praca)\s+[^,]+)/i);
-    if (streetMatch) {
-      await new Promise(r => setTimeout(r, 1100));
-      result = await nominatimStructured({ street: streetMatch[1], city: cityUf.city, state: cityUf.uf });
-      if (result) return result;
-    }
+  // Step 3: Structured search with street (no number) + city/state
+  if (cityUf && streetOnlyMatch) {
+    await new Promise(r => setTimeout(r, 1100));
+    result = await nominatimStructured({ street: streetOnlyMatch[1], city: cityUf.city, state: cityUf.uf });
+    if (result) return result;
+  }
 
-    // Step 4: Just city + UF
+  // Step 4: Just city + UF
+  if (cityUf) {
     await new Promise(r => setTimeout(r, 1100));
     result = await nominatimStructured({ city: cityUf.city, state: cityUf.uf });
     if (result) return result;
