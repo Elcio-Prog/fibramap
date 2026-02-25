@@ -76,6 +76,7 @@ export default function FeasibilityPage() {
   const { toast } = useToast();
 
   const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
   const [selectedLpuType, setSelectedLpuType] = useState("");
   const [customMultiplier, setCustomMultiplier] = useState("");
   const [loading, setLoading] = useState(false);
@@ -157,10 +158,16 @@ export default function FeasibilityPage() {
       let geo: { lat: number; lng: number; display: string } | null = null;
 
       if (inputMode === "address") {
-        if (resolvedGeo) {
+        if (resolvedGeo && !addressNumber) {
           geo = resolvedGeo;
+        } else if (resolvedGeo && addressNumber) {
+          // Re-geocode with number for precise placement
+          const fullAddr = address.includes(addressNumber) ? address : `${address}, ${addressNumber}`;
+          geo = await geocodeAddress(fullAddr);
+          if (!geo) geo = resolvedGeo; // fallback to autocomplete result
         } else if (address.trim()) {
-          geo = await geocodeAddress(address);
+          const fullAddr = addressNumber ? `${address}, ${addressNumber}` : address;
+          geo = await geocodeAddress(fullAddr);
         }
         if (!geo) {
           toast({ title: "Endereço não encontrado", variant: "destructive" });
@@ -251,7 +258,8 @@ export default function FeasibilityPage() {
             const ta = findBestTA(
               geo.lat, geo.lng,
               providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
-              maxDist
+              maxDist,
+              (provider as any).use_saturated_ta ?? false
             );
             if (ta) {
               taResult = ta;
@@ -264,7 +272,8 @@ export default function FeasibilityPage() {
             const ta = findBestTA(
               geo.lat, geo.lng,
               providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
-              maxDist
+              maxDist,
+              (provider as any).use_saturated_ta ?? false
             );
 
             if (ta) {
@@ -514,20 +523,26 @@ export default function FeasibilityPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="address" className="mt-3">
-              <Label>Endereço</Label>
-              <AddressAutocomplete
-                value={address}
-                onChange={(val) => {
-                  setAddress(val);
-                  setResolvedGeo(null);
-                }}
-                onSelect={(result) => {
-                  setAddress(result.address);
-                  setResolvedGeo({ lat: result.lat, lng: result.lng, display: result.address });
-                }}
-                placeholder="Ex: Rua Sergio Potulski, 275, Sumaré - SP"
-              />
+            <TabsContent value="address" className="mt-3 space-y-2">
+              <div>
+                <Label>Endereço</Label>
+                <AddressAutocomplete
+                  value={address}
+                  onChange={(val) => {
+                    setAddress(val);
+                    setResolvedGeo(null);
+                  }}
+                  onSelect={(result) => {
+                    setAddress(result.address);
+                    setResolvedGeo({ lat: result.lat, lng: result.lng, display: result.address });
+                  }}
+                  placeholder="Ex: Rua Sergio Potulski, Sumaré - SP"
+                />
+              </div>
+              <div className="w-32">
+                <Label>Número</Label>
+                <Input placeholder="243" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} />
+              </div>
             </TabsContent>
 
             <TabsContent value="coords" className="mt-3 space-y-2">
@@ -728,10 +743,10 @@ function ResultCard({
             const taAvailable = props.porta_disponivel === true;
             const taColor = taAvailable ? "#22c55e" : "#1a1a1a";
             L.circleMarker(pointLatLng, {
-              radius: 8,
+              radius: 4,
               fillColor: taColor,
               color: "#fff",
-              weight: 2,
+              weight: 1.5,
               fillOpacity: 0.95,
             }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${taAvailable ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
             bounds.extend(pointLatLng);
@@ -781,7 +796,7 @@ function ResultCard({
       const taLabel = r.taResult ? `<b>${r.taResult.nome}</b><br/>${r.taResult.portaDisponivel ? "🟢 Porta disponível" : "⚫ Saturado"}` : `<b>Rede ${r.providerName}</b>`;
       const taColor = r.taResult ? (r.taResult.portaDisponivel ? "#22c55e" : "#1a1a1a") : r.providerColor;
       L.circleMarker(r.nearestPoint, {
-        radius: 8, fillColor: taColor, color: "#fff", weight: 2, fillOpacity: 0.9,
+        radius: 5, fillColor: taColor, color: "#fff", weight: 1.5, fillOpacity: 0.9,
       }).addTo(map).bindPopup(taLabel);
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }

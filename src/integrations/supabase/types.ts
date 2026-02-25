@@ -272,6 +272,7 @@ export type Database = {
           name: string
           telefone_gerente: string | null
           updated_at: string
+          use_saturated_ta: boolean
         }
         Insert: {
           color?: string
@@ -284,6 +285,7 @@ export type Database = {
           name: string
           telefone_gerente?: string | null
           updated_at?: string
+          use_saturated_ta?: boolean
         }
         Update: {
           color?: string
@@ -296,6 +298,7 @@ export type Database = {
           name?: string
           telefone_gerente?: string | null
           updated_at?: string
+          use_saturated_ta?: boolean
         }
         Relationships: []
       }
