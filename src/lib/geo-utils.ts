@@ -111,6 +111,112 @@ export function findNearestPoint(
   return nearest;
 }
 
+export interface TAResult {
+  distance: number;
+  point: [number, number]; // [lat, lng]
+  nome: string;
+  portaDisponivel: boolean;
+  motivo: "mais_proximo" | "verde_mais_proximo" | "fallback_saturado";
+  mensagem?: string;
+}
+
+/** Find the best TA (Terminal de Atendimento) for connection.
+ *  Logic:
+ *  1. Find nearest TA overall
+ *  2. If nearest has porta_disponivel=true and distance<=limit → use it
+ *  3. If nearest is saturated → find nearest green TA within limit
+ *  4. If no green TA within limit → fallback to nearest (saturated) with warning
+ */
+export function findBestTA(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  limitMeters: number
+): TAResult | null {
+  // Filter only TA points
+  const taElements: Array<{ lat: number; lng: number; nome: string; portaDisponivel: boolean; distance: number }> = [];
+
+  for (const el of elements) {
+    const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+    if (props.tipo !== "TA") continue;
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    if (geo?.type !== "Point") continue;
+    const [lng2, lat2] = geo.coordinates;
+    const d = haversineDistance(lat, lng, lat2, lng2);
+    taElements.push({
+      lat: lat2,
+      lng: lng2,
+      nome: props.nome || "TA",
+      portaDisponivel: props.porta_disponivel === true,
+      distance: d,
+    });
+  }
+
+  if (taElements.length === 0) return null;
+
+  // Sort by distance
+  taElements.sort((a, b) => a.distance - b.distance);
+  const nearest = taElements[0];
+
+  // Case 1: nearest has porta disponível and within limit
+  if (nearest.portaDisponivel && nearest.distance <= limitMeters) {
+    return {
+      distance: nearest.distance,
+      point: [nearest.lat, nearest.lng],
+      nome: nearest.nome,
+      portaDisponivel: true,
+      motivo: "mais_proximo",
+    };
+  }
+
+  // Case 2: nearest is saturated → find nearest green within limit
+  if (!nearest.portaDisponivel) {
+    const greenTAs = taElements.filter(t => t.portaDisponivel && t.distance <= limitMeters);
+    if (greenTAs.length > 0) {
+      const bestGreen = greenTAs[0];
+      return {
+        distance: bestGreen.distance,
+        point: [bestGreen.lat, bestGreen.lng],
+        nome: bestGreen.nome,
+        portaDisponivel: true,
+        motivo: "verde_mais_proximo",
+      };
+    }
+
+    // Case 3: no green TA within limit → fallback to nearest (saturated)
+    return {
+      distance: nearest.distance,
+      point: [nearest.lat, nearest.lng],
+      nome: nearest.nome,
+      portaDisponivel: false,
+      motivo: "fallback_saturado",
+      mensagem: "O TA mais próximo está saturado (sem porta disponível). Para prosseguir, é necessária viabilidade real via equipe Delivery.",
+    };
+  }
+
+  // Case: nearest has porta but exceeds limit
+  // Find green within limit
+  const greenWithinLimit = taElements.filter(t => t.portaDisponivel && t.distance <= limitMeters);
+  if (greenWithinLimit.length > 0) {
+    return {
+      distance: greenWithinLimit[0].distance,
+      point: [greenWithinLimit[0].lat, greenWithinLimit[0].lng],
+      nome: greenWithinLimit[0].nome,
+      portaDisponivel: true,
+      motivo: "verde_mais_proximo",
+    };
+  }
+
+  // All TAs exceed limit
+  return {
+    distance: nearest.distance,
+    point: [nearest.lat, nearest.lng],
+    nome: nearest.nome,
+    portaDisponivel: nearest.portaDisponivel,
+    motivo: "mais_proximo",
+  };
+}
+
 function extractPoints(geometry: any): [number, number][] {
   if (!geometry) return [];
   switch (geometry.type) {

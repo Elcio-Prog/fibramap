@@ -96,14 +96,33 @@ export default function MapPage() {
                 return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
               },
               pointToLayer: (_f, latlng) => {
-                const pColor = ((_f.properties as any)?.stroke) || providerColor;
+                const fp = (_f.properties as any) || {};
+                // TA/CE point rendering
+                if (fp.tipo === "TA") {
+                  const isGreen = fp.porta_disponivel === true;
+                  const color = isGreen ? "#22c55e" : "#1a1a1a";
+                  const label = fp.nome || "TA";
+                  return L.circleMarker(latlng, {
+                    radius: 8, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.95,
+                  }).bindTooltip(`<b>${label}</b><br/>${isGreen ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
+                }
+                if (fp.tipo === "CE") {
+                  return L.circleMarker(latlng, {
+                    radius: 5, fillColor: "#f59e0b", color: "#fff", weight: 1.5, fillOpacity: 0.85,
+                  }).bindTooltip(`<b>${fp.nome || "CE"}</b><br/>Caixa de Emenda`, { sticky: true, direction: "top", opacity: 0.95 });
+                }
+                const pColor = fp.stroke || providerColor;
                 return L.circleMarker(latlng, { radius: 6, fillColor: pColor, color: "#fff", weight: 2, fillOpacity: 0.9 });
               },
               onEachFeature: (_f, layer) => {
-                const name = props.name || props.Name || el.element_type;
-                const content = `<b>${provider.name}</b><br/>${name}<br/><small>${el.element_type}</small>`;
+                const fp = (_f.properties as any) || {};
+                const name = fp.nome || fp.name || fp.Name || el.element_type;
+                const tipoLabel = fp.tipo === "TA" ? (fp.porta_disponivel ? "TA (porta disponível)" : "TA (saturado)") : fp.tipo === "CE" ? "Caixa de Emenda" : fp.tipo === "CABO" ? "Cabo" : el.element_type;
+                const content = `<b>${provider.name}</b><br/>${name}<br/><small>${tipoLabel}</small>`;
                 layer.bindPopup(content);
-                layer.bindTooltip(`<b>${provider.name}</b><br/>${name}`, { sticky: true, direction: "top", opacity: 0.95 });
+                if (!fp.tipo || (fp.tipo !== "TA" && fp.tipo !== "CE")) {
+                  layer.bindTooltip(`<b>${provider.name}</b><br/>${name}`, { sticky: true, direction: "top", opacity: 0.95 });
+                }
               },
             }
           );
