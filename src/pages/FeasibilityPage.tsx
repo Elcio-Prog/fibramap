@@ -9,6 +9,7 @@ import {
   findNearestPoint,
   findBestTA,
   findBestConnectionPoint,
+  findBestConnectionPointByRoute,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
@@ -286,33 +287,23 @@ export default function FeasibilityPage() {
             distance = 0;
             isViableNT = true;
           } else {
-            // Outside polygon - use connection point logic
-            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, rules);
+            // Outside polygon - use connection point logic (prioritizing shortest real route)
+            const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, maxDist, rules);
 
-            if (cp) {
-              taResult = cp;
-              nearestPt = cp.point;
+            if (cpByRoute) {
+              taResult = cpByRoute.taResult;
+              nearestPt = cpByRoute.taResult.point;
+              distance = cpByRoute.routeDistance;
+              routeGeometry = cpByRoute.routeGeometry;
 
-              try {
-                const route = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
-                if (route?.geometry) {
-                  distance = route.distance;
-                  routeGeometry = route.geometry;
-
-                  // CPFL exclusion check
-                  if (rules.regras_habilitar_exclusao_cpfl) {
-                    const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
-                    if (cpflCheck.crosses) {
-                      cpflBlocked = true;
-                      cpflMessage = cpflCheck.message;
-                      isViableNT = false;
-                    }
-                  }
-                } else {
-                  continue;
+              // CPFL exclusion check
+              if (rules.regras_habilitar_exclusao_cpfl && routeGeometry) {
+                const cpflCheck = routeCrossesCPFL(routeGeometry, elMapped);
+                if (cpflCheck.crosses) {
+                  cpflBlocked = true;
+                  cpflMessage = cpflCheck.message;
+                  isViableNT = false;
                 }
-              } catch {
-                continue;
               }
 
               if (!cpflBlocked) {

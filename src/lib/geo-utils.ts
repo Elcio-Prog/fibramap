@@ -180,6 +180,17 @@ export interface ProviderRules {
   regras_habilitar_exclusao_cpfl: boolean;
 }
 
+type ConnectionCandidate = {
+  lat: number;
+  lng: number;
+  nome: string;
+  tipo: "TA" | "CE";
+  portaDisponivel: boolean;
+  aptoNovoCliente: boolean;
+  motivoBloqueio?: string;
+  distance: number;
+};
+
 /** Check if a connection point (TA/CE) is apt for a new client based on provider rules */
 function checkAptoNovoCliente(
   props: any,
@@ -212,25 +223,18 @@ function checkAptoNovoCliente(
   return { apto: true };
 }
 
-/** Find the best connection point (TA/CE) using provider rules.
- *  New version that supports CE, splitter rules, and dynamic aptitude checks. */
-export function findBestConnectionPoint(
+function buildConnectionCandidates(
   lat: number,
   lng: number,
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
-  limitMeters: number,
   rules: ProviderRules
-): TAResult | null {
-  const candidates: Array<{
-    lat: number; lng: number; nome: string; tipo: "TA" | "CE";
-    portaDisponivel: boolean; aptoNovoCliente: boolean; motivoBloqueio?: string;
-    distance: number;
-  }> = [];
+): ConnectionCandidate[] {
+  const candidates: ConnectionCandidate[] = [];
 
   for (const el of elements) {
     const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
     const tipo = props.tipo;
-    
+
     // Filter by type based on rules
     if (tipo === "TA" && !rules.regras_considerar_ta) continue;
     if (tipo === "CE" && !rules.regras_considerar_ce) continue;
@@ -238,13 +242,14 @@ export function findBestConnectionPoint(
 
     const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
     if (geo?.type !== "Point") continue;
+
     const [lng2, lat2] = geo.coordinates;
     const d = haversineDistance(lat, lng, lat2, lng2);
-
     const aptCheck = checkAptoNovoCliente(props, rules);
-    
+
     candidates.push({
-      lat: lat2, lng: lng2,
+      lat: lat2,
+      lng: lng2,
       nome: props.nome || tipo,
       tipo: tipo as "TA" | "CE",
       portaDisponivel: props.porta_disponivel === true,
@@ -254,11 +259,21 @@ export function findBestConnectionPoint(
     });
   }
 
+  candidates.sort((a, b) => a.distance - b.distance);
+  return candidates;
+}
+
+/** Find the best connection point (TA/CE) using provider rules (shortest straight-line fallback) */
+export function findBestConnectionPoint(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  limitMeters: number,
+  rules: ProviderRules
+): TAResult | null {
+  const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
-  candidates.sort((a, b) => a.distance - b.distance);
-
-  // Try to find apt candidate within limit
   const aptWithinLimit = candidates.filter(c => c.aptoNovoCliente && c.distance <= limitMeters);
   if (aptWithinLimit.length > 0) {
     const best = aptWithinLimit[0];
@@ -273,7 +288,6 @@ export function findBestConnectionPoint(
     };
   }
 
-  // No apt candidate within limit — use nearest anyway with warning
   const nearest = candidates[0];
   return {
     distance: nearest.distance,
@@ -285,6 +299,85 @@ export function findBestConnectionPoint(
     motivoBloqueio: nearest.motivoBloqueio,
     motivo: "sem_apto",
     mensagem: "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+  };
+}
+
+/**
+ * Find the best connection point by real route distance.
+ * 1) Try apt candidates within limit.
+ * 2) If none apt, try nearest candidates within limit.
+ * 3) If none in limit, fallback to nearest candidate overall.
+ */
+export async function findBestConnectionPointByRoute(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  limitMeters: number,
+  rules: ProviderRules,
+  maxCandidates: number = 8
+): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any } | null> {
+  const candidates = buildConnectionCandidates(lat, lng, elements, rules);
+  if (candidates.length === 0) return null;
+
+  const aptWithinLimit = candidates.filter((c) => c.aptoNovoCliente && c.distance <= limitMeters);
+  const withinLimit = candidates.filter((c) => c.distance <= limitMeters);
+
+  const pool = (
+    aptWithinLimit.length > 0
+      ? aptWithinLimit
+      : (withinLimit.length > 0 ? withinLimit : [candidates[0]])
+  ).slice(0, maxCandidates);
+
+  const routed = await Promise.all(
+    pool.map(async (c) => {
+      const route = await getRouteDistance(lat, lng, c.lat, c.lng);
+      return route ? { candidate: c, route } : null;
+    })
+  );
+
+  const valid = routed.filter((r): r is { candidate: ConnectionCandidate; route: { distance: number; geometry: any } } => r !== null);
+
+  if (valid.length === 0) {
+    const fallback = pool[0];
+    return {
+      taResult: {
+        distance: fallback.distance,
+        point: [fallback.lat, fallback.lng],
+        nome: fallback.nome,
+        tipo: fallback.tipo,
+        portaDisponivel: fallback.portaDisponivel,
+        aptoNovoCliente: fallback.aptoNovoCliente,
+        motivoBloqueio: fallback.motivoBloqueio,
+        motivo: fallback.aptoNovoCliente ? "mais_proximo" : "sem_apto",
+        mensagem: fallback.aptoNovoCliente
+          ? undefined
+          : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+      },
+      routeDistance: fallback.distance,
+      routeGeometry: null,
+    };
+  }
+
+  valid.sort((a, b) => a.route.distance - b.route.distance);
+  const best = valid[0];
+  const inAptPhase = aptWithinLimit.length > 0;
+
+  return {
+    taResult: {
+      distance: best.route.distance,
+      point: [best.candidate.lat, best.candidate.lng],
+      nome: best.candidate.nome,
+      tipo: best.candidate.tipo,
+      portaDisponivel: best.candidate.portaDisponivel,
+      aptoNovoCliente: inAptPhase ? true : best.candidate.aptoNovoCliente,
+      motivoBloqueio: best.candidate.motivoBloqueio,
+      motivo: inAptPhase ? "mais_proximo" : "sem_apto",
+      mensagem: inAptPhase
+        ? undefined
+        : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+    },
+    routeDistance: best.route.distance,
+    routeGeometry: best.route.geometry,
   };
 }
 
