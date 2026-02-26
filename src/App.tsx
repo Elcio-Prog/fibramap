@@ -15,6 +15,7 @@ import FeasibilityPage from "@/pages/FeasibilityPage";
 import HistoryPage from "@/pages/HistoryPage";
 import BaseLMPage from "@/pages/BaseLMPage";
 import WsUsersPage from "@/pages/WsUsersPage";
+import WsUploadPage from "@/pages/WsUploadPage";
 import WsDashboard from "@/pages/WsDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +47,7 @@ function ProtectedRoutes() {
         <Route path="/base-lm" element={<BaseLMPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/ws-users" element={isAdmin ? <WsUsersPage /> : <Navigate to="/" replace />} />
+        <Route path="/ws-upload" element={isAdmin ? <WsUploadPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
