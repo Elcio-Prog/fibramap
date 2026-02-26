@@ -915,3 +915,232 @@ export async function geocodeAddress(
 
   return null;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Highway / Railway blocking rule
+// ═══════════════════════════════════════════════════════════════
+
+interface OverpassWay {
+  type: "highway" | "railway";
+  tag: string;
+  coords: number[][]; // [lng, lat][]
+}
+
+/** Fetch highways (motorway/trunk) and railways from OSM Overpass API within a bounding box */
+export async function fetchHighwaysAndRailways(
+  minLat: number, minLng: number, maxLat: number, maxLng: number
+): Promise<OverpassWay[]> {
+  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
+  const query = `[out:json][timeout:15];(way["highway"~"^(motorway|trunk|motorway_link|trunk_link)$"](${bbox});way["railway"="rail"](${bbox}););out geom;`;
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const ways: OverpassWay[] = [];
+    for (const el of data.elements || []) {
+      if (el.type !== "way" || !el.geometry) continue;
+      const coords = el.geometry.map((g: any) => [g.lon, g.lat]);
+      if (coords.length < 2) continue;
+      const isRailway = el.tags?.railway === "rail";
+      const tag = isRailway ? el.tags.railway : el.tags.highway;
+      ways.push({ type: isRailway ? "railway" : "highway", tag, coords });
+    }
+    return ways;
+  } catch {
+    return [];
+  }
+}
+
+/** Get bounding box of a route geometry with padding */
+function getRouteBbox(routeGeometry: any, padDeg = 0.005): { minLat: number; minLng: number; maxLat: number; maxLng: number } {
+  const coords: number[][] = [];
+  const geo = typeof routeGeometry === "string" ? JSON.parse(routeGeometry) : routeGeometry;
+  if (geo.type === "LineString") coords.push(...geo.coordinates);
+  else if (geo.type === "MultiLineString") for (const l of geo.coordinates) coords.push(...l);
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const c of coords) {
+    if (c[1] < minLat) minLat = c[1];
+    if (c[1] > maxLat) maxLat = c[1];
+    if (c[0] < minLng) minLng = c[0];
+    if (c[0] > maxLng) maxLng = c[0];
+  }
+  return { minLat: minLat - padDeg, minLng: minLng - padDeg, maxLat: maxLat + padDeg, maxLng: maxLng + padDeg };
+}
+
+/** Find intersection point between two segments, returns [lng, lat] or null */
+function segmentIntersectionPoint(
+  ax1: number, ay1: number, ax2: number, ay2: number,
+  bx1: number, by1: number, bx2: number, by2: number
+): [number, number] | null {
+  const d = (ax2 - ax1) * (by2 - by1) - (ay2 - ay1) * (bx2 - bx1);
+  if (Math.abs(d) < 1e-10) return null;
+  const t = ((bx1 - ax1) * (by2 - by1) - (by1 - ay1) * (bx2 - bx1)) / d;
+  const u = ((bx1 - ax1) * (ay2 - ay1) - (by1 - ay1) * (ax2 - ax1)) / d;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+  return [ax1 + t * (ax2 - ax1), ay1 + t * (ay2 - ay1)];
+}
+
+/** Check minimum distance from a point to any segment of a linestring (in meters) */
+function minDistToLine(ptLng: number, ptLat: number, lineCoords: number[][]): number {
+  let min = Infinity;
+  for (const c of lineCoords) {
+    const d = haversineDistance(ptLat, ptLng, c[1], c[0]);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+export interface HighwayRailwayCheckResult {
+  blocked: boolean;
+  type?: "highway" | "railway";
+  message?: string;
+}
+
+/**
+ * Check if a route crosses highways or railways WITHOUT an existing NTT cable at the crossing.
+ * @param routeGeometry - OSRM route geometry (GeoJSON LineString)
+ * @param overpassWays - highways/railways from Overpass API
+ * @param nttCables - NTT cable LineStrings from geo_elements (properties.tipo === "CABO")
+ * @param toleranceM - distance tolerance for NTT cable exception (default 100m)
+ */
+export function routeCrossesHighwayOrRailway(
+  routeGeometry: any,
+  overpassWays: OverpassWay[],
+  nttCables: Array<{ coords: number[][] }>,
+  toleranceM: number = 100
+): HighwayRailwayCheckResult {
+  if (!routeGeometry || overpassWays.length === 0) return { blocked: false };
+
+  const geo = typeof routeGeometry === "string" ? JSON.parse(routeGeometry) : routeGeometry;
+  const routeCoords: number[][] = [];
+  if (geo.type === "LineString") routeCoords.push(...geo.coordinates);
+  else if (geo.type === "MultiLineString") for (const l of geo.coordinates) routeCoords.push(...l);
+  if (routeCoords.length < 2) return { blocked: false };
+
+  for (const way of overpassWays) {
+    // Check segment-by-segment intersection between route and this highway/railway
+    for (let i = 0; i < routeCoords.length - 1; i++) {
+      const [rLng1, rLat1] = routeCoords[i];
+      const [rLng2, rLat2] = routeCoords[i + 1];
+
+      for (let j = 0; j < way.coords.length - 1; j++) {
+        const [wLng1, wLat1] = way.coords[j];
+        const [wLng2, wLat2] = way.coords[j + 1];
+
+        const pt = segmentIntersectionPoint(rLng1, rLat1, rLng2, rLat2, wLng1, wLat1, wLng2, wLat2);
+        if (!pt) continue;
+
+        // Found intersection! Check if NTT cable also crosses here
+        const [crossLng, crossLat] = pt;
+        let nttHasCrossing = false;
+
+        for (const cable of nttCables) {
+          // Quick proximity check: is any cable point near the crossing?
+          const closestDist = minDistToLine(crossLng, crossLat, cable.coords);
+          if (closestDist > toleranceM) continue;
+
+          // Detailed check: does this cable actually cross the same highway/railway way?
+          for (let ci = 0; ci < cable.coords.length - 1; ci++) {
+            const [cLng1, cLat1] = cable.coords[ci];
+            const [cLng2, cLat2] = cable.coords[ci + 1];
+
+            const cableCross = segmentIntersectionPoint(cLng1, cLat1, cLng2, cLat2, wLng1, wLat1, wLng2, wLat2);
+            if (cableCross) {
+              const distBetweenCrossings = haversineDistance(crossLat, crossLng, cableCross[1], cableCross[0]);
+              if (distBetweenCrossings <= toleranceM) {
+                nttHasCrossing = true;
+                break;
+              }
+            }
+          }
+          if (nttHasCrossing) break;
+        }
+
+        if (!nttHasCrossing) {
+          const label = way.type === "railway" ? "via férrea" : "rodovia";
+          const motivo = way.type === "railway" ? "FERROVIA_PROIBIDA" : "RODOVIA_PROIBIDA";
+          return {
+            blocked: true,
+            type: way.type,
+            message: `INVIÁVEL NA REDE PRÓPRIA – Rota cruza ${label} (${way.tag}) sem cruzamento de cabo NTT existente. Motivo: ${motivo}`,
+          };
+        }
+        // If NTT has crossing, this particular intersection is allowed — continue checking others
+      }
+    }
+
+    // Also check "traveling along" — if route runs parallel/on top of highway for > 30m
+    let overlapDist = 0;
+    for (let i = 0; i < routeCoords.length; i++) {
+      const [rLng, rLat] = routeCoords[i];
+      const dist = minDistToLine(rLng, rLat, way.coords);
+      if (dist < 15) { // within 15m = "on" the highway
+        if (i > 0) {
+          overlapDist += haversineDistance(routeCoords[i - 1][1], routeCoords[i - 1][0], rLat, rLng);
+        }
+      } else {
+        overlapDist = 0; // reset if route moves away
+      }
+      if (overlapDist > 30) {
+        // Check NTT cable exception for this stretch
+        const midIdx = Math.max(0, i - Math.floor(overlapDist / 10));
+        const [midLng, midLat] = routeCoords[midIdx];
+        let nttCovers = false;
+        for (const cable of nttCables) {
+          if (minDistToLine(midLng, midLat, cable.coords) <= toleranceM) {
+            nttCovers = true;
+            break;
+          }
+        }
+        if (!nttCovers) {
+          const label = way.type === "railway" ? "via férrea" : "rodovia";
+          const motivo = way.type === "railway" ? "FERROVIA_PROIBIDA" : "RODOVIA_PROIBIDA";
+          return {
+            blocked: true,
+            type: way.type,
+            message: `INVIÁVEL NA REDE PRÓPRIA – Rota trafega por ${label} (${way.tag}) por mais de 30m sem cabo NTT existente. Motivo: ${motivo}`,
+          };
+        }
+      }
+    }
+  }
+
+  return { blocked: false };
+}
+
+/** Extract NTT cable coordinates from geo_elements for highway/railway exception check */
+export function extractNttCables(
+  elements: Array<{ geometry: any; properties?: any }>
+): Array<{ coords: number[][] }> {
+  const cables: Array<{ coords: number[][] }> = [];
+  for (const el of elements) {
+    const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+    if (props.tipo !== "CABO") continue;
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    if (geo?.type === "LineString") {
+      cables.push({ coords: geo.coordinates });
+    } else if (geo?.type === "MultiLineString") {
+      for (const line of geo.coordinates) cables.push({ coords: line });
+    }
+  }
+  return cables;
+}
+
+/** Full highway/railway check: fetch Overpass data + run intersection check */
+export async function checkRouteHighwayRailway(
+  routeGeometry: any,
+  nttElements: Array<{ geometry: any; properties?: any }>
+): Promise<HighwayRailwayCheckResult> {
+  if (!routeGeometry) return { blocked: false };
+  const bbox = getRouteBbox(routeGeometry);
+  const [ways, cables] = await Promise.all([
+    fetchHighwaysAndRailways(bbox.minLat, bbox.minLng, bbox.maxLat, bbox.maxLng),
+    Promise.resolve(extractNttCables(nttElements)),
+  ]);
+  if (ways.length === 0) return { blocked: false };
+  return routeCrossesHighwayOrRailway(routeGeometry, ways, cables);
+}
