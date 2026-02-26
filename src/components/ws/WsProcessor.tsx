@@ -24,14 +24,16 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const [results, setResults] = useState<WsResult[] | null>(null);
 
   const { toast } = useToast();
-  const { data: providers } = useProviders();
-  const { data: geoElements } = useGeoElements();
-  const { data: lpuItems } = useLpuItems();
-  const { data: comprasLM } = useComprasLM();
+  const { data: providers, isLoading: loadingProviders } = useProviders();
+  const { data: geoElements, isLoading: loadingGeo } = useGeoElements();
+  const { data: lpuItems, isLoading: loadingLpu } = useLpuItems();
+  const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
+
+  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM;
 
   const startProcessing = async () => {
-    if (!providers?.length || !geoElements?.length) {
-      toast({ title: "Cadastre provedores e importe dados de rede antes", variant: "destructive" });
+    if (!providers?.length) {
+      toast({ title: "Cadastre ao menos um provedor antes de processar", variant: "destructive" });
       return;
     }
 
@@ -202,8 +204,12 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               O motor irá verificar cada item contra a rede NTT, provedores parceiros e base LM histórica.
               Coordenadas são priorizadas; endereços são geocodificados quando necessário.
             </p>
-            <Button className="w-full gap-2" onClick={startProcessing}>
-              <Play className="h-4 w-4" /> Iniciar processamento
+            <Button className="w-full gap-2" onClick={startProcessing} disabled={isLoadingData}>
+              {isLoadingData ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Carregando dados de rede...</>
+              ) : (
+                <><Play className="h-4 w-4" /> Iniciar processamento</>
+              )}
             </Button>
           </div>
         )}
