@@ -144,6 +144,9 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     cancelRef.current = false;
     setProcessing(true);
     if (!resume) setResults(null);
+    
+    // Show progress immediately so user knows it started
+    setProgress({ current: 0, total: totalItems || 1, currentItem: "Preparando dados..." });
 
     try {
       // Fetch all batch items
