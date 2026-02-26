@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { useLpuItems } from "@/hooks/useLpuItems";
 import { useComprasLM } from "@/hooks/useComprasLM";
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress } from "@/lib/ws-feasibility-engine";
-import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin } from "lucide-react";
+import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw } from "lucide-react";
 
 interface Props {
   batchId: string;
@@ -22,6 +22,11 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress | null>(null);
   const [results, setResults] = useState<WsResult[] | null>(null);
+  const [batchStatus, setBatchStatus] = useState<string>("pending");
+  const [totalItems, setTotalItems] = useState(0);
+  const [processedCount, setProcessedCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const cancelRef = useRef(false);
 
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
@@ -31,17 +36,117 @@ export default function WsProcessor({ batchId, onReset }: Props) {
 
   const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM;
 
-  const startProcessing = async () => {
+  // On mount, check batch status and load any existing results
+  useEffect(() => {
+    loadBatchState();
+  }, [batchId]);
+
+  const loadBatchState = async () => {
+    setLoading(true);
+    try {
+      // Get batch info
+      const { data: batch } = await supabase
+        .from("ws_batches")
+        .select("status, total_items")
+        .eq("id", batchId)
+        .single();
+
+      if (batch) {
+        setBatchStatus(batch.status);
+        setTotalItems(batch.total_items);
+      }
+
+      // Count already processed items
+      const { count: doneCount } = await supabase
+        .from("ws_feasibility_items")
+        .select("id", { count: "exact", head: true })
+        .eq("batch_id", batchId)
+        .neq("processing_status", "pending");
+
+      setProcessedCount(doneCount || 0);
+
+      // If batch is fully processed, load all results for display
+      if (batch?.status === "processed") {
+        await loadResults();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadResults = async () => {
+    const allItems: any[] = [];
+    let offset = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data } = await supabase
+        .from("ws_feasibility_items")
+        .select("*")
+        .eq("batch_id", batchId)
+        .order("row_number")
+        .range(offset, offset + batchSize - 1);
+      if (data && data.length > 0) {
+        allItems.push(...data);
+        offset += batchSize;
+        hasMore = data.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    const mapped: WsResult[] = allItems.map((row) => ({
+      item: {
+        id: row.id,
+        designacao: row.designacao,
+        cliente: row.cliente,
+        tipo_link: row.tipo_link,
+        velocidade_mbps: row.velocidade_mbps,
+        endereco_a: row.endereco_a,
+        cidade_a: row.cidade_a,
+        uf_a: row.uf_a,
+        lat_a: row.lat_a,
+        lng_a: row.lng_a,
+        endereco_b: row.endereco_b,
+        cidade_b: row.cidade_b,
+        uf_b: row.uf_b,
+        lat_b: row.lat_b,
+        lng_b: row.lng_b,
+        prazo_ativacao: row.prazo_ativacao,
+        is_l2l: row.is_l2l || false,
+        l2l_suffix: row.l2l_suffix,
+        l2l_pair_id: row.l2l_pair_id,
+        row_number: row.row_number,
+      },
+      geo_lat: row.lat_a,
+      geo_lng: row.lng_a,
+      geo_source: row.processing_status === "geo_failed" ? "nao_encontrado" : row.lat_a != null ? "coordenada" : "nao_encontrado",
+      stage: row.result_stage,
+      provider_name: row.result_provider,
+      distance_m: null,
+      lpu_value: null,
+      final_value: row.result_value,
+      is_viable: row.is_viable ?? false,
+      notes: row.result_notes || "",
+    }));
+
+    setResults(mapped);
+  };
+
+  const startProcessing = async (resume = false) => {
     if (!providers?.length) {
       toast({ title: "Cadastre ao menos um provedor antes de processar", variant: "destructive" });
       return;
     }
 
+    cancelRef.current = false;
     setProcessing(true);
-    setResults(null);
+    if (!resume) setResults(null);
 
     try {
-      // Fetch batch items
+      // Fetch all batch items
       const allItems: any[] = [];
       let offset = 0;
       const batchSize = 1000;
@@ -69,28 +174,41 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         return;
       }
 
-      const wsItems: WsItemInput[] = allItems.map((row) => ({
-        id: row.id,
-        designacao: row.designacao,
-        cliente: row.cliente,
-        tipo_link: row.tipo_link,
-        velocidade_mbps: row.velocidade_mbps,
-        endereco_a: row.endereco_a,
-        cidade_a: row.cidade_a,
-        uf_a: row.uf_a,
-        lat_a: row.lat_a,
-        lng_a: row.lng_a,
-        endereco_b: row.endereco_b,
-        cidade_b: row.cidade_b,
-        uf_b: row.uf_b,
-        lat_b: row.lat_b,
-        lng_b: row.lng_b,
-        prazo_ativacao: row.prazo_ativacao,
-        is_l2l: row.is_l2l || false,
-        l2l_suffix: row.l2l_suffix,
-        l2l_pair_id: row.l2l_pair_id,
-        row_number: row.row_number,
-      }));
+      // Find first unprocessed item index
+      let startIndex = 0;
+      const previousResults: WsResult[] = [];
+
+      if (resume) {
+        for (let i = 0; i < allItems.length; i++) {
+          if (allItems[i].processing_status !== "pending") {
+            previousResults.push({
+              item: mapRowToInput(allItems[i]),
+              geo_lat: allItems[i].lat_a,
+              geo_lng: allItems[i].lng_a,
+              geo_source: allItems[i].processing_status === "geo_failed" ? "nao_encontrado" : "coordenada",
+              stage: allItems[i].result_stage,
+              provider_name: allItems[i].result_provider,
+              distance_m: null,
+              lpu_value: null,
+              final_value: allItems[i].result_value,
+              is_viable: allItems[i].is_viable ?? false,
+              notes: allItems[i].result_notes || "",
+            });
+            startIndex = i + 1;
+          } else {
+            break;
+          }
+        }
+      }
+
+      // Update batch status to processing
+      await supabase.from("ws_batches").update({ status: "processing" }).eq("id", batchId);
+      setBatchStatus("processing");
+
+      const wsItems: WsItemInput[] = allItems.map(mapRowToInput);
+
+      const accumulated = [...previousResults];
+      setResults(accumulated.length > 0 ? [...accumulated] : null);
 
       const batchResults = await processWsBatch(
         wsItems,
@@ -99,38 +217,54 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         lpuItems || [],
         comprasLM || [],
         (p) => setProgress(p),
+        (result, _index) => {
+          accumulated.push(result);
+          setResults([...accumulated]);
+          setProcessedCount(accumulated.length);
+        },
+        startIndex,
       );
 
-      setResults(batchResults);
-
-      // Save results back to DB (fire-and-forget)
-      const updates = batchResults.map((r) =>
-        supabase
-          .from("ws_feasibility_items")
-          .update({
-            lat_a: r.geo_lat,
-            lng_a: r.geo_lng,
-            processing_status: r.is_viable ? "viable" : r.geo_source === "nao_encontrado" ? "geo_failed" : "not_viable",
-            result_stage: r.stage,
-            result_provider: r.provider_name,
-            result_value: r.final_value,
-            result_notes: r.notes,
-            is_viable: r.is_viable,
-          })
-          .eq("id", r.item.id)
-      );
-      Promise.all(updates).catch(() => {});
+      const allResults = [...previousResults, ...batchResults];
+      setResults(allResults);
 
       // Update batch status
-      supabase.from("ws_batches").update({ status: "processed", processed_at: new Date().toISOString() }).eq("id", batchId).then(() => {});
+      await supabase.from("ws_batches").update({ status: "processed", processed_at: new Date().toISOString() }).eq("id", batchId);
+      setBatchStatus("processed");
 
-      toast({ title: `Processamento concluído — ${batchResults.length} itens` });
+      toast({ title: `Processamento concluído — ${allResults.length} itens` });
     } catch (err: any) {
+      // Even on error, progress is saved in DB
       toast({ title: "Erro no processamento", description: err.message, variant: "destructive" });
+      await supabase.from("ws_batches").update({ status: "paused" }).eq("id", batchId);
+      setBatchStatus("paused");
     } finally {
       setProcessing(false);
     }
   };
+
+  const mapRowToInput = (row: any): WsItemInput => ({
+    id: row.id,
+    designacao: row.designacao,
+    cliente: row.cliente,
+    tipo_link: row.tipo_link,
+    velocidade_mbps: row.velocidade_mbps,
+    endereco_a: row.endereco_a,
+    cidade_a: row.cidade_a,
+    uf_a: row.uf_a,
+    lat_a: row.lat_a,
+    lng_a: row.lng_a,
+    endereco_b: row.endereco_b,
+    cidade_b: row.cidade_b,
+    uf_b: row.uf_b,
+    lat_b: row.lat_b,
+    lng_b: row.lng_b,
+    prazo_ativacao: row.prazo_ativacao,
+    is_l2l: row.is_l2l || false,
+    l2l_suffix: row.l2l_suffix,
+    l2l_pair_id: row.l2l_pair_id,
+    row_number: row.row_number,
+  });
 
   const exportToExcel = () => {
     if (!results) return;
@@ -168,7 +302,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Resultado WS");
 
-    // Auto-size columns
     const colWidths = Object.keys(rows[0] || {}).map((key) => ({
       wch: Math.max(key.length, ...rows.map((r) => String((r as any)[key] || "").length).slice(0, 50)) + 2,
     }));
@@ -181,12 +314,25 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const notViableCount = results?.filter((r) => !r.is_viable).length ?? 0;
   const geoFailCount = results?.filter((r) => r.geo_source === "nao_encontrado").length ?? 0;
 
-  // Group by stage
   const stageGroups: Record<string, number> = {};
   results?.forEach((r) => {
     const key = r.stage || "Sem viabilidade";
     stageGroups[key] = (stageGroups[key] || 0) + 1;
   });
+
+  const canResume = (batchStatus === "processing" || batchStatus === "paused") && processedCount > 0 && processedCount < totalItems;
+  const isComplete = batchStatus === "processed";
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8 flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-muted-foreground">Carregando estado do lote...</span>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -194,23 +340,32 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         <CardTitle className="text-base flex items-center gap-2">
           <MapPin className="h-4 w-4" />
           Processamento de Viabilidade
+          {canResume && !processing && (
+            <Badge variant="outline" className="ml-2 text-xs">
+              {processedCount}/{totalItems} processados
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Pre-processing */}
-        {!results && !processing && (
+        {/* Pre-processing or Resume */}
+        {!results && !processing && !isComplete && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               O motor irá verificar cada item contra a rede NTT, provedores parceiros e base LM histórica.
-              Coordenadas são priorizadas; endereços são geocodificados quando necessário.
+              {canResume && " O progresso anterior será retomado de onde parou."}
             </p>
-            <Button className="w-full gap-2" onClick={startProcessing} disabled={isLoadingData}>
-              {isLoadingData ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Carregando dados de rede...</>
-              ) : (
-                <><Play className="h-4 w-4" /> Iniciar processamento</>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1 gap-2" onClick={() => startProcessing(canResume)} disabled={isLoadingData}>
+                {isLoadingData ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Carregando dados de rede...</>
+                ) : canResume ? (
+                  <><RotateCcw className="h-4 w-4" /> Retomar processamento ({processedCount}/{totalItems})</>
+                ) : (
+                  <><Play className="h-4 w-4" /> Iniciar processamento</>
+                )}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -220,7 +375,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Processando...
+                Processando... (progresso salvo automaticamente)
               </span>
               <span className="font-mono text-xs">
                 {progress.current}/{progress.total}
@@ -233,10 +388,9 @@ export default function WsProcessor({ batchId, onReset }: Props) {
           </div>
         )}
 
-        {/* Results */}
-        {results && (
+        {/* Results (shown during processing and after) */}
+        {results && results.length > 0 && (
           <div className="space-y-4">
-            {/* Summary badges */}
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{results.length} itens</Badge>
               <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
@@ -252,7 +406,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               )}
             </div>
 
-            {/* Stage breakdown */}
             <div className="flex flex-wrap gap-2">
               {Object.entries(stageGroups).map(([stage, count]) => (
                 <Badge key={stage} variant="outline" className="text-xs">
@@ -261,7 +414,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               ))}
             </div>
 
-            {/* Results table */}
             <div className="overflow-x-auto max-h-[500px] border rounded-md">
               <table className="text-xs w-full">
                 <thead className="sticky top-0 bg-muted z-10">
@@ -311,8 +463,34 @@ export default function WsProcessor({ batchId, onReset }: Props) {
 
             {/* Actions */}
             <div className="flex gap-2">
-              <Button className="gap-2" onClick={exportToExcel}>
-                <Download className="h-4 w-4" /> Exportar Excel
+              {!processing && (
+                <>
+                  <Button className="gap-2" onClick={exportToExcel}>
+                    <Download className="h-4 w-4" /> Exportar Excel
+                  </Button>
+                  {canResume && (
+                    <Button variant="secondary" className="gap-2" onClick={() => startProcessing(true)}>
+                      <RotateCcw className="h-4 w-4" /> Retomar
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={onReset}>
+                    Novo upload
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Completed batch - load results */}
+        {isComplete && !results && !processing && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Este lote já foi processado ({totalItems} itens).
+            </p>
+            <div className="flex gap-2">
+              <Button className="gap-2" onClick={loadResults}>
+                <Download className="h-4 w-4" /> Carregar resultados
               </Button>
               <Button variant="outline" onClick={onReset}>
                 Novo upload

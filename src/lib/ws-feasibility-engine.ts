@@ -1,6 +1,7 @@
 /**
  * Motor de viabilidade WS reutilizável.
  * Extrai a lógica de FeasibilityPage para uso em batch.
+ * Salva progresso item a item no banco para sobreviver a navegação.
  */
 import {
   geocodeAddress,
@@ -15,6 +16,7 @@ import {
   type TAResult,
   type ProviderRules,
 } from "@/lib/geo-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface WsItemInput {
   id: string;
@@ -46,7 +48,7 @@ export interface WsResult {
   geo_lng: number | null;
   geo_source: "coordenada" | "endereco" | "nao_encontrado";
   // Best result
-  stage: string | null; // "Rede Própria" | "Dentro Cobertura" | "Cross NTT" | "LPU Viável" | "LM Histórico" | null
+  stage: string | null;
   provider_name: string | null;
   distance_m: number | null;
   lpu_value: number | null;
@@ -105,19 +107,16 @@ export interface ProcessingProgress {
 
 /**
  * Resolve coordenadas para um item WS.
- * Prioriza coordenadas, depois geocode por endereço.
  */
 async function resolveGeo(item: WsItemInput): Promise<{
   lat: number | null;
   lng: number | null;
   source: "coordenada" | "endereco" | "nao_encontrado";
 }> {
-  // 1. Coordenadas diretas
   if (item.lat_a != null && item.lng_a != null) {
     return { lat: item.lat_a, lng: item.lng_a, source: "coordenada" };
   }
 
-  // 2. Geocode pelo endereço
   if (item.endereco_a) {
     try {
       const result = await geocodeAddress(item.endereco_a);
@@ -134,7 +133,6 @@ async function resolveGeo(item: WsItemInput): Promise<{
 
 /**
  * Processa um item contra todos provedores.
- * Pipeline: Rede Própria → Dentro Cobertura → Cross/LPU → LM Histórico
  */
 async function processItem(
   item: WsItemInput,
@@ -180,7 +178,6 @@ async function processItem(
         };
       }
 
-      // Outside but check route (try next candidates automatically when blocked)
       try {
         let lastBlockedMsg = "";
         const cpByRoute = await findBestConnectionPointByRoute(
@@ -225,7 +222,6 @@ async function processItem(
           };
         }
 
-        // If all nearest candidates were blocked, continue to next stages (Cross/LPU/LM)
         if (lastBlockedMsg) {
           // blocked by rule, fallback to external stages
         }
@@ -235,7 +231,7 @@ async function processItem(
     }
   }
 
-  // === Etapa 2: Rede Expandida (provedores com cobertura/Cross/LPU) ===
+  // === Etapa 2: Rede Expandida ===
   type ProvResult = { provider: Provider; stage: string; distance: number; lpuValue: number; finalValue: number; notes: string };
   const provResults: ProvResult[] = [];
 
@@ -265,7 +261,6 @@ async function processItem(
       continue;
     }
 
-    // Outside - check distance
     try {
       const nearest = findNearestBoundaryPoint(lat, lng, elements);
       if (!nearest) continue;
@@ -293,7 +288,6 @@ async function processItem(
     }
   }
 
-  // Sort by priority: Cross NTT > Dentro Cobertura > LPU
   if (provResults.length > 0) {
     const stageOrder: Record<string, number> = { "Cross NTT": 0, "Dentro Cobertura": 1, "LPU Viável": 2 };
     provResults.sort((a, b) => (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance - b.distance);
@@ -309,7 +303,7 @@ async function processItem(
     };
   }
 
-  // === Etapa 3: LM Histórico (apenas ≤100 Mbps, raio 50km) ===
+  // === Etapa 3: LM Histórico ===
   if (item.velocidade_mbps != null && item.velocidade_mbps <= 100 && comprasLM.length > 0) {
     const RADIUS_KM = 50;
     let bestLM: CompraLM | null = null;
@@ -318,7 +312,6 @@ async function processItem(
     for (const lm of comprasLM) {
       if (lm.lat == null || lm.lng == null) continue;
       if (lm.status?.toUpperCase() !== "ATIVO") continue;
-      // Haversine quick check
       const dLat = (lm.lat - lat) * 111.32;
       const dLng = (lm.lng - lng) * 111.32 * Math.cos(lat * Math.PI / 180);
       const dist = Math.sqrt(dLat * dLat + dLng * dLng);
@@ -341,7 +334,6 @@ async function processItem(
     }
   }
 
-  // Nenhuma viabilidade encontrada
   return {
     stage: null,
     provider_name: null,
@@ -354,7 +346,28 @@ async function processItem(
 }
 
 /**
+ * Salva resultado de um item diretamente no banco.
+ */
+async function saveItemResult(result: WsResult): Promise<void> {
+  await supabase
+    .from("ws_feasibility_items")
+    .update({
+      lat_a: result.geo_lat,
+      lng_a: result.geo_lng,
+      processing_status: result.is_viable ? "viable" : result.geo_source === "nao_encontrado" ? "geo_failed" : "not_viable",
+      result_stage: result.stage,
+      result_provider: result.provider_name,
+      result_value: result.final_value,
+      result_notes: result.notes,
+      is_viable: result.is_viable,
+    })
+    .eq("id", result.item.id);
+}
+
+/**
  * Processa um lote completo de itens WS.
+ * Salva cada resultado individualmente no banco para persistência.
+ * Aceita `startIndex` para retomar processamento de onde parou.
  */
 export async function processWsBatch(
   items: WsItemInput[],
@@ -363,6 +376,8 @@ export async function processWsBatch(
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
   onProgress?: (progress: ProcessingProgress) => void,
+  onItemResult?: (result: WsResult, index: number) => void,
+  startIndex: number = 0,
 ): Promise<WsResult[]> {
   // Index elements by provider
   const elementsByProvider: Record<string, GeoElement[]> = {};
@@ -373,7 +388,7 @@ export async function processWsBatch(
 
   const results: WsResult[] = [];
 
-  for (let i = 0; i < items.length; i++) {
+  for (let i = startIndex; i < items.length; i++) {
     const item = items[i];
     onProgress?.({
       current: i + 1,
@@ -384,8 +399,10 @@ export async function processWsBatch(
     // Resolve geo
     const geo = await resolveGeo(item);
 
+    let result: WsResult;
+
     if (geo.lat == null || geo.lng == null) {
-      results.push({
+      result = {
         item,
         geo_lat: null,
         geo_lng: null,
@@ -397,21 +414,27 @@ export async function processWsBatch(
         final_value: null,
         is_viable: false,
         notes: "Endereço/coordenada não encontrado",
-      });
-      continue;
+      };
+    } else {
+      const feasibility = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+      result = {
+        item,
+        geo_lat: geo.lat,
+        geo_lng: geo.lng,
+        geo_source: geo.source,
+        ...feasibility,
+      };
     }
 
-    const feasibility = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+    results.push(result);
 
-    results.push({
-      item,
-      geo_lat: geo.lat,
-      geo_lng: geo.lng,
-      geo_source: geo.source,
-      ...feasibility,
-    });
+    // Save immediately to DB
+    await saveItemResult(result);
 
-    // Rate limit geocoding - small delay between items to avoid API limits
+    // Notify caller
+    onItemResult?.(result, i);
+
+    // Rate limit geocoding
     if (geo.source === "endereco") {
       await new Promise(r => setTimeout(r, 1100));
     }
