@@ -186,7 +186,7 @@ async function processItem(
           elMapped,
           netTurboProvider.max_lpu_distance_m,
           rules,
-          Number.POSITIVE_INFINITY,
+          10, // Limit to 10 nearest candidates for performance
           async (_candidate, route) => {
             if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
               const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
@@ -368,6 +368,7 @@ async function saveItemResult(result: WsResult): Promise<void> {
  * Processa um lote completo de itens WS.
  * Salva cada resultado individualmente no banco para persistência.
  * Aceita `startIndex` para retomar processamento de onde parou.
+ * Processa em mini-lotes paralelos para melhor performance.
  */
 export async function processWsBatch(
   items: WsItemInput[],
@@ -388,57 +389,100 @@ export async function processWsBatch(
 
   const results: WsResult[] = [];
 
-  for (let i = startIndex; i < items.length; i++) {
-    const item = items[i];
-    onProgress?.({
-      current: i + 1,
-      total: items.length,
-      currentItem: item.designacao || item.endereco_a || `Linha ${item.row_number}`,
+  // Split items with coordinates vs items needing geocoding
+  // Items with coordinates can be processed in parallel batches
+  // Items needing geocoding must respect Nominatim rate limit
+  const PARALLEL_BATCH = 5; // process up to 5 items concurrently
+
+  for (let i = startIndex; i < items.length; i += PARALLEL_BATCH) {
+    const batch = items.slice(i, Math.min(i + PARALLEL_BATCH, items.length));
+    
+    // Separate items that need geocoding (rate limited) from those with coords
+    const withCoords: { item: WsItemInput; idx: number }[] = [];
+    const needGeo: { item: WsItemInput; idx: number }[] = [];
+    
+    batch.forEach((item, bIdx) => {
+      if (item.lat_a != null && item.lng_a != null) {
+        withCoords.push({ item, idx: i + bIdx });
+      } else {
+        needGeo.push({ item, idx: i + bIdx });
+      }
     });
 
-    // Resolve geo
-    const geo = await resolveGeo(item);
+    // Process items with coordinates in parallel
+    const coordPromises = withCoords.map(async ({ item, idx }) => {
+      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM);
+      await saveItemResult(result);
+      return { result, idx };
+    });
 
-    let result: WsResult;
-
-    if (geo.lat == null || geo.lng == null) {
-      result = {
-        item,
-        geo_lat: null,
-        geo_lng: null,
-        geo_source: "nao_encontrado",
-        stage: null,
-        provider_name: null,
-        distance_m: null,
-        lpu_value: null,
-        final_value: null,
-        is_viable: false,
-        notes: "Endereço/coordenada não encontrado",
-      };
-    } else {
-      const feasibility = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
-      result = {
-        item,
-        geo_lat: geo.lat,
-        geo_lng: geo.lng,
-        geo_source: geo.source,
-        ...feasibility,
-      };
+    // Process items needing geocoding sequentially (Nominatim 1req/s)
+    const geoResultsArr: { result: WsResult; idx: number }[] = [];
+    for (const { item, idx } of needGeo) {
+      const geo = await resolveGeo(item);
+      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
+      await saveItemResult(result);
+      geoResultsArr.push({ result, idx });
+      // Rate limit only for geocoded items
+      if (geo.source === "endereco") {
+        await new Promise(r => setTimeout(r, 1100));
+      }
     }
 
-    results.push(result);
+    // Wait for coord-based items
+    const coordResults = await Promise.all(coordPromises);
 
-    // Save immediately to DB
-    await saveItemResult(result);
+    // Combine and sort by original index
+    const allBatchResults = [...coordResults, ...geoResultsArr].sort((a, b) => a.idx - b.idx);
 
-    // Notify caller
-    onItemResult?.(result, i);
-
-    // Rate limit geocoding
-    if (geo.source === "endereco") {
-      await new Promise(r => setTimeout(r, 1100));
+    for (const { result, idx } of allBatchResults) {
+      results.push(result);
+      onItemResult?.(result, idx);
     }
+
+    // Update progress
+    const processed = Math.min(i + batch.length, items.length);
+    onProgress?.({
+      current: processed,
+      total: items.length,
+      currentItem: batch[batch.length - 1]?.designacao || batch[batch.length - 1]?.endereco_a || `Linha ${batch[batch.length - 1]?.row_number}`,
+    });
   }
 
   return results;
+}
+
+/** Helper to process a single item with resolved geo */
+async function processSingleItem(
+  item: WsItemInput,
+  geo: { lat: number | null; lng: number | null; source: "coordenada" | "endereco" | "nao_encontrado" },
+  providers: Provider[],
+  elementsByProvider: Record<string, GeoElement[]>,
+  lpuItems: LpuItem[],
+  comprasLM: CompraLM[],
+): Promise<WsResult> {
+  if (geo.lat == null || geo.lng == null) {
+    return {
+      item,
+      geo_lat: null,
+      geo_lng: null,
+      geo_source: "nao_encontrado",
+      stage: null,
+      provider_name: null,
+      distance_m: null,
+      lpu_value: null,
+      final_value: null,
+      is_viable: false,
+      notes: "Endereço/coordenada não encontrado",
+    };
+  }
+
+  const feasibility = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+  return {
+    item,
+    geo_lat: geo.lat,
+    geo_lng: geo.lng,
+    geo_source: geo.source,
+    ...feasibility,
+  };
 }

@@ -74,7 +74,7 @@ function WsRoutes() {
   return (
     <WsLayout>
       <Routes>
-        <Route path="/" element={<WsDashboard />} />
+        <Route path="/" element={<WsUploadPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
