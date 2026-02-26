@@ -48,6 +48,7 @@ export default function RadiusSearch() {
   const [loadingCep, setLoadingCep] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const mapLayers = useRef<L.LayerGroup | null>(null);
   const { data: allData } = useComprasLM();
 
   const handleCepSearch = async () => {
@@ -163,24 +164,34 @@ export default function RadiusSearch() {
     setMetrics(m);
   };
 
-  // Render map when center or results change
+  // Keep one Leaflet instance and only redraw layers (stable in tabs/hidden containers)
   useEffect(() => {
     if (!center || !mapRef.current) return;
-    if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
 
-    const map = L.map(mapRef.current).setView([center.lat, center.lng], results && results.length > 0 ? 11 : 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OSM",
-    }).addTo(map);
+    if (!mapInstance.current) {
+      const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
+      if (container._leaflet_id) container._leaflet_id = undefined;
 
-    // Draw circle
-    L.circle([center.lat, center.lng], { radius: radius * 1000, color: "#3388ff", fillOpacity: 0.1 }).addTo(map);
+      const map = L.map(container).setView([center.lat, center.lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OSM",
+      }).addTo(map);
 
-    // Center marker
-    L.marker([center.lat, center.lng]).addTo(map).bindPopup("Centro da busca");
+      mapLayers.current = L.layerGroup().addTo(map);
+      mapInstance.current = map;
+    }
+
+    const map = mapInstance.current;
+    const layerGroup = mapLayers.current;
+    if (!map || !layerGroup) return;
+
+    layerGroup.clearLayers();
+    map.setView([center.lat, center.lng], results && results.length > 0 ? 11 : 14);
+
+    L.circle([center.lat, center.lng], { radius: radius * 1000, color: "#3388ff", fillOpacity: 0.1 }).addTo(layerGroup);
+    L.marker([center.lat, center.lng]).addTo(layerGroup).bindPopup("Centro da busca");
 
     if (results) {
-      // Partner colors
       const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e"];
       const partnerColors: Record<string, string> = {};
       let ci = 0;
@@ -193,19 +204,26 @@ export default function RadiusSearch() {
         const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(0)} m`;
         L.circleMarker([r.lat, r.lng], {
           radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9,
-        }).addTo(map).bindPopup(
+        }).addTo(layerGroup).bindPopup(
           `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
         );
       }
     }
 
-    mapInstance.current = map;
-    // Fix Leaflet sizing when container transitions from hidden to visible
-    setTimeout(() => { map.invalidateSize(); }, 100);
-    setTimeout(() => { map.invalidateSize(); }, 300);
-    setTimeout(() => { map.invalidateSize(); }, 600);
-    return () => { map.remove(); mapInstance.current = null; };
+    setTimeout(() => map.invalidateSize(), 100);
+    setTimeout(() => map.invalidateSize(), 300);
+    setTimeout(() => map.invalidateSize(), 600);
   }, [results, center, radius]);
+
+  useEffect(() => {
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+      mapLayers.current = null;
+    };
+  }, []);
 
   const totalConexoes = results?.length || 0;
   const avgValor = results && results.length > 0 ? results.reduce((a, r) => a + r.valor_mensal, 0) / results.length : 0;
