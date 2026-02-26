@@ -621,8 +621,8 @@ export default function FeasibilityPage() {
               <span className="text-sm font-mono font-bold w-6 text-center">{mapZoom}</span>
             </div>
           </div>
-          {results.map((r, i) => (
-            <ResultCard key={i} result={r} allGeoElements={allGeoElements || []} onShare={shareResult} mapZoom={mapZoom} />
+          {results.map((r) => (
+            <ResultCard key={`${r.providerId}-${r.address}-${r.lat}-${r.lng}`} result={r} allGeoElements={allGeoElements || []} onShare={shareResult} mapZoom={mapZoom} />
           ))}
         </div>
       )}
@@ -697,7 +697,12 @@ function ResultCard({
       mapRef.current = null;
     }
 
-    const map = L.map(mapContainerRef.current, {
+    const container = mapContainerRef.current as HTMLDivElement & { _leaflet_id?: number };
+    if (container._leaflet_id) {
+      container._leaflet_id = undefined;
+    }
+
+    const map = L.map(container, {
       zoomControl: false, attributionControl: false, maxZoom: 50,
     }).setView([r.lat, r.lng], mapZoom);
 
@@ -706,24 +711,21 @@ function ResultCard({
     }).addTo(map);
     mapRef.current = map;
 
-    // Customer marker
     L.marker([r.lat, r.lng]).addTo(map).bindPopup(`<b>Cliente</b><br/>${r.address}`);
 
     const providerElements = allGeoElements.filter((e) => e.provider_id === r.providerId);
     const bounds = L.latLngBounds([[r.lat, r.lng]]);
 
-    // For large datasets, only render elements near the customer (within ~20km)
-    const maxRenderDist = 20000; // 20km
+    const maxRenderDist = 20000;
     const nearbyElements = providerElements.filter((el) => {
-      const geo = el.geometry as any;
-      if (!geo?.coordinates) return false;
-      // Quick check: get first coordinate point
+      const rawGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+      if (!rawGeo?.coordinates) return false;
       let sampleCoord: number[] | null = null;
-      if (geo.type === "Point") sampleCoord = geo.coordinates;
-      else if (geo.type === "Polygon") sampleCoord = geo.coordinates?.[0]?.[0];
-      else if (geo.type === "MultiPolygon") sampleCoord = geo.coordinates?.[0]?.[0]?.[0];
-      else if (geo.type === "LineString") sampleCoord = geo.coordinates?.[0];
-      else if (geo.type === "MultiLineString") sampleCoord = geo.coordinates?.[0]?.[0];
+      if (rawGeo.type === "Point") sampleCoord = rawGeo.coordinates;
+      else if (rawGeo.type === "Polygon") sampleCoord = rawGeo.coordinates?.[0]?.[0];
+      else if (rawGeo.type === "MultiPolygon") sampleCoord = rawGeo.coordinates?.[0]?.[0]?.[0];
+      else if (rawGeo.type === "LineString") sampleCoord = rawGeo.coordinates?.[0];
+      else if (rawGeo.type === "MultiLineString") sampleCoord = rawGeo.coordinates?.[0]?.[0];
       if (!sampleCoord) return false;
       const dist = haversineDistance(r.lat, r.lng, sampleCoord[1], sampleCoord[0]);
       return dist <= maxRenderDist;
@@ -731,9 +733,11 @@ function ResultCard({
 
     for (const el of nearbyElements) {
       try {
-        const rawGeo = el.geometry as any;
+        const rawGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
         const geo = closedLineToPolygon(rawGeo);
-        const props = (el.properties as any) || {};
+        const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+        const isConvertedPolygon = geo.type !== rawGeo?.type;
+
         if (geo.type === "Point") {
           const pointLatLng: [number, number] = [geo.coordinates[1], geo.coordinates[0]];
           const tipo = props.tipo;
@@ -751,25 +755,24 @@ function ResultCard({
             }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${taAvailable ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
             bounds.extend(pointLatLng);
           }
-        } else if (geo.type === "Polygon" || geo.type === "MultiPolygon") {
+        } else {
           const layer = L.geoJSON(
-            { type: "Feature", geometry: geo, properties: {} } as any,
-            { style: () => ({ color: r.providerColor, weight: 2, opacity: 0.6, fillColor: r.providerColor, fillOpacity: 0.15 }) }
+            { type: "Feature", geometry: geo, properties: props } as any,
+            {
+              style: () => {
+                const color = props.stroke || r.providerColor;
+                const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
+                const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
+                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
+              },
+            }
           ).addTo(map);
-          bounds.extend(layer.getBounds());
-        } else if (geo.type === "LineString" || geo.type === "MultiLineString") {
-          const color = props.stroke || r.providerColor;
-          const weight = props["stroke-width"] || 3;
-          const layer = L.geoJSON(
-            { type: "Feature", geometry: geo, properties: {} } as any,
-            { style: () => ({ color, weight, opacity: 0.7 }) }
-          ).addTo(map);
-          bounds.extend(layer.getBounds());
+          const layerBounds = layer.getBounds();
+          if (layerBounds.isValid()) bounds.extend(layerBounds);
         }
       } catch {}
     }
 
-    // Draw route only when route geometry exists (no straight-line fallback)
     if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint && r.routeGeometry) {
       const routeColor = r.isOwnNetwork ? "#3b82f6" : r.status === "outside_viable" ? "#22c55e" : "#ef4444";
 
@@ -777,7 +780,6 @@ function ResultCard({
         style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
       }).addTo(map);
 
-      // Distance label
       const midLat = (r.lat + r.nearestPoint[0]) / 2;
       const midLng = (r.lng + r.nearestPoint[1]) / 2;
       L.marker([midLat, midLng], {
@@ -791,7 +793,6 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    // Always show chosen TA / nearest marker
     if (r.nearestPoint) {
       const taLabel = r.taResult ? `<b>${r.taResult.nome}</b><br/>${r.taResult.portaDisponivel ? "🟢 Porta disponível" : "⚫ Saturado"}` : `<b>Rede ${r.providerName}</b>`;
       const taColor = r.taResult ? (r.taResult.portaDisponivel ? "#22c55e" : "#1a1a1a") : r.providerColor;
@@ -801,32 +802,30 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
-    // Set view
     if (r.status === "inside" && !r.isOwnNetwork) {
       map.setView([r.lat, r.lng], mapZoom);
-    } else {
+    } else if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
     }
 
-    const timer = setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize();
-        if (r.status === "inside" && !r.isOwnNetwork) {
-          mapRef.current.setView([r.lat, r.lng], mapZoom);
-        } else {
-          mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
-        }
+    const timer = window.setTimeout(() => {
+      if (!mapRef.current) return;
+      mapRef.current.invalidateSize();
+      if (r.status === "inside" && !r.isOwnNetwork) {
+        mapRef.current.setView([r.lat, r.lng], mapZoom);
+      } else if (bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: mapZoom });
       }
-    }, 500);
+    }, 300);
 
     return () => {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [showMap, r.lat, r.lng, mapZoom]);
+  }, [showMap, mapZoom, r, allGeoElements]);
 
   // Badge config
   const getBadgeConfig = () => {

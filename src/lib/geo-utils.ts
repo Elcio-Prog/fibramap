@@ -60,16 +60,24 @@ function isSignificantPolygon(coords: number[][]): boolean {
   return (maxLng - minLng) > 0.003 && (maxLat - minLat) > 0.003;
 }
 
-/** Ensure a ring has counter-clockwise (CCW) winding order for GeoJSON exterior rings.
- *  Uses the shoelace formula to determine orientation. */
+/** Ensure a ring has counter-clockwise (CCW) winding order for GeoJSON exterior rings. */
 function ensureCCW(ring: number[][]): number[][] {
-  let area = 0;
-  for (let i = 0; i < ring.length - 1; i++) {
-    area += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+  if (!Array.isArray(ring) || ring.length < 4) return ring;
+
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  const closed = first[0] === last[0] && first[1] === last[1] ? ring : [...ring, first];
+
+  // Signed area (shoelace): >0 = CCW, <0 = CW
+  let signedArea = 0;
+  for (let i = 0; i < closed.length - 1; i++) {
+    const [x1, y1] = closed[i];
+    const [x2, y2] = closed[i + 1];
+    signedArea += x1 * y2 - x2 * y1;
   }
-  // area > 0 means clockwise in lng/lat space → reverse to get CCW
-  if (area > 0) return [...ring].reverse();
-  return ring;
+
+  if (signedArea >= 0) return closed;
+  return [...closed].reverse();
 }
 
 /** Convert closed LineStrings to Polygons for filled rendering.
