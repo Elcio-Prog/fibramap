@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users } from "lucide-react";
+import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const baseLinks = [
@@ -21,7 +21,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const links = [
     ...baseLinks,
-    ...(isAdmin ? [{ to: "/ws-users", label: "Usuários WS", icon: Users }] : []),
+    ...(isAdmin ? [
+      { to: "/ws-upload", label: "Upload WS", icon: Upload },
+      { to: "/ws-users", label: "Usuários WS", icon: Users },
+    ] : []),
   ];
 
   return (
