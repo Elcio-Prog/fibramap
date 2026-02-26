@@ -201,26 +201,23 @@ function checkAptoNovoCliente(
     return { apto: false, motivo: "TA sem porta disponível" };
   }
 
-  // Splitter validation only applies to TAs — CEs (caixas de emenda) don't have splitter data
-  if (props.tipo === "TA") {
-    // If no splitter data, treat as not apt for quick activation
-    if (!props.tem_splitter) {
-      return { apto: false, motivo: "Sem dados de splitter — necessita viabilidade real" };
-    }
+  // Splitter validation applies to both TAs and CEs
+  if (!props.tem_splitter) {
+    return { apto: false, motivo: "Sem dados de splitter — necessita viabilidade real" };
+  }
 
-    // Splitter rules
-    if (rules.regras_bloquear_splitter_1x2 && props.splitter_tem_1x2 === true) {
-      return { apto: false, motivo: "Splitter 1x2 presente — bloqueado por regra" };
-    }
-    if (rules.regras_bloquear_splitter_des && props.splitter_tem_des === true) {
-      return { apto: false, motivo: "Splitter DES presente — bloqueado por regra" };
-    }
-    if (rules.regras_bloquear_portas_livres_zero && (props.splitter_portas_livres === 0 || props.splitter_portas_livres === null)) {
-      return { apto: false, motivo: "Sem portas livres no splitter" };
-    }
-    if (rules.regras_bloquear_atendimento_nao_sim && props.splitter_atendimento_all_sim !== true) {
-      return { apto: false, motivo: "Atendimento não confirmado (all_sim = false)" };
-    }
+  // Splitter rules
+  if (rules.regras_bloquear_splitter_1x2 && props.splitter_tem_1x2 === true) {
+    return { apto: false, motivo: "Splitter 1x2 presente — bloqueado por regra" };
+  }
+  if (rules.regras_bloquear_splitter_des && props.splitter_tem_des === true) {
+    return { apto: false, motivo: "Splitter DES presente — bloqueado por regra" };
+  }
+  if (rules.regras_bloquear_portas_livres_zero && (props.splitter_portas_livres === 0 || props.splitter_portas_livres === null)) {
+    return { apto: false, motivo: "Sem portas livres no splitter" };
+  }
+  if (rules.regras_bloquear_atendimento_nao_sim && props.splitter_atendimento_all_sim !== true) {
+    return { apto: false, motivo: "Atendimento não confirmado (all_sim = false)" };
   }
 
   return { apto: true };
