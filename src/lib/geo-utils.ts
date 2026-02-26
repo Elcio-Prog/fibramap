@@ -192,7 +192,7 @@ type ConnectionCandidate = {
 };
 
 /** Check if a connection point (TA/CE) is apt for a new client based on provider rules */
-function checkAptoNovoCliente(
+export function evaluateConnectionAptness(
   props: any,
   rules: ProviderRules
 ): { apto: boolean; motivo?: string } {
@@ -245,7 +245,7 @@ function buildConnectionCandidates(
 
     const [lng2, lat2] = geo.coordinates;
     const d = haversineDistance(lat, lng, lat2, lng2);
-    const aptCheck = checkAptoNovoCliente(props, rules);
+    const aptCheck = evaluateConnectionAptness(props, rules);
 
     candidates.push({
       lat: lat2,
@@ -317,7 +317,11 @@ export async function findBestConnectionPointByRoute(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   limitMeters: number,
   rules: ProviderRules,
-  maxCandidates: number = Number.POSITIVE_INFINITY
+  maxCandidates: number = Number.POSITIVE_INFINITY,
+  routeFilter?: (
+    candidate: ConnectionCandidate,
+    route: { distance: number; geometry: any }
+  ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
@@ -344,6 +348,11 @@ export async function findBestConnectionPointByRoute(
     const route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
     if (!route) continue;
 
+    if (routeFilter) {
+      const accepted = await routeFilter(candidate, route);
+      if (!accepted) continue;
+    }
+
     const isApto = inAptPhase ? true : candidate.aptoNovoCliente;
     const isSemApto = !isApto;
 
@@ -365,6 +374,9 @@ export async function findBestConnectionPointByRoute(
       routeGeometry: route.geometry,
     };
   }
+
+  // With a route filter, not finding an accepted candidate means no viable route among searched candidates
+  if (routeFilter) return null;
 
   // If routing fails for all candidates, fallback to nearest candidate by straight-line
   const fallback = searchList[0] ?? candidates[0];

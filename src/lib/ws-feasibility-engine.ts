@@ -180,37 +180,54 @@ async function processItem(
         };
       }
 
-      // Outside but check route
+      // Outside but check route (try next candidates automatically when blocked)
       try {
-        const cpByRoute = await findBestConnectionPointByRoute(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
-        if (cpByRoute) {
-          let blocked = false;
-          let blockMsg = "";
+        let lastBlockedMsg = "";
+        const cpByRoute = await findBestConnectionPointByRoute(
+          lat,
+          lng,
+          elMapped,
+          netTurboProvider.max_lpu_distance_m,
+          rules,
+          Number.POSITIVE_INFINITY,
+          async (_candidate, route) => {
+            if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+              const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+              if (cpflCheck.crosses) {
+                lastBlockedMsg = cpflCheck.message || "Cruzamento CPFL";
+                return false;
+              }
+            }
 
-          if (rules.regras_habilitar_exclusao_cpfl && cpByRoute.routeGeometry) {
-            const cpflCheck = routeCrossesCPFL(cpByRoute.routeGeometry, elMapped);
-            if (cpflCheck.crosses) { blocked = true; blockMsg = cpflCheck.message || "Cruzamento CPFL"; }
-          }
-          if (!blocked && cpByRoute.routeGeometry) {
-            const hwCheck = await checkRouteHighwayRailway(cpByRoute.routeGeometry, elMapped);
-            if (hwCheck.blocked) { blocked = true; blockMsg = hwCheck.message || "Cruzamento rodovia/ferrovia"; }
-          }
+            if (route.geometry) {
+              const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+              if (hwCheck.blocked) {
+                lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
+                return false;
+              }
+            }
 
+            return true;
+          }
+        );
+
+        if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
           const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
-          if (!blocked && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
-            return {
-              stage: "Rede Própria",
-              provider_name: netTurboProvider.name,
-              distance_m: Math.round(cpByRoute.routeDistance),
-              lpu_value: null,
-              final_value: null,
-              is_viable: true,
-              notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
-              ta_info: taNote,
-            };
-          } else if (blocked) {
-            // Blocked but continue to next stages
-          }
+          return {
+            stage: "Rede Própria",
+            provider_name: netTurboProvider.name,
+            distance_m: Math.round(cpByRoute.routeDistance),
+            lpu_value: null,
+            final_value: null,
+            is_viable: true,
+            notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
+            ta_info: taNote,
+          };
+        }
+
+        // If all nearest candidates were blocked, continue to next stages (Cross/LPU/LM)
+        if (lastBlockedMsg) {
+          // blocked by rule, fallback to external stages
         }
       } catch {
         // Continue to next stages

@@ -17,6 +17,7 @@ import {
   closedLineToPolygon,
   routeCrossesCPFL,
   checkRouteHighwayRailway,
+  evaluateConnectionAptness,
   type TAResult,
   type ProviderRules,
 } from "@/lib/geo-utils";
@@ -74,6 +75,7 @@ interface FeasibilityResult {
   cpflMessage?: string;
   highwayBlocked?: boolean;
   highwayMessage?: string;
+  providerRules?: ProviderRules;
 }
 
 export default function FeasibilityPage() {
@@ -250,18 +252,18 @@ export default function FeasibilityPage() {
         const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
         const maxDist = provider.max_lpu_distance_m;
 
-        if (isNetTurbo) {
-          const rules: ProviderRules = {
-            regras_usar_porta_disponivel: (provider as any).regras_usar_porta_disponivel ?? true,
-            regras_considerar_ta: (provider as any).regras_considerar_ta ?? true,
-            regras_considerar_ce: (provider as any).regras_considerar_ce ?? false,
-            regras_bloquear_splitter_1x2: (provider as any).regras_bloquear_splitter_1x2 ?? true,
-            regras_bloquear_splitter_des: (provider as any).regras_bloquear_splitter_des ?? true,
-            regras_bloquear_portas_livres_zero: (provider as any).regras_bloquear_portas_livres_zero ?? true,
-            regras_bloquear_atendimento_nao_sim: (provider as any).regras_bloquear_atendimento_nao_sim ?? true,
-            regras_habilitar_exclusao_cpfl: (provider as any).regras_habilitar_exclusao_cpfl ?? true,
-          };
+        const providerRules: ProviderRules = {
+          regras_usar_porta_disponivel: (provider as any).regras_usar_porta_disponivel ?? true,
+          regras_considerar_ta: (provider as any).regras_considerar_ta ?? true,
+          regras_considerar_ce: (provider as any).regras_considerar_ce ?? false,
+          regras_bloquear_splitter_1x2: (provider as any).regras_bloquear_splitter_1x2 ?? true,
+          regras_bloquear_splitter_des: (provider as any).regras_bloquear_splitter_des ?? true,
+          regras_bloquear_portas_livres_zero: (provider as any).regras_bloquear_portas_livres_zero ?? true,
+          regras_bloquear_atendimento_nao_sim: (provider as any).regras_bloquear_atendimento_nao_sim ?? true,
+          regras_habilitar_exclusao_cpfl: (provider as any).regras_habilitar_exclusao_cpfl ?? true,
+        };
 
+        if (isNetTurbo) {
           const insideNT = inside;
           let distance = 0;
           let routeGeometry: any = null;
@@ -276,27 +278,56 @@ export default function FeasibilityPage() {
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
           if (insideNT) {
-            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, rules);
+            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, providerRules);
             if (cp) { taResult = cp; nearestPt = cp.point; }
             distance = 0;
             isViableNT = true;
           } else {
-            const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, maxDist, rules);
+            let lastBlocked: { type: "cpfl" | "highway"; message?: string } | null = null;
+
+            const cpByRoute = await findBestConnectionPointByRoute(
+              geo.lat,
+              geo.lng,
+              elMapped,
+              maxDist,
+              providerRules,
+              Number.POSITIVE_INFINITY,
+              async (_candidate, route) => {
+                if (providerRules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                  const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                  if (cpflCheck.crosses) {
+                    lastBlocked = { type: "cpfl", message: cpflCheck.message };
+                    return false;
+                  }
+                }
+
+                if (route.geometry) {
+                  const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                  if (hwCheck.blocked) {
+                    lastBlocked = { type: "highway", message: hwCheck.message };
+                    return false;
+                  }
+                }
+
+                return true;
+              }
+            );
+
             if (cpByRoute) {
               taResult = cpByRoute.taResult;
               nearestPt = cpByRoute.taResult.point;
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
-              if (rules.regras_habilitar_exclusao_cpfl && routeGeometry) {
-                const cpflCheck = routeCrossesCPFL(routeGeometry, elMapped);
-                if (cpflCheck.crosses) { cpflBlocked = true; cpflMessage = cpflCheck.message; isViableNT = false; }
+              isViableNT = distance <= maxDist;
+            } else if (lastBlocked) {
+              isViableNT = false;
+              if (lastBlocked.type === "cpfl") {
+                cpflBlocked = true;
+                cpflMessage = lastBlocked.message;
+              } else {
+                highwayBlocked = true;
+                highwayMessage = lastBlocked.message;
               }
-              // Highway/Railway blocking rule (only if not already blocked by CPFL)
-              if (!cpflBlocked && routeGeometry) {
-                const hwCheck = await checkRouteHighwayRailway(routeGeometry, elMapped);
-                if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; isViableNT = false; }
-              }
-              if (!cpflBlocked && !highwayBlocked) isViableNT = distance <= maxDist;
             } else {
               const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
               if (!nearest) return null;
@@ -328,7 +359,7 @@ export default function FeasibilityPage() {
             status: isBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
-            highwayBlocked, highwayMessage,
+            highwayBlocked, highwayMessage, providerRules,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -688,9 +719,12 @@ function ResultCard({
             }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${taAvailable ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
             bounds.extend(pointLatLng);
           } else if (tipo === "CE") {
+            const ceCheck = r.providerRules ? evaluateConnectionAptness(props, r.providerRules) : { apto: false };
+            const ceColor = ceCheck.apto ? "#22c55e" : "#f59e0b";
+            const ceStatus = ceCheck.apto ? "🟢 CE apta" : `🟠 CE não apta${ceCheck.motivo ? ` (${ceCheck.motivo})` : ""}`;
             L.circleMarker(pointLatLng, {
-              radius: 3, fillColor: "#f59e0b", color: "#fff", weight: 1, fillOpacity: 0.85,
-            }).addTo(map).bindTooltip(`<b>${nome}</b><br/>CE${props.tem_splitter ? ` | ${props.splitter_portas_livres ?? '?'} portas livres` : ''}`, { sticky: true, direction: "top", opacity: 0.95 });
+              radius: 3, fillColor: ceColor, color: "#fff", weight: 1, fillOpacity: 0.85,
+            }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${ceStatus}${props.tem_splitter ? ` | ${props.splitter_portas_livres ?? '?'} portas livres` : ''}`, { sticky: true, direction: "top", opacity: 0.95 });
             bounds.extend(pointLatLng);
           }
         } else {
