@@ -160,17 +160,136 @@ export interface TAResult {
   distance: number;
   point: [number, number]; // [lat, lng]
   nome: string;
+  tipo: "TA" | "CE";
   portaDisponivel: boolean;
-  motivo: "mais_proximo" | "verde_mais_proximo" | "fallback_saturado";
+  aptoNovoCliente: boolean;
+  motivoBloqueio?: string;
+  motivo: "mais_proximo" | "verde_mais_proximo" | "fallback_saturado" | "sem_apto";
   mensagem?: string;
 }
 
+/** Provider rules interface for feasibility logic */
+export interface ProviderRules {
+  regras_usar_porta_disponivel: boolean;
+  regras_considerar_ta: boolean;
+  regras_considerar_ce: boolean;
+  regras_bloquear_splitter_1x2: boolean;
+  regras_bloquear_splitter_des: boolean;
+  regras_bloquear_portas_livres_zero: boolean;
+  regras_bloquear_atendimento_nao_sim: boolean;
+  regras_habilitar_exclusao_cpfl: boolean;
+}
+
+/** Check if a connection point (TA/CE) is apt for a new client based on provider rules */
+function checkAptoNovoCliente(
+  props: any,
+  rules: ProviderRules
+): { apto: boolean; motivo?: string } {
+  // porta_disponivel filter (legacy, only for TA)
+  if (props.tipo === "TA" && rules.regras_usar_porta_disponivel && props.porta_disponivel !== true) {
+    return { apto: false, motivo: "TA sem porta disponível" };
+  }
+
+  // If no splitter data, treat as not apt for quick activation
+  if (!props.tem_splitter) {
+    return { apto: false, motivo: "Sem dados de splitter — necessita viabilidade real" };
+  }
+
+  // Splitter rules
+  if (rules.regras_bloquear_splitter_1x2 && props.splitter_tem_1x2 === true) {
+    return { apto: false, motivo: "Splitter 1x2 presente — bloqueado por regra" };
+  }
+  if (rules.regras_bloquear_splitter_des && props.splitter_tem_des === true) {
+    return { apto: false, motivo: "Splitter DES presente — bloqueado por regra" };
+  }
+  if (rules.regras_bloquear_portas_livres_zero && (props.splitter_portas_livres === 0 || props.splitter_portas_livres === null)) {
+    return { apto: false, motivo: "Sem portas livres no splitter" };
+  }
+  if (rules.regras_bloquear_atendimento_nao_sim && props.splitter_atendimento_all_sim !== true) {
+    return { apto: false, motivo: "Atendimento não confirmado (all_sim = false)" };
+  }
+
+  return { apto: true };
+}
+
+/** Find the best connection point (TA/CE) using provider rules.
+ *  New version that supports CE, splitter rules, and dynamic aptitude checks. */
+export function findBestConnectionPoint(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  limitMeters: number,
+  rules: ProviderRules
+): TAResult | null {
+  const candidates: Array<{
+    lat: number; lng: number; nome: string; tipo: "TA" | "CE";
+    portaDisponivel: boolean; aptoNovoCliente: boolean; motivoBloqueio?: string;
+    distance: number;
+  }> = [];
+
+  for (const el of elements) {
+    const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+    const tipo = props.tipo;
+    
+    // Filter by type based on rules
+    if (tipo === "TA" && !rules.regras_considerar_ta) continue;
+    if (tipo === "CE" && !rules.regras_considerar_ce) continue;
+    if (tipo !== "TA" && tipo !== "CE") continue;
+
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    if (geo?.type !== "Point") continue;
+    const [lng2, lat2] = geo.coordinates;
+    const d = haversineDistance(lat, lng, lat2, lng2);
+
+    const aptCheck = checkAptoNovoCliente(props, rules);
+    
+    candidates.push({
+      lat: lat2, lng: lng2,
+      nome: props.nome || tipo,
+      tipo: tipo as "TA" | "CE",
+      portaDisponivel: props.porta_disponivel === true,
+      aptoNovoCliente: aptCheck.apto,
+      motivoBloqueio: aptCheck.motivo,
+      distance: d,
+    });
+  }
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => a.distance - b.distance);
+
+  // Try to find apt candidate within limit
+  const aptWithinLimit = candidates.filter(c => c.aptoNovoCliente && c.distance <= limitMeters);
+  if (aptWithinLimit.length > 0) {
+    const best = aptWithinLimit[0];
+    return {
+      distance: best.distance,
+      point: [best.lat, best.lng],
+      nome: best.nome,
+      tipo: best.tipo,
+      portaDisponivel: best.portaDisponivel,
+      aptoNovoCliente: true,
+      motivo: "mais_proximo",
+    };
+  }
+
+  // No apt candidate within limit — use nearest anyway with warning
+  const nearest = candidates[0];
+  return {
+    distance: nearest.distance,
+    point: [nearest.lat, nearest.lng],
+    nome: nearest.nome,
+    tipo: nearest.tipo,
+    portaDisponivel: nearest.portaDisponivel,
+    aptoNovoCliente: false,
+    motivoBloqueio: nearest.motivoBloqueio,
+    motivo: "sem_apto",
+    mensagem: "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+  };
+}
+
 /** Find the best TA (Terminal de Atendimento) for connection.
- *  Logic:
- *  1. Find nearest TA overall
- *  2. If nearest has porta_disponivel=true and distance<=limit → use it
- *  3. If nearest is saturated → find nearest green TA within limit
- *  4. If no green TA within limit → fallback to nearest (saturated) with warning
+ *  Legacy function - kept for backward compat. Adds tipo/aptoNovoCliente fields.
  */
 export function findBestTA(
   lat: number,
@@ -179,7 +298,6 @@ export function findBestTA(
   limitMeters: number,
   useSaturatedTa: boolean = false
 ): TAResult | null {
-  // Filter only TA points
   const taElements: Array<{ lat: number; lng: number; nome: string; portaDisponivel: boolean; distance: number }> = [];
 
   for (const el of elements) {
@@ -190,8 +308,7 @@ export function findBestTA(
     const [lng2, lat2] = geo.coordinates;
     const d = haversineDistance(lat, lng, lat2, lng2);
     taElements.push({
-      lat: lat2,
-      lng: lng2,
+      lat: lat2, lng: lng2,
       nome: props.nome || "TA",
       portaDisponivel: useSaturatedTa ? true : (props.porta_disponivel === true),
       distance: d,
@@ -199,68 +316,32 @@ export function findBestTA(
   }
 
   if (taElements.length === 0) return null;
-
-  // Sort by distance
   taElements.sort((a, b) => a.distance - b.distance);
   const nearest = taElements[0];
 
-  // Case 1: nearest has porta disponível and within limit
   if (nearest.portaDisponivel && nearest.distance <= limitMeters) {
-    return {
-      distance: nearest.distance,
-      point: [nearest.lat, nearest.lng],
-      nome: nearest.nome,
-      portaDisponivel: true,
-      motivo: "mais_proximo",
-    };
+    return { distance: nearest.distance, point: [nearest.lat, nearest.lng], nome: nearest.nome, tipo: "TA", portaDisponivel: true, aptoNovoCliente: true, motivo: "mais_proximo" };
   }
 
-  // Case 2: nearest is saturated → find nearest green within limit
   if (!nearest.portaDisponivel) {
     const greenTAs = taElements.filter(t => t.portaDisponivel && t.distance <= limitMeters);
     if (greenTAs.length > 0) {
-      const bestGreen = greenTAs[0];
-      return {
-        distance: bestGreen.distance,
-        point: [bestGreen.lat, bestGreen.lng],
-        nome: bestGreen.nome,
-        portaDisponivel: true,
-        motivo: "verde_mais_proximo",
-      };
+      const best = greenTAs[0];
+      return { distance: best.distance, point: [best.lat, best.lng], nome: best.nome, tipo: "TA", portaDisponivel: true, aptoNovoCliente: true, motivo: "verde_mais_proximo" };
     }
-
-    // Case 3: no green TA within limit → fallback to nearest (saturated)
     return {
-      distance: nearest.distance,
-      point: [nearest.lat, nearest.lng],
-      nome: nearest.nome,
-      portaDisponivel: false,
-      motivo: "fallback_saturado",
+      distance: nearest.distance, point: [nearest.lat, nearest.lng], nome: nearest.nome, tipo: "TA",
+      portaDisponivel: false, aptoNovoCliente: false, motivo: "fallback_saturado",
       mensagem: "O TA mais próximo está saturado (sem porta disponível). Para prosseguir, é necessária viabilidade real via equipe Delivery.",
     };
   }
 
-  // Case: nearest has porta but exceeds limit
-  // Find green within limit
   const greenWithinLimit = taElements.filter(t => t.portaDisponivel && t.distance <= limitMeters);
   if (greenWithinLimit.length > 0) {
-    return {
-      distance: greenWithinLimit[0].distance,
-      point: [greenWithinLimit[0].lat, greenWithinLimit[0].lng],
-      nome: greenWithinLimit[0].nome,
-      portaDisponivel: true,
-      motivo: "verde_mais_proximo",
-    };
+    return { distance: greenWithinLimit[0].distance, point: [greenWithinLimit[0].lat, greenWithinLimit[0].lng], nome: greenWithinLimit[0].nome, tipo: "TA", portaDisponivel: true, aptoNovoCliente: true, motivo: "verde_mais_proximo" };
   }
 
-  // All TAs exceed limit
-  return {
-    distance: nearest.distance,
-    point: [nearest.lat, nearest.lng],
-    nome: nearest.nome,
-    portaDisponivel: nearest.portaDisponivel,
-    motivo: "mais_proximo",
-  };
+  return { distance: nearest.distance, point: [nearest.lat, nearest.lng], nome: nearest.nome, tipo: "TA", portaDisponivel: nearest.portaDisponivel, aptoNovoCliente: nearest.portaDisponivel, motivo: "mais_proximo" };
 }
 
 function extractPoints(geometry: any): [number, number][] {
@@ -434,6 +515,77 @@ export async function getRouteDistance(
   } catch {
     return null;
   }
+}
+
+/** Check if a route LineString crosses any CPFL exclusion polygon */
+export function routeCrossesCPFL(
+  routeGeometry: any,
+  elements: Array<{ geometry: any; properties?: any }>
+): { crosses: boolean; message?: string } {
+  if (!routeGeometry) return { crosses: false };
+
+  // Extract route points
+  const routeCoords: number[][] = [];
+  const geo = typeof routeGeometry === "string" ? JSON.parse(routeGeometry) : routeGeometry;
+  if (geo.type === "LineString") {
+    routeCoords.push(...geo.coordinates);
+  } else if (geo.type === "MultiLineString") {
+    for (const line of geo.coordinates) routeCoords.push(...line);
+  }
+  if (routeCoords.length === 0) return { crosses: false };
+
+  // Find CPFL exclusion polygons
+  for (const el of elements) {
+    const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+    if (props.tipo !== "EXCLUSAO_CPFL") continue;
+    if (props.bloqueia_viabilidade !== true) continue;
+
+    const elGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    const rings = extractPolygonRings(elGeo);
+    if (rings.length === 0) continue;
+
+    // Check if any route point falls inside the exclusion polygon
+    for (const coord of routeCoords) {
+      for (const ring of rings) {
+        if (pointInRing(coord[0], coord[1], ring)) {
+          return {
+            crosses: true,
+            message: "INVIÁVEL – Rota cruza região de exclusão CPFL (Centro Campinas). Bloqueado até atualização com a CPFL.",
+          };
+        }
+      }
+    }
+
+    // Check line segment intersections with polygon edges
+    for (let i = 0; i < routeCoords.length - 1; i++) {
+      const a1 = routeCoords[i];
+      const a2 = routeCoords[i + 1];
+      for (const ring of rings) {
+        for (let j = 0; j < ring.length - 1; j++) {
+          if (segmentsIntersect(a1[0], a1[1], a2[0], a2[1], ring[j][0], ring[j][1], ring[j + 1][0], ring[j + 1][1])) {
+            return {
+              crosses: true,
+              message: "INVIÁVEL – Rota cruza região de exclusão CPFL (Centro Campinas). Bloqueado até atualização com a CPFL.",
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return { crosses: false };
+}
+
+/** Check if two line segments intersect */
+function segmentsIntersect(
+  ax1: number, ay1: number, ax2: number, ay2: number,
+  bx1: number, by1: number, bx2: number, by2: number
+): boolean {
+  const d = (ax2 - ax1) * (by2 - by1) - (ay2 - ay1) * (bx2 - bx1);
+  if (Math.abs(d) < 1e-10) return false;
+  const t = ((bx1 - ax1) * (by2 - by1) - (by1 - ay1) * (bx2 - bx1)) / d;
+  const u = ((bx1 - ax1) * (ay2 - ay1) - (by1 - ay1) * (ax2 - ax1)) / d;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
 }
 
 /** Clean address for better geocoding: remove CEP, special chars, extra info */

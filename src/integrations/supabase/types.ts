@@ -270,6 +270,14 @@ export type Database = {
           max_lpu_distance_m: number
           multiplier: number
           name: string
+          regras_bloquear_atendimento_nao_sim: boolean
+          regras_bloquear_portas_livres_zero: boolean
+          regras_bloquear_splitter_1x2: boolean
+          regras_bloquear_splitter_des: boolean
+          regras_considerar_ce: boolean
+          regras_considerar_ta: boolean
+          regras_habilitar_exclusao_cpfl: boolean
+          regras_usar_porta_disponivel: boolean
           telefone_gerente: string | null
           updated_at: string
           use_saturated_ta: boolean
@@ -283,6 +291,14 @@ export type Database = {
           max_lpu_distance_m?: number
           multiplier?: number
           name: string
+          regras_bloquear_atendimento_nao_sim?: boolean
+          regras_bloquear_portas_livres_zero?: boolean
+          regras_bloquear_splitter_1x2?: boolean
+          regras_bloquear_splitter_des?: boolean
+          regras_considerar_ce?: boolean
+          regras_considerar_ta?: boolean
+          regras_habilitar_exclusao_cpfl?: boolean
+          regras_usar_porta_disponivel?: boolean
           telefone_gerente?: string | null
           updated_at?: string
           use_saturated_ta?: boolean
@@ -296,6 +312,14 @@ export type Database = {
           max_lpu_distance_m?: number
           multiplier?: number
           name?: string
+          regras_bloquear_atendimento_nao_sim?: boolean
+          regras_bloquear_portas_livres_zero?: boolean
+          regras_bloquear_splitter_1x2?: boolean
+          regras_bloquear_splitter_des?: boolean
+          regras_considerar_ce?: boolean
+          regras_considerar_ta?: boolean
+          regras_habilitar_exclusao_cpfl?: boolean
+          regras_usar_porta_disponivel?: boolean
           telefone_gerente?: string | null
           updated_at?: string
           use_saturated_ta?: boolean

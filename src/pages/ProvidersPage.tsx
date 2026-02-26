@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, Package } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 export default function ProvidersPage() {
   const { data: providers, isLoading } = useProviders();
@@ -214,6 +215,16 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
   const [hasCrossNtt, setHasCrossNtt] = useState(provider.has_cross_ntt ?? false);
   const [useSaturatedTa, setUseSaturatedTa] = useState((provider as any).use_saturated_ta ?? false);
 
+  // Rules state
+  const [regrasUsarPorta, setRegrasUsarPorta] = useState((provider as any).regras_usar_porta_disponivel ?? true);
+  const [regrasConsiderarTa, setRegrasConsiderarTa] = useState((provider as any).regras_considerar_ta ?? true);
+  const [regrasConsiderarCe, setRegrasConsiderarCe] = useState((provider as any).regras_considerar_ce ?? false);
+  const [regrasSplitter1x2, setRegrasSplitter1x2] = useState((provider as any).regras_bloquear_splitter_1x2 ?? true);
+  const [regrasSplitterDes, setRegrasSplitterDes] = useState((provider as any).regras_bloquear_splitter_des ?? true);
+  const [regrasPortasZero, setRegrasPortasZero] = useState((provider as any).regras_bloquear_portas_livres_zero ?? true);
+  const [regrasAtendimento, setRegrasAtendimento] = useState((provider as any).regras_bloquear_atendimento_nao_sim ?? true);
+  const [regrasCpfl, setRegrasCpfl] = useState((provider as any).regras_habilitar_exclusao_cpfl ?? true);
+
   const handleSave = async () => {
     try {
       await updateProvider.mutateAsync({
@@ -226,6 +237,14 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
         telefone_gerente: telefoneGerente.trim() || null,
         has_cross_ntt: hasCrossNtt,
         use_saturated_ta: useSaturatedTa,
+        regras_usar_porta_disponivel: regrasUsarPorta,
+        regras_considerar_ta: regrasConsiderarTa,
+        regras_considerar_ce: regrasConsiderarCe,
+        regras_bloquear_splitter_1x2: regrasSplitter1x2,
+        regras_bloquear_splitter_des: regrasSplitterDes,
+        regras_bloquear_portas_livres_zero: regrasPortasZero,
+        regras_bloquear_atendimento_nao_sim: regrasAtendimento,
+        regras_habilitar_exclusao_cpfl: regrasCpfl,
       } as any);
       toast({ title: "Provedor atualizado!" });
       onClose();
@@ -236,7 +255,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Provedor</DialogTitle>
         </DialogHeader>
@@ -291,6 +310,58 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
              </div>
            </div>
          </div>
+
+        {/* Rules Section */}
+        <div className="border-t pt-4 mt-2">
+          <h3 className="flex items-center gap-2 font-semibold mb-3">
+            <Settings2 className="h-4 w-4" /> Regras do Provedor
+          </h3>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Configurações de seleção de ponto de conexão e validação de viabilidade.</p>
+
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Considerar TA (Terminal de Atendimento)</Label>
+                <Switch checked={regrasConsiderarTa} onCheckedChange={setRegrasConsiderarTa} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Considerar CE (Caixa de Emenda)</Label>
+                <Switch checked={regrasConsiderarCe} onCheckedChange={setRegrasConsiderarCe} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Filtrar por porta disponível (legado)</Label>
+                <Switch checked={regrasUsarPorta} onCheckedChange={setRegrasUsarPorta} />
+              </div>
+            </div>
+
+            <p className="text-xs font-semibold text-muted-foreground mt-3">Regras de Splitter</p>
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Bloquear se splitter 1x2</Label>
+                <Switch checked={regrasSplitter1x2} onCheckedChange={setRegrasSplitter1x2} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Bloquear se splitter DES</Label>
+                <Switch checked={regrasSplitterDes} onCheckedChange={setRegrasSplitterDes} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Bloquear se portas livres = 0</Label>
+                <Switch checked={regrasPortasZero} onCheckedChange={setRegrasPortasZero} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-normal">Bloquear se atendimento ≠ "sim"</Label>
+                <Switch checked={regrasAtendimento} onCheckedChange={setRegrasAtendimento} />
+              </div>
+            </div>
+
+            <p className="text-xs font-semibold text-muted-foreground mt-3">Exclusão CPFL</p>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-normal">Habilitar exclusão CPFL (bloquear rota)</Label>
+              <Switch checked={regrasCpfl} onCheckedChange={setRegrasCpfl} />
+            </div>
+          </div>
+        </div>
+
         <Button onClick={handleSave} disabled={updateProvider.isPending} className="mt-2">Salvar</Button>
       </DialogContent>
     </Dialog>
