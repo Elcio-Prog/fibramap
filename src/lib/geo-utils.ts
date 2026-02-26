@@ -602,7 +602,10 @@ export async function getRouteDistance(
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-      const res = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await res.json();
       if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
         return data.routes
@@ -964,11 +967,15 @@ export async function fetchHighwaysAndRailways(
   const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
   const query = `[out:json][timeout:15];(way["highway"~"^(motorway|trunk|motorway_link|trunk_link)$"](${bbox});way["railway"="rail"](${bbox}););out geom;`;
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
     const res = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       body: `data=${encodeURIComponent(query)}`,
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!res.ok) return [];
     const data = await res.json();
     const ways: OverpassWay[] = [];
