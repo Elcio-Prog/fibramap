@@ -342,7 +342,16 @@ export async function findBestConnectionPointByRoute(
     ? Math.max(1, Math.floor(maxCandidates))
     : orderedCandidates.length;
 
-  const searchList = orderedCandidates.slice(0, candidateLimit);
+  // Pre-filter by straight-line distance (cheap), then only compute expensive
+  // route distances for the top few apt candidates
+  const preFiltered = orderedCandidates.slice(0, candidateLimit);
+  
+  // Among pre-filtered, pick top 3 apt candidates to compute routes for
+  // This dramatically reduces OSRM + Overpass API calls
+  const ROUTE_CALC_LIMIT = 3;
+  const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
+  // If no apt candidates, fall back to top 3 overall
+  const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any } }
@@ -389,7 +398,7 @@ export async function findBestConnectionPointByRoute(
   if (routeFilter) return null;
 
   // If routing fails for all candidates, fallback to nearest candidate by straight-line
-  const fallback = searchList[0] ?? candidates[0];
+  const fallback = preFiltered[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
 
   return {
