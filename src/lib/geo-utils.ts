@@ -303,10 +303,13 @@ export function findBestConnectionPoint(
 }
 
 /**
- * Find the best connection point by real route distance.
- * 1) Try apt candidates within limit.
- * 2) If none apt, try nearest candidates within limit.
+ * Find the best connection point with strict nearest-candidate priority.
+ * Rule:
+ * 1) Prefer nearest apt candidate within limit (straight-line sorted).
+ * 2) If none apt, prefer nearest candidate within limit.
  * 3) If none in limit, fallback to nearest candidate overall.
+ *
+ * Candidate choice is always by nearest point first; route is then computed for that choice.
  */
 export async function findBestConnectionPointByRoute(
   lat: number,
@@ -314,7 +317,7 @@ export async function findBestConnectionPointByRoute(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   limitMeters: number,
   rules: ProviderRules,
-  maxCandidates: number = 8
+  maxCandidates: number = Number.POSITIVE_INFINITY
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
@@ -322,62 +325,67 @@ export async function findBestConnectionPointByRoute(
   const aptWithinLimit = candidates.filter((c) => c.aptoNovoCliente && c.distance <= limitMeters);
   const withinLimit = candidates.filter((c) => c.distance <= limitMeters);
 
-  const pool = (
-    aptWithinLimit.length > 0
-      ? aptWithinLimit
-      : (withinLimit.length > 0 ? withinLimit : [candidates[0]])
-  ).slice(0, maxCandidates);
+  const inAptPhase = aptWithinLimit.length > 0;
+  const inLimitPhase = !inAptPhase && withinLimit.length > 0;
 
-  const routed = await Promise.all(
-    pool.map(async (c) => {
-      const route = await getRouteDistance(lat, lng, c.lat, c.lng);
-      return route ? { candidate: c, route } : null;
-    })
-  );
+  const orderedCandidates = inAptPhase
+    ? aptWithinLimit
+    : inLimitPhase
+      ? withinLimit
+      : candidates;
 
-  const valid = routed.filter((r): r is { candidate: ConnectionCandidate; route: { distance: number; geometry: any } } => r !== null);
+  const candidateLimit = Number.isFinite(maxCandidates)
+    ? Math.max(1, Math.floor(maxCandidates))
+    : orderedCandidates.length;
 
-  if (valid.length === 0) {
-    const fallback = pool[0];
+  const searchList = orderedCandidates.slice(0, candidateLimit);
+
+  for (const candidate of searchList) {
+    const route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    if (!route) continue;
+
+    const isApto = inAptPhase ? true : candidate.aptoNovoCliente;
+    const isSemApto = !isApto;
+
     return {
       taResult: {
-        distance: fallback.distance,
-        point: [fallback.lat, fallback.lng],
-        nome: fallback.nome,
-        tipo: fallback.tipo,
-        portaDisponivel: fallback.portaDisponivel,
-        aptoNovoCliente: fallback.aptoNovoCliente,
-        motivoBloqueio: fallback.motivoBloqueio,
-        motivo: fallback.aptoNovoCliente ? "mais_proximo" : "sem_apto",
-        mensagem: fallback.aptoNovoCliente
-          ? undefined
-          : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+        distance: route.distance,
+        point: [candidate.lat, candidate.lng],
+        nome: candidate.nome,
+        tipo: candidate.tipo,
+        portaDisponivel: candidate.portaDisponivel,
+        aptoNovoCliente: isApto,
+        motivoBloqueio: candidate.motivoBloqueio,
+        motivo: isSemApto ? "sem_apto" : "mais_proximo",
+        mensagem: isSemApto
+          ? "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery."
+          : undefined,
       },
-      routeDistance: fallback.distance,
-      routeGeometry: null,
+      routeDistance: route.distance,
+      routeGeometry: route.geometry,
     };
   }
 
-  valid.sort((a, b) => a.route.distance - b.route.distance);
-  const best = valid[0];
-  const inAptPhase = aptWithinLimit.length > 0;
+  // If routing fails for all candidates, fallback to nearest candidate by straight-line
+  const fallback = searchList[0] ?? candidates[0];
+  const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
 
   return {
     taResult: {
-      distance: best.route.distance,
-      point: [best.candidate.lat, best.candidate.lng],
-      nome: best.candidate.nome,
-      tipo: best.candidate.tipo,
-      portaDisponivel: best.candidate.portaDisponivel,
-      aptoNovoCliente: inAptPhase ? true : best.candidate.aptoNovoCliente,
-      motivoBloqueio: best.candidate.motivoBloqueio,
-      motivo: inAptPhase ? "mais_proximo" : "sem_apto",
-      mensagem: inAptPhase
+      distance: fallback.distance,
+      point: [fallback.lat, fallback.lng],
+      nome: fallback.nome,
+      tipo: fallback.tipo,
+      portaDisponivel: fallback.portaDisponivel,
+      aptoNovoCliente: fallbackIsApto,
+      motivoBloqueio: fallback.motivoBloqueio,
+      motivo: fallbackIsApto ? "mais_proximo" : "sem_apto",
+      mensagem: fallbackIsApto
         ? undefined
         : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
     },
-    routeDistance: best.route.distance,
-    routeGeometry: best.route.geometry,
+    routeDistance: fallback.distance,
+    routeGeometry: null,
   };
 }
 
@@ -548,26 +556,31 @@ export function findNearestBoundaryPoint(
   return nearest;
 }
 
-/** Calculate route distance via OSRM while ignoring street direction.
- *  Strategy: request A→B and B→A in driving profile and pick the shortest.
- *  If B→A is shorter, reverse the geometry so it is still drawn from A to B. */
+/** Calculate route distance via OSRM prioritizing the shortest physical route.
+ *  Strategy:
+ *  1) Request A→B and B→A (driving) with alternatives=true.
+ *  2) Compare all returned alternatives by `distance` (meters).
+ *  3) Pick the smallest distance route and normalize geometry direction to A→B.
+ */
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
-  const fetchDriving = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
+  const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const res = await fetch(url);
       const data = await res.json();
-      if (data.code === "Ok" && data.routes?.length > 0) {
-        return { distance: data.routes[0].distance as number, geometry: data.routes[0].geometry };
+      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        return data.routes
+          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+          .map((r: any) => ({ distance: r.distance as number, geometry: r.geometry }));
       }
-      return null;
+      return [] as Array<{ distance: number; geometry: any }>;
     } catch {
-      return null;
+      return [] as Array<{ distance: number; geometry: any }>;
     }
   };
 
@@ -586,25 +599,20 @@ export async function getRouteDistance(
   };
 
   try {
-    const [forward, reverse] = await Promise.all([
-      fetchDriving(fromLat, fromLng, toLat, toLng),
-      fetchDriving(toLat, toLng, fromLat, fromLng),
+    const [forwardRoutes, reverseRoutes] = await Promise.all([
+      fetchDrivingAlternatives(fromLat, fromLng, toLat, toLng),
+      fetchDrivingAlternatives(toLat, toLng, fromLat, fromLng),
     ]);
 
-    if (!forward && !reverse) return null;
-    if (forward && !reverse) return forward;
-    if (!forward && reverse) {
-      return { distance: reverse.distance, geometry: reverseGeometry(reverse.geometry) };
-    }
+    const normalized = [
+      ...forwardRoutes.map((r) => ({ distance: r.distance, geometry: r.geometry })),
+      ...reverseRoutes.map((r) => ({ distance: r.distance, geometry: reverseGeometry(r.geometry) })),
+    ];
 
-    if ((reverse as { distance: number }).distance < (forward as { distance: number }).distance) {
-      return {
-        distance: (reverse as { distance: number }).distance,
-        geometry: reverseGeometry((reverse as { geometry: any }).geometry),
-      };
-    }
+    if (normalized.length === 0) return null;
 
-    return forward;
+    normalized.sort((a, b) => a.distance - b.distance);
+    return normalized[0];
   } catch {
     return null;
   }
