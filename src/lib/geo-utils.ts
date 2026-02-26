@@ -74,9 +74,33 @@ function ensureCCW(ring: number[][]): number[][] {
 
 /** Convert closed LineStrings to Polygons for filled rendering.
  *  Only converts lines that enclose a significant area (coverage "manchas").
- *  Ensures counter-clockwise winding order so the polygon doesn't cover the whole globe. */
+ *  Also normalizes winding order of existing Polygons/MultiPolygons to CCW
+ *  so they render correctly instead of covering the whole globe. */
 export function closedLineToPolygon(geometry: any): any {
   if (!geometry) return geometry;
+
+  // Normalize existing Polygon winding order
+  if (geometry.type === "Polygon" && Array.isArray(geometry.coordinates)) {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((ring: number[][], i: number) =>
+        i === 0 ? ensureCCW(ring) : ring
+      ),
+    };
+  }
+
+  // Normalize existing MultiPolygon winding order
+  if (geometry.type === "MultiPolygon" && Array.isArray(geometry.coordinates)) {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((polygon: number[][][]) =>
+        polygon.map((ring: number[][], i: number) =>
+          i === 0 ? ensureCCW(ring) : ring
+        )
+      ),
+    };
+  }
+
   if (geometry.type === "LineString" && isClosedLine(geometry.coordinates) && isSignificantPolygon(geometry.coordinates)) {
     return { type: "Polygon", coordinates: [ensureCCW(geometry.coordinates)] };
   }
