@@ -344,6 +344,10 @@ export async function findBestConnectionPointByRoute(
 
   const searchList = orderedCandidates.slice(0, candidateLimit);
 
+  let best:
+    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any } }
+    | null = null;
+
   for (const candidate of searchList) {
     const route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
     if (!route) continue;
@@ -353,25 +357,31 @@ export async function findBestConnectionPointByRoute(
       if (!accepted) continue;
     }
 
-    const isApto = inAptPhase ? true : candidate.aptoNovoCliente;
+    if (!best || route.distance < best.route.distance) {
+      best = { candidate, route };
+    }
+  }
+
+  if (best) {
+    const isApto = inAptPhase ? true : best.candidate.aptoNovoCliente;
     const isSemApto = !isApto;
 
     return {
       taResult: {
-        distance: route.distance,
-        point: [candidate.lat, candidate.lng],
-        nome: candidate.nome,
-        tipo: candidate.tipo,
-        portaDisponivel: candidate.portaDisponivel,
+        distance: best.route.distance,
+        point: [best.candidate.lat, best.candidate.lng],
+        nome: best.candidate.nome,
+        tipo: best.candidate.tipo,
+        portaDisponivel: best.candidate.portaDisponivel,
         aptoNovoCliente: isApto,
-        motivoBloqueio: candidate.motivoBloqueio,
+        motivoBloqueio: best.candidate.motivoBloqueio,
         motivo: isSemApto ? "sem_apto" : "mais_proximo",
         mensagem: isSemApto
           ? "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery."
           : undefined,
       },
-      routeDistance: route.distance,
-      routeGeometry: route.geometry,
+      routeDistance: best.route.distance,
+      routeGeometry: best.route.geometry,
     };
   }
 
