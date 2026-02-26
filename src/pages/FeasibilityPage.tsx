@@ -16,6 +16,7 @@ import {
   haversineDistance,
   closedLineToPolygon,
   routeCrossesCPFL,
+  checkRouteHighwayRailway,
   type TAResult,
   type ProviderRules,
 } from "@/lib/geo-utils";
@@ -71,6 +72,8 @@ interface FeasibilityResult {
   taResult?: TAResult;
   cpflBlocked?: boolean;
   cpflMessage?: string;
+  highwayBlocked?: boolean;
+  highwayMessage?: string;
 }
 
 export default function FeasibilityPage() {
@@ -267,6 +270,8 @@ export default function FeasibilityPage() {
           let taResult: TAResult | undefined = undefined;
           let cpflBlocked = false;
           let cpflMessage: string | undefined = undefined;
+          let highwayBlocked = false;
+          let highwayMessage: string | undefined = undefined;
 
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
@@ -286,7 +291,12 @@ export default function FeasibilityPage() {
                 const cpflCheck = routeCrossesCPFL(routeGeometry, elMapped);
                 if (cpflCheck.crosses) { cpflBlocked = true; cpflMessage = cpflCheck.message; isViableNT = false; }
               }
-              if (!cpflBlocked) isViableNT = distance <= maxDist;
+              // Highway/Railway blocking rule (only if not already blocked by CPFL)
+              if (!cpflBlocked && routeGeometry) {
+                const hwCheck = await checkRouteHighwayRailway(routeGeometry, elMapped);
+                if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; isViableNT = false; }
+              }
+              if (!cpflBlocked && !highwayBlocked) isViableNT = distance <= maxDist;
             } else {
               const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
               if (!nearest) return null;
@@ -296,27 +306,36 @@ export default function FeasibilityPage() {
                 if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; }
                 else return null;
               } catch { return null; }
-              isViableNT = distance <= maxDist;
+              // Also check highway/railway for fallback route
+              if (routeGeometry) {
+                const hwCheck = await checkRouteHighwayRailway(routeGeometry, elMapped);
+                if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; }
+              }
+              isViableNT = !highwayBlocked && distance <= maxDist;
             }
           }
 
           const taNote = taResult ? `${taResult.tipo}: ${taResult.nome} | ${taResult.aptoNovoCliente ? "Apto" : "Não apto"} | ${taResult.motivoBloqueio || taResult.motivo}` : "";
+
+          const isBlocked = cpflBlocked || highwayBlocked;
+          const blockMessage = cpflBlocked ? cpflMessage : highwayBlocked ? highwayMessage : undefined;
 
           const result: FeasibilityResult = {
             address: geo.display, lat: geo.lat, lng: geo.lng,
             providerName: provider.name, providerColor: provider.color,
             distance: Math.round(distance), maxDistance: maxDist,
             lpuValue: 0, lpuType: "Rede Própria", multiplier: 1, finalValue: 0,
-            status: cpflBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
+            status: isBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
+            highwayBlocked, highwayMessage,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
             customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
             calculated_distance_m: Math.round(distance), lpu_value: 0, multiplier: 1, final_value: 0,
-            is_viable: cpflBlocked ? false : isViableNT,
-            notes: cpflBlocked ? cpflMessage : insideNT ? `Rede própria - Dentro da cobertura. ${taNote}` : isViableNT ? `Rede própria - Viável. ${taNote}` : `Rede própria - Não atende. ${taNote}`,
+            is_viable: isBlocked ? false : isViableNT,
+            notes: isBlocked ? blockMessage : insideNT ? `Rede própria - Dentro da cobertura. ${taNote}` : isViableNT ? `Rede própria - Viável. ${taNote}` : `Rede própria - Não atende. ${taNote}`,
           };
           return { result, save };
 
@@ -752,6 +771,9 @@ function ResultCard({
     if (r.cpflBlocked) {
       return { label: "BLOQUEADO - CPFL", variant: "destructive" as const, icon: Ban, color: "text-red-600" };
     }
+    if (r.highwayBlocked) {
+      return { label: "BLOQUEADO - RODOVIA/FERROVIA", variant: "destructive" as const, icon: Ban, color: "text-red-600" };
+    }
     if (r.isOwnNetwork && r.status === "outside_viable") {
       return { label: "REDE PRÓPRIA - VIÁVEL", variant: "secondary" as const, icon: CheckCircle, color: "text-blue-600" };
     }
@@ -799,7 +821,13 @@ function ResultCard({
                   🚫 {r.cpflMessage}
                 </p>
               )}
-              {r.isOwnNetwork && r.taResult && !r.cpflBlocked && (
+              {/* Highway/Railway block */}
+              {!r.cpflBlocked && r.highwayBlocked && (
+                <p className="col-span-2 text-sm font-bold text-destructive bg-destructive/10 p-3 rounded">
+                  🚫 {r.highwayMessage}
+                </p>
+              )}
+              {r.isOwnNetwork && r.taResult && !r.cpflBlocked && !r.highwayBlocked && (
                 <>
                   <p className="col-span-2">
                     <span className="text-muted-foreground">{r.taResult.tipo} destino:</span>{" "}
