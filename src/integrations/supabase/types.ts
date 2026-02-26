@@ -402,6 +402,7 @@ export type Database = {
           lat_b: number | null
           lng_a: number | null
           lng_b: number | null
+          prazo_ativacao: string | null
           processing_status: string
           raw_data: Json
           result_notes: string | null
@@ -433,6 +434,7 @@ export type Database = {
           lat_b?: number | null
           lng_a?: number | null
           lng_b?: number | null
+          prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
           result_notes?: string | null
@@ -464,6 +466,7 @@ export type Database = {
           lat_b?: number | null
           lng_a?: number | null
           lng_b?: number | null
+          prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
           result_notes?: string | null
@@ -486,6 +489,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ws_mapping_profiles: {
+        Row: {
+          column_mapping: Json
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          column_mapping?: Json
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          column_mapping?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

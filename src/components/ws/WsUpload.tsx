@@ -1,14 +1,16 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /** Campos-alvo que o usuário pode mapear */
 const TARGET_FIELDS = [
@@ -19,9 +21,14 @@ const TARGET_FIELDS = [
   { key: "endereco_a", label: "Endereço (Ponta A)" },
   { key: "cidade_a", label: "Cidade (Ponta A)" },
   { key: "uf_a", label: "UF (Ponta A)" },
+  { key: "lat_a", label: "Latitude (Ponta A)" },
+  { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
   { key: "cidade_b", label: "Cidade (Ponta B)" },
   { key: "uf_b", label: "UF (Ponta B)" },
+  { key: "lat_b", label: "Latitude (Ponta B)" },
+  { key: "lng_b", label: "Longitude (Ponta B)" },
+  { key: "prazo_ativacao", label: "Prazo de Ativação" },
 ] as const;
 
 type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
@@ -41,10 +48,33 @@ interface ParsedItem {
   endereco_a?: string;
   cidade_a?: string;
   uf_a?: string;
+  lat_a?: number;
+  lng_a?: number;
   endereco_b?: string;
   cidade_b?: string;
   uf_b?: string;
+  lat_b?: number;
+  lng_b?: number;
+  prazo_ativacao?: string;
   raw_data: Record<string, any>;
+}
+
+// ---- Hooks for WS Mapping Profiles ----
+function useWsMappingProfiles() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["ws-mapping-profiles", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ws_mapping_profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as { id: string; name: string; column_mapping: Record<string, string> }[];
+    },
+    enabled: !!user?.id,
+  });
 }
 
 export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId: string) => void }) {
@@ -56,10 +86,51 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
+  const [profileName, setProfileName] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: profiles } = useWsMappingProfiles();
+
+  // Save profile mutation
+  const saveProfile = useMutation({
+    mutationFn: async () => {
+      if (!profileName.trim() || !user?.id) return;
+      const { error } = await supabase.from("ws_mapping_profiles").insert({
+        user_id: user.id,
+        name: profileName.trim(),
+        column_mapping: mapping,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Perfil salvo!" });
+      setProfileName("");
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-profiles"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar perfil", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Delete profile mutation
+  const deleteProfile = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("ws_mapping_profiles").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Perfil removido" });
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-profiles"] });
+    },
+  });
+
+  const applyProfile = (profileId: string) => {
+    const p = profiles?.find((pr) => pr.id === profileId);
+    if (p) setMapping(p.column_mapping as Record<TargetKey, string>);
+  };
 
   // ---- Step 1: File upload ----
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,9 +150,11 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
       const h = json[0].map((c: any, i: number) =>
         String(c).trim() || (i < WS_COLUMN_LETTERS.length ? `Col ${WS_COLUMN_LETTERS[i]}` : `Col ${i + 1}`)
       );
-      // Limit to columns A-W (23)
       setHeaders(h.slice(0, 23));
       setRows(json.slice(1));
+      // Reset parsed data from previous upload
+      setParsedItems([]);
+      setSavedCount(0);
       setStep("mapping");
     };
     reader.readAsArrayBuffer(file);
@@ -101,20 +174,23 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         return v === "" || v === null || v === undefined ? undefined : String(v).trim();
       };
 
+      const getNumber = (key: TargetKey): number | undefined => {
+        const v = getValue(key);
+        if (!v) return undefined;
+        const n = parseFloat(String(v).replace(",", "."));
+        return isNaN(n) ? undefined : n;
+      };
+
       const endereco_a = getValue("endereco_a");
-      // Skip empty rows
       if (!endereco_a && !getValue("designacao") && !getValue("cliente")) continue;
 
       const velRaw = getValue("velocidade");
       const desig = getValue("designacao");
       const l2l = parseL2L(desig);
 
-      // Raw data object
       const raw: Record<string, any> = {};
       headers.forEach((h, hi) => {
-        if (row[hi] !== "" && row[hi] !== null && row[hi] !== undefined) {
-          raw[h] = row[hi];
-        }
+        if (row[hi] !== "" && row[hi] !== null && row[hi] !== undefined) raw[h] = row[hi];
       });
 
       items.push({
@@ -130,9 +206,14 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         endereco_a,
         cidade_a: getValue("cidade_a"),
         uf_a: getValue("uf_a"),
+        lat_a: getNumber("lat_a"),
+        lng_a: getNumber("lng_a"),
         endereco_b: getValue("endereco_b"),
         cidade_b: getValue("cidade_b"),
         uf_b: getValue("uf_b"),
+        lat_b: getNumber("lat_b"),
+        lng_b: getNumber("lng_b"),
+        prazo_ativacao: getValue("prazo_ativacao"),
         raw_data: raw,
       });
     }
@@ -146,7 +227,6 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     setSaving(true);
 
     try {
-      // Create batch
       const { data: batch, error: batchErr } = await supabase
         .from("ws_batches")
         .insert({ user_id: user.id, file_name: fileName, total_items: parsedItems.length })
@@ -155,7 +235,6 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
 
       if (batchErr || !batch) throw batchErr || new Error("Erro ao criar lote");
 
-      // Insert items in chunks of 500
       const CHUNK = 500;
       let saved = 0;
       for (let i = 0; i < parsedItems.length; i += CHUNK) {
@@ -173,9 +252,14 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           endereco_a: item.endereco_a || null,
           cidade_a: item.cidade_a || null,
           uf_a: item.uf_a || null,
+          lat_a: item.lat_a ?? null,
+          lng_a: item.lng_a ?? null,
           endereco_b: item.endereco_b || null,
           cidade_b: item.cidade_b || null,
           uf_b: item.uf_b || null,
+          lat_b: item.lat_b ?? null,
+          lng_b: item.lng_b ?? null,
+          prazo_ativacao: item.prazo_ativacao || null,
           raw_data: item.raw_data,
         }));
 
@@ -185,11 +269,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         setSavedCount(saved);
       }
 
-      // Update batch status
-      await supabase
-        .from("ws_batches")
-        .update({ status: "uploaded", total_items: saved })
-        .eq("id", batch.id);
+      await supabase.from("ws_batches").update({ status: "uploaded", total_items: saved }).eq("id", batch.id);
 
       toast({ title: `${saved} itens importados com sucesso!` });
       setStep("done");
@@ -214,6 +294,8 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
 
   const l2lCount = parsedItems.filter((i) => i.is_l2l).length;
   const noSpeedCount = parsedItems.filter((i) => i.velocidade_mbps === null && i.velocidade_original).length;
+  const withCoordsA = parsedItems.filter((i) => i.lat_a != null).length;
+  const withCoordsB = parsedItems.filter((i) => i.lat_b != null).length;
 
   return (
     <Card>
@@ -249,15 +331,42 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </Button>
             </div>
 
+            {/* Profiles */}
+            {profiles && profiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Perfis salvos:</p>
+                <div className="flex flex-wrap gap-2">
+                  {profiles.map((p) => (
+                    <div key={p.id} className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyProfile(p.id)}
+                        className="text-xs"
+                      >
+                        {p.name}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => deleteProfile.mutate(p.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Preview table */}
             <div className="overflow-x-auto max-h-36 border rounded-md">
               <table className="text-xs w-full">
                 <thead>
                   <tr className="bg-muted">
                     {headers.map((h, i) => (
-                      <th key={i} className="px-2 py-1 text-left whitespace-nowrap font-medium">
-                        {h}
-                      </th>
+                      <th key={i} className="px-2 py-1 text-left whitespace-nowrap font-medium">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -293,14 +402,31 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                     <SelectContent>
                       <SelectItem value="__ignore__">— Ignorar —</SelectItem>
                       {headers.map((h) => (
-                        <SelectItem key={h} value={h}>
-                          {h}
-                        </SelectItem>
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               ))}
+            </div>
+
+            {/* Save profile */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nome do perfil"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                className="text-sm h-8"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 shrink-0"
+                disabled={!profileName.trim() || saveProfile.isPending}
+                onClick={() => saveProfile.mutate()}
+              >
+                <Save className="h-3.5 w-3.5" /> Salvar perfil
+              </Button>
             </div>
 
             <Button className="w-full" onClick={parseData} disabled={!mapping.endereco_a}>
@@ -322,14 +448,12 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
             {/* Stats */}
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">{parsedItems.length} itens</Badge>
-              {l2lCount > 0 && (
-                <Badge variant="outline" className="gap-1">
-                  L2L: {l2lCount}
-                </Badge>
-              )}
+              {l2lCount > 0 && <Badge variant="outline">L2L: {l2lCount}</Badge>}
+              {withCoordsA > 0 && <Badge variant="outline">Coords A: {withCoordsA}</Badge>}
+              {withCoordsB > 0 && <Badge variant="outline">Coords B: {withCoordsB}</Badge>}
               {noSpeedCount > 0 && (
                 <Badge variant="outline" className="gap-1 text-destructive">
-                  <AlertTriangle className="h-3 w-3" /> Velocidade não reconhecida: {noSpeedCount}
+                  <AlertTriangle className="h-3 w-3" /> Vel. não reconhecida: {noSpeedCount}
                 </Badge>
               )}
             </div>
@@ -342,38 +466,38 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                     <th className="px-2 py-1 text-left">#</th>
                     <th className="px-2 py-1 text-left">Designação</th>
                     <th className="px-2 py-1 text-left">Cliente</th>
-                    <th className="px-2 py-1 text-left">Tipo</th>
                     <th className="px-2 py-1 text-left">Vel. (Mbps)</th>
                     <th className="px-2 py-1 text-left">L2L</th>
                     <th className="px-2 py-1 text-left">Endereço A</th>
-                    <th className="px-2 py-1 text-left">Cidade A</th>
-                    <th className="px-2 py-1 text-left">UF</th>
+                    <th className="px-2 py-1 text-left">Lat A</th>
+                    <th className="px-2 py-1 text-left">Lng A</th>
                     <th className="px-2 py-1 text-left">Endereço B</th>
+                    <th className="px-2 py-1 text-left">Lat B</th>
+                    <th className="px-2 py-1 text-left">Lng B</th>
+                    <th className="px-2 py-1 text-left">Prazo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {parsedItems.slice(0, 50).map((item, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-2 py-1">{item.row}</td>
-                      <td className="px-2 py-1 max-w-[120px] truncate">{item.designacao || "—"}</td>
-                      <td className="px-2 py-1 max-w-[120px] truncate">{item.cliente || "—"}</td>
-                      <td className="px-2 py-1">{item.tipo_link || "—"}</td>
+                      <td className="px-2 py-1 max-w-[100px] truncate">{item.designacao || "—"}</td>
+                      <td className="px-2 py-1 max-w-[100px] truncate">{item.cliente || "—"}</td>
                       <td className="px-2 py-1">
                         {item.velocidade_mbps !== null ? item.velocidade_mbps : (
                           <span className="text-destructive">{item.velocidade_original || "—"}</span>
                         )}
                       </td>
                       <td className="px-2 py-1">
-                        {item.is_l2l ? (
-                          <Badge variant="outline" className="text-xs px-1">
-                            {item.l2l_suffix}
-                          </Badge>
-                        ) : "—"}
+                        {item.is_l2l ? <Badge variant="outline" className="text-xs px-1">{item.l2l_suffix}</Badge> : "—"}
                       </td>
-                      <td className="px-2 py-1 max-w-[160px] truncate">{item.endereco_a || "—"}</td>
-                      <td className="px-2 py-1">{item.cidade_a || "—"}</td>
-                      <td className="px-2 py-1">{item.uf_a || "—"}</td>
-                      <td className="px-2 py-1 max-w-[160px] truncate">{item.endereco_b || "—"}</td>
+                      <td className="px-2 py-1 max-w-[140px] truncate">{item.endereco_a || "—"}</td>
+                      <td className="px-2 py-1">{item.lat_a?.toFixed(4) ?? "—"}</td>
+                      <td className="px-2 py-1">{item.lng_a?.toFixed(4) ?? "—"}</td>
+                      <td className="px-2 py-1 max-w-[140px] truncate">{item.endereco_b || "—"}</td>
+                      <td className="px-2 py-1">{item.lat_b?.toFixed(4) ?? "—"}</td>
+                      <td className="px-2 py-1">{item.lng_b?.toFixed(4) ?? "—"}</td>
+                      <td className="px-2 py-1">{item.prazo_ativacao || "—"}</td>
                     </tr>
                   ))}
                 </tbody>
