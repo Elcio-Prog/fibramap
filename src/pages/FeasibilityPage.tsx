@@ -219,32 +219,26 @@ export default function FeasibilityPage() {
         return;
       }
 
-      const newResults: FeasibilityResult[] = [];
+      // Pre-group elements by provider for O(1) lookup instead of repeated filter
+      const elementsByProvider: Record<string, typeof allGeoElements> = {};
+      for (const el of allGeoElements) {
+        if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
+        elementsByProvider[el.provider_id].push(el);
+      }
 
-      // Identify Net Turbo (own network) - prioritize
+      // Identify Net Turbo (own network)
       const netTurboProvider = providersToUse.find(p => p.name.toLowerCase().includes("net turbo"));
-      
-      // Sort providers: Net Turbo first, then Cross NTT, then others
-      const sortedProviders = [...providersToUse].sort((a, b) => {
-        const aIsNT = a.id === netTurboProvider?.id;
-        const bIsNT = b.id === netTurboProvider?.id;
-        if (aIsNT && !bIsNT) return -1;
-        if (!aIsNT && bIsNT) return 1;
-        if (a.has_cross_ntt && !b.has_cross_ntt) return -1;
-        if (!a.has_cross_ntt && b.has_cross_ntt) return 1;
-        return a.name.localeCompare(b.name);
-      });
 
-      for (const provider of sortedProviders) {
-        const providerElements = allGeoElements.filter((e) => e.provider_id === provider.id);
-        if (!providerElements.length) continue;
+      // Process all providers in PARALLEL for speed
+      const dbSaves: Array<Parameters<typeof createFeasibility.mutateAsync>[0]> = [];
+
+      const processProvider = async (provider: typeof providersToUse[0]): Promise<{ result: FeasibilityResult; save: Parameters<typeof createFeasibility.mutateAsync>[0] } | null> => {
+        const providerElements = elementsByProvider[provider.id] || [];
+        if (!providerElements.length) return null;
 
         const isNetTurbo = provider.id === netTurboProvider?.id;
+        const inside = isInsideCoverage(geo.lat, geo.lng, providerElements);
 
-        // Check coverage: polygons AND closed LineStrings (manchas)
-        const inside = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
-
-        // Find LPU value
         const providerLpu = allLpuItems?.filter((l) => l.provider_id === provider.id) || [];
         let lpuItem = providerLpu.find((l) => l.link_type === selectedLpuType);
         if (!lpuItem && providerLpu.length > 0) lpuItem = providerLpu[0];
@@ -254,7 +248,6 @@ export default function FeasibilityPage() {
         const maxDist = provider.max_lpu_distance_m;
 
         if (isNetTurbo) {
-          // Net Turbo: own network - extract rules from provider
           const rules: ProviderRules = {
             regras_usar_porta_disponivel: (provider as any).regras_usar_porta_disponivel ?? true,
             regras_considerar_ta: (provider as any).regras_considerar_ta ?? true,
@@ -266,8 +259,7 @@ export default function FeasibilityPage() {
             regras_habilitar_exclusao_cpfl: (provider as any).regras_habilitar_exclusao_cpfl ?? true,
           };
 
-          const insideNT = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
-
+          const insideNT = inside;
           let distance = 0;
           let routeGeometry: any = null;
           let nearestPt: [number, number] | undefined = undefined;
@@ -280,213 +272,123 @@ export default function FeasibilityPage() {
 
           if (insideNT) {
             const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, rules);
-            if (cp) {
-              taResult = cp;
-              nearestPt = cp.point;
-            }
+            if (cp) { taResult = cp; nearestPt = cp.point; }
             distance = 0;
             isViableNT = true;
           } else {
-            // Outside polygon - use connection point logic (prioritizing shortest real route)
             const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, maxDist, rules);
-
             if (cpByRoute) {
               taResult = cpByRoute.taResult;
               nearestPt = cpByRoute.taResult.point;
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
-
-              // CPFL exclusion check
               if (rules.regras_habilitar_exclusao_cpfl && routeGeometry) {
                 const cpflCheck = routeCrossesCPFL(routeGeometry, elMapped);
-                if (cpflCheck.crosses) {
-                  cpflBlocked = true;
-                  cpflMessage = cpflCheck.message;
-                  isViableNT = false;
-                }
+                if (cpflCheck.crosses) { cpflBlocked = true; cpflMessage = cpflCheck.message; isViableNT = false; }
               }
-
-              if (!cpflBlocked) {
-                isViableNT = distance <= maxDist;
-              }
+              if (!cpflBlocked) isViableNT = distance <= maxDist;
             } else {
-              // No connection points found - fallback to nearest point
               const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
-              if (!nearest) continue;
+              if (!nearest) return null;
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-                if (route?.geometry) {
-                  distance = route.distance;
-                  routeGeometry = route.geometry;
-                } else {
-                  continue;
-                }
-              } catch {
-                continue;
-              }
+                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; }
+                else return null;
+              } catch { return null; }
               isViableNT = distance <= maxDist;
             }
           }
 
-          const taNote = taResult
-            ? `${taResult.tipo}: ${taResult.nome} | ${taResult.aptoNovoCliente ? "Apto" : "Não apto"} | ${taResult.motivoBloqueio || taResult.motivo}`
-            : "";
+          const taNote = taResult ? `${taResult.tipo}: ${taResult.nome} | ${taResult.aptoNovoCliente ? "Apto" : "Não apto"} | ${taResult.motivoBloqueio || taResult.motivo}` : "";
 
           const result: FeasibilityResult = {
-            address: geo.display,
-            lat: geo.lat,
-            lng: geo.lng,
-            providerName: provider.name,
-            providerColor: provider.color,
-            distance: Math.round(distance),
-            maxDistance: maxDist,
-            lpuValue: 0,
-            lpuType: "Rede Própria",
-            multiplier: 1,
-            finalValue: 0,
+            address: geo.display, lat: geo.lat, lng: geo.lng,
+            providerName: provider.name, providerColor: provider.color,
+            distance: Math.round(distance), maxDistance: maxDist,
+            lpuValue: 0, lpuType: "Rede Própria", multiplier: 1, finalValue: 0,
             status: cpflBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
-            providerId: provider.id,
-            routeGeometry: !insideNT ? routeGeometry : undefined,
-            nearestPoint: nearestPt,
-            isOwnNetwork: true,
-            taResult,
-            cpflBlocked,
-            cpflMessage,
+            providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
+            nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
           };
-          newResults.push(result);
-
-          await createFeasibility.mutateAsync({
-            user_id: user?.id,
-            customer_address: address || geo.display,
-            customer_lat: geo.lat,
-            customer_lng: geo.lng,
-            provider_id: provider.id,
-            calculated_distance_m: Math.round(distance),
-            lpu_value: 0,
-            multiplier: 1,
-            final_value: 0,
+          const save = {
+            user_id: user?.id, customer_address: address || geo.display,
+            customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
+            calculated_distance_m: Math.round(distance), lpu_value: 0, multiplier: 1, final_value: 0,
             is_viable: cpflBlocked ? false : isViableNT,
-            notes: cpflBlocked
-              ? cpflMessage
-              : insideNT
-                ? `Rede própria - Dentro da cobertura. ${taNote}`
-                : isViableNT
-                  ? `Rede própria - Viável. ${taNote}`
-                  : `Rede própria - Não atende. ${taNote}`,
-          });
-
-          // If Net Turbo is viable, we still continue to show other providers for comparison
-        } else if (inside) {
-          // Client is inside coverage polygon - viable, distance = 0
-          const result: FeasibilityResult = {
-            address: geo.display,
-            lat: geo.lat,
-            lng: geo.lng,
-            providerName: provider.name,
-            providerColor: provider.color,
-            distance: 0,
-            maxDistance: maxDist,
-            lpuValue,
-            lpuType: lpuItem?.link_type || "N/A",
-            multiplier: mult,
-            finalValue: Math.round(finalValue * 100) / 100,
-            status: "inside",
-            providerId: provider.id,
-            hasCrossNtt: provider.has_cross_ntt,
+            notes: cpflBlocked ? cpflMessage : insideNT ? `Rede própria - Dentro da cobertura. ${taNote}` : isViableNT ? `Rede própria - Viável. ${taNote}` : `Rede própria - Não atende. ${taNote}`,
           };
-          newResults.push(result);
+          return { result, save };
 
-          await createFeasibility.mutateAsync({
-            user_id: user?.id,
-            customer_address: address || geo.display,
-            customer_lat: geo.lat,
-            customer_lng: geo.lng,
-            provider_id: provider.id,
-            calculated_distance_m: 0,
-            lpu_value: lpuValue,
-            multiplier: mult,
-            final_value: finalValue,
-            is_viable: true,
-          });
+        } else if (inside) {
+          const result: FeasibilityResult = {
+            address: geo.display, lat: geo.lat, lng: geo.lng,
+            providerName: provider.name, providerColor: provider.color,
+            distance: 0, maxDistance: maxDist, lpuValue, lpuType: lpuItem?.link_type || "N/A",
+            multiplier: mult, finalValue: Math.round(finalValue * 100) / 100,
+            status: "inside", providerId: provider.id, hasCrossNtt: provider.has_cross_ntt,
+          };
+          const save = {
+            user_id: user?.id, customer_address: address || geo.display,
+            customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
+            calculated_distance_m: 0, lpu_value: lpuValue, multiplier: mult,
+            final_value: finalValue, is_viable: true,
+          };
+          return { result, save };
+
         } else {
-          // Client is outside coverage - calculate distance to nearest boundary
           const nearest = findNearestBoundaryPoint(geo.lat, geo.lng, providerElements);
-          if (!nearest) continue;
-
-          const nearestAny = findNearestPoint(
-            geo.lat, geo.lng,
-            providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
-          );
-
+          if (!nearest) return null;
+          const nearestAny = findNearestPoint(geo.lat, geo.lng, providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
           const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
           let distance = bestNearest.distance;
-
           let routeGeometry: any = null;
           try {
             const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-            if (route) {
-              distance = route.distance;
-              routeGeometry = route.geometry;
-            }
+            if (route) { distance = route.distance; routeGeometry = route.geometry; }
           } catch {}
 
           const tooFar = distance > maxDist * 2;
           const isViable = distance <= maxDist;
           const status: ResultStatus = tooFar ? "too_far" : isViable ? "outside_viable" : "outside_not_viable";
-
-          // Only include viable providers in the report
-          if (status === "too_far" || status === "outside_not_viable") continue;
+          if (status === "too_far" || status === "outside_not_viable") return null;
 
           const result: FeasibilityResult = {
-            address: geo.display,
-            lat: geo.lat,
-            lng: geo.lng,
-            providerName: provider.name,
-            providerColor: provider.color,
-            distance: Math.round(distance),
-            maxDistance: maxDist,
-            lpuValue,
-            lpuType: lpuItem?.link_type || "N/A",
-            multiplier: mult,
-            finalValue: Math.round(finalValue * 100) / 100,
-            status,
-            providerId: provider.id,
-            routeGeometry,
-            nearestPoint: bestNearest.point,
-            hasCrossNtt: provider.has_cross_ntt,
+            address: geo.display, lat: geo.lat, lng: geo.lng,
+            providerName: provider.name, providerColor: provider.color,
+            distance: Math.round(distance), maxDistance: maxDist, lpuValue,
+            lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
+            finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
+            routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
           };
-
-          newResults.push(result);
-
-          await createFeasibility.mutateAsync({
-            user_id: user?.id,
-            customer_address: address || geo.display,
-            customer_lat: geo.lat,
-            customer_lng: geo.lng,
-            provider_id: provider.id,
-            calculated_distance_m: Math.round(distance),
-            lpu_value: lpuValue,
-            multiplier: mult,
-            final_value: finalValue,
-            is_viable: isViable,
-          });
+          const save = {
+            user_id: user?.id, customer_address: address || geo.display,
+            customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
+            calculated_distance_m: Math.round(distance), lpu_value: lpuValue,
+            multiplier: mult, final_value: finalValue, is_viable: isViable,
+          };
+          return { result, save };
         }
-      }
+      };
+
+      // Run all providers in parallel
+      const allResults = await Promise.all(providersToUse.map(p => processProvider(p)));
+      const validResults = allResults.filter((r): r is NonNullable<typeof r> => r !== null);
+
+      const newResults = validResults.map(r => r.result);
+
+      // Batch save all feasibility records (fire-and-forget, don't block UI)
+      Promise.all(validResults.map(r => createFeasibility.mutateAsync(r.save))).catch(() => {});
 
       // Sort: Net Turbo first, then inside, then cross NTT viable, then others viable
       setResults(newResults.sort((a, b) => {
-        // Net Turbo always first
         if (a.isOwnNetwork && !b.isOwnNetwork) return -1;
         if (!a.isOwnNetwork && b.isOwnNetwork) return 1;
-        // Inside before outside
         const statusOrder: Record<ResultStatus, number> = { inside: 0, outside_viable: 1, outside_not_viable: 2, too_far: 3 };
         const statusDiff = statusOrder[a.status] - statusOrder[b.status];
         if (statusDiff !== 0) return statusDiff;
-        // Cross NTT before non-cross
         if (a.hasCrossNtt && !b.hasCrossNtt) return -1;
         if (!a.hasCrossNtt && b.hasCrossNtt) return 1;
-        // Then by distance
         return a.distance - b.distance;
       }));
 
