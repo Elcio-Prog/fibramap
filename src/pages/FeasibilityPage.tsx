@@ -73,7 +73,7 @@ interface FeasibilityResult {
 }
 
 export default function FeasibilityPage() {
-  const { data: providers } = useProviders();
+  const { data: providers, refetch: refetchProviders } = useProviders();
   const { data: allGeoElements } = useGeoElements();
   const { data: allLpuItems } = useLpuItems();
   const createFeasibility = useCreateFeasibility();
@@ -208,7 +208,11 @@ export default function FeasibilityPage() {
         return;
       }
 
-      if (!providers?.length || !allGeoElements?.length) {
+      // Always reload providers before running rules to avoid stale toggles (e.g. considerar_ce)
+      const { data: latestProviders } = await refetchProviders();
+      const providersToUse = latestProviders ?? providers ?? [];
+
+      if (!providersToUse.length || !allGeoElements?.length) {
         toast({ title: "Cadastre provedores e importe dados antes", variant: "destructive" });
         setLoading(false);
         return;
@@ -217,10 +221,10 @@ export default function FeasibilityPage() {
       const newResults: FeasibilityResult[] = [];
 
       // Identify Net Turbo (own network) - prioritize
-      const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
+      const netTurboProvider = providersToUse.find(p => p.name.toLowerCase().includes("net turbo"));
       
       // Sort providers: Net Turbo first, then Cross NTT, then others
-      const sortedProviders = [...providers].sort((a, b) => {
+      const sortedProviders = [...providersToUse].sort((a, b) => {
         const aIsNT = a.id === netTurboProvider?.id;
         const bIsNT = b.id === netTurboProvider?.id;
         if (aIsNT && !bIsNT) return -1;
