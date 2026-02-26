@@ -985,13 +985,70 @@ function segmentIntersectionPoint(
 }
 
 /** Check minimum distance from a point to any segment of a linestring (in meters) */
-function minDistToLine(ptLng: number, ptLat: number, lineCoords: number[][]): number {
-  let min = Infinity;
-  for (const c of lineCoords) {
-    const d = haversineDistance(ptLat, ptLng, c[1], c[0]);
-    if (d < min) min = d;
+function pointToSegmentDistanceMeters(
+  ptLng: number,
+  ptLat: number,
+  aLng: number,
+  aLat: number,
+  bLng: number,
+  bLat: number
+): number {
+  const latRad = (ptLat * Math.PI) / 180;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos(latRad);
+
+  const ax = (aLng - ptLng) * mPerDegLng;
+  const ay = (aLat - ptLat) * mPerDegLat;
+  const bx = (bLng - ptLng) * mPerDegLng;
+  const by = (bLat - ptLat) * mPerDegLat;
+
+  const abx = bx - ax;
+  const aby = by - ay;
+  const ab2 = abx * abx + aby * aby;
+
+  if (ab2 <= 1e-9) return Math.hypot(ax, ay);
+
+  const t = Math.max(0, Math.min(1, (-(ax * abx + ay * aby)) / ab2));
+  const px = ax + t * abx;
+  const py = ay + t * aby;
+  return Math.hypot(px, py);
+}
+
+function segmentBearingDeg(lng1: number, lat1: number, lng2: number, lat2: number): number {
+  const angle = Math.atan2(lat2 - lat1, lng2 - lng1) * (180 / Math.PI);
+  return (angle + 360) % 360;
+}
+
+function bearingDeltaDeg(a: number, b: number): number {
+  const diff = Math.abs(a - b) % 360;
+  const normalized = diff > 180 ? 360 - diff : diff;
+  return normalized > 90 ? 180 - normalized : normalized;
+}
+
+function nearestLineSegmentInfo(
+  ptLng: number,
+  ptLat: number,
+  lineCoords: number[][]
+): { distanceM: number; segmentBearingDeg: number } {
+  let minDist = Infinity;
+  let bestBearing = 0;
+
+  for (let i = 0; i < lineCoords.length - 1; i++) {
+    const [aLng, aLat] = lineCoords[i];
+    const [bLng, bLat] = lineCoords[i + 1];
+    const d = pointToSegmentDistanceMeters(ptLng, ptLat, aLng, aLat, bLng, bLat);
+    if (d < minDist) {
+      minDist = d;
+      bestBearing = segmentBearingDeg(aLng, aLat, bLng, bLat);
+    }
   }
-  return min;
+
+  return { distanceM: minDist, segmentBearingDeg: bestBearing };
+}
+
+function minDistToLine(ptLng: number, ptLat: number, lineCoords: number[][]): number {
+  if (lineCoords.length < 2) return Infinity;
+  return nearestLineSegmentInfo(ptLng, ptLat, lineCoords).distanceM;
 }
 
 export interface HighwayRailwayCheckResult {
@@ -1073,18 +1130,27 @@ export function routeCrossesHighwayOrRailway(
       }
     }
 
-    // Also check "traveling along" — if route runs parallel/on top of highway for > 30m
+    // Also check "traveling along" — block only when route is effectively on the same road axis
+    // (parallel nearby roads are allowed)
     let overlapDist = 0;
-    for (let i = 0; i < routeCoords.length; i++) {
+    for (let i = 1; i < routeCoords.length; i++) {
+      const [prevLng, prevLat] = routeCoords[i - 1];
       const [rLng, rLat] = routeCoords[i];
-      const dist = minDistToLine(rLng, rLat, way.coords);
-      if (dist < 15) { // within 15m = "on" the highway
-        if (i > 0) {
-          overlapDist += haversineDistance(routeCoords[i - 1][1], routeCoords[i - 1][0], rLat, rLng);
-        }
+      const routeSegDist = haversineDistance(prevLat, prevLng, rLat, rLng);
+      const routeBearing = segmentBearingDeg(prevLng, prevLat, rLng, rLat);
+
+      const nearest = nearestLineSegmentInfo(rLng, rLat, way.coords);
+      const angleDelta = bearingDeltaDeg(routeBearing, nearest.segmentBearingDeg);
+
+      // Consider "on road" only when very close to centerline and aligned with it
+      const isOnSameAxis = nearest.distanceM <= 6 && angleDelta <= 12;
+
+      if (isOnSameAxis) {
+        overlapDist += routeSegDist;
       } else {
-        overlapDist = 0; // reset if route moves away
+        overlapDist = 0;
       }
+
       if (overlapDist > 30) {
         // Check NTT cable exception for this stretch
         const midIdx = Math.max(0, i - Math.floor(overlapDist / 10));
