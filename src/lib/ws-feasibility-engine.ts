@@ -2,6 +2,7 @@
  * Motor de viabilidade WS reutilizável.
  * Extrai a lógica de FeasibilityPage para uso em batch.
  * Salva progresso item a item no banco para sobreviver a navegação.
+ * Retorna TODAS as opções viáveis encontradas por item.
  */
 import {
   geocodeAddress,
@@ -41,9 +42,19 @@ export interface WsItemInput {
   row_number: number;
 }
 
+/** Uma opção viável encontrada */
+export interface ViableOption {
+  stage: string;
+  provider_name: string;
+  distance_m: number;
+  lpu_value: number | null;
+  final_value: number | null;
+  notes: string;
+  ta_info?: string;
+}
+
 export interface WsResult {
   item: WsItemInput;
-  // Geo resolution
   geo_lat: number | null;
   geo_lng: number | null;
   geo_source: "coordenada" | "endereco" | "nao_encontrado";
@@ -56,6 +67,8 @@ export interface WsResult {
   is_viable: boolean;
   notes: string;
   ta_info?: string;
+  // ALL viable options found
+  all_options: ViableOption[];
 }
 
 interface Provider {
@@ -132,7 +145,8 @@ async function resolveGeo(item: WsItemInput): Promise<{
 }
 
 /**
- * Processa um item contra todos provedores.
+ * Processa um item contra TODOS provedores e coleta TODAS opções viáveis.
+ * Não faz early return - sempre verifica NTT, provedores expandidos e LM.
  */
 async function processItem(
   item: WsItemInput,
@@ -142,7 +156,8 @@ async function processItem(
   elementsByProvider: Record<string, GeoElement[]>,
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
-): Promise<Omit<WsResult, "item" | "geo_lat" | "geo_lng" | "geo_source">> {
+): Promise<{ best: Omit<WsResult, "item" | "geo_lat" | "geo_lng" | "geo_source" | "all_options">; all_options: ViableOption[] }> {
+  const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
   // === Etapa 1: Rede Própria NTT ===
@@ -166,75 +181,67 @@ async function processItem(
       if (inside) {
         const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
         const taNote = cp ? `${cp.tipo}: ${cp.nome} | ${cp.aptoNovoCliente ? "Apto" : "Não apto"}` : "";
-        return {
+        allOptions.push({
           stage: "Rede Própria",
           provider_name: netTurboProvider.name,
           distance_m: 0,
           lpu_value: null,
           final_value: null,
-          is_viable: true,
           notes: `Dentro da cobertura NTT. ${taNote}`,
           ta_info: taNote,
-        };
-      }
-
-      try {
-        let lastBlockedMsg = "";
-        const cpByRoute = await findBestConnectionPointByRoute(
-          lat,
-          lng,
-          elMapped,
-          netTurboProvider.max_lpu_distance_m,
-          rules,
-          10, // Limit to 10 nearest candidates for performance
-          async (_candidate, route) => {
-            if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
-              const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
-              if (cpflCheck.crosses) {
-                lastBlockedMsg = cpflCheck.message || "Cruzamento CPFL";
-                return false;
+        });
+      } else {
+        // Tentar por rota
+        try {
+          let lastBlockedMsg = "";
+          const cpByRoute = await findBestConnectionPointByRoute(
+            lat,
+            lng,
+            elMapped,
+            netTurboProvider.max_lpu_distance_m,
+            rules,
+            10,
+            async (_candidate, route) => {
+              if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                if (cpflCheck.crosses) {
+                  lastBlockedMsg = cpflCheck.message || "Cruzamento CPFL";
+                  return false;
+                }
               }
-            }
 
-            if (route.geometry) {
-              const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
-              if (hwCheck.blocked) {
-                lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
-                return false;
+              if (route.geometry) {
+                const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                if (hwCheck.blocked) {
+                  lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
+                  return false;
+                }
               }
-            }
 
-            return true;
+              return true;
+            }
+          );
+
+          if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
+            const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
+            allOptions.push({
+              stage: "Rede Própria",
+              provider_name: netTurboProvider.name,
+              distance_m: Math.round(cpByRoute.routeDistance),
+              lpu_value: null,
+              final_value: null,
+              notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
+              ta_info: taNote,
+            });
           }
-        );
-
-        if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
-          const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
-          return {
-            stage: "Rede Própria",
-            provider_name: netTurboProvider.name,
-            distance_m: Math.round(cpByRoute.routeDistance),
-            lpu_value: null,
-            final_value: null,
-            is_viable: true,
-            notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
-            ta_info: taNote,
-          };
+        } catch (err) {
+          console.warn("NTT route check failed:", err);
         }
-
-        if (lastBlockedMsg) {
-          // blocked by rule, fallback to external stages
-        }
-      } catch {
-        // Continue to next stages
       }
     }
   }
 
-  // === Etapa 2: Rede Expandida ===
-  type ProvResult = { provider: Provider; stage: string; distance: number; lpuValue: number; finalValue: number; notes: string };
-  const provResults: ProvResult[] = [];
-
+  // === Etapa 2: Rede Expandida (TODOS provedores) ===
   for (const provider of providers) {
     if (provider.id === netTurboProvider?.id) continue;
     const elements = elementsByProvider[provider.id] || [];
@@ -250,12 +257,12 @@ async function processItem(
     const inside = isInsideCoverage(lat, lng, elements);
     if (inside) {
       const stage = provider.has_cross_ntt ? "Cross NTT" : "Dentro Cobertura";
-      provResults.push({
-        provider,
+      allOptions.push({
         stage,
-        distance: 0,
-        lpuValue,
-        finalValue: Math.round(finalValue * 100) / 100,
+        provider_name: provider.name,
+        distance_m: 0,
+        lpu_value: lpuValue,
+        final_value: Math.round(finalValue * 100) / 100,
         notes: `${stage} - ${provider.name}`,
       });
       continue;
@@ -274,33 +281,18 @@ async function processItem(
       } catch {}
 
       if (distance <= maxDist) {
-        provResults.push({
-          provider,
+        allOptions.push({
           stage: "LPU Viável",
-          distance: Math.round(distance),
-          lpuValue,
-          finalValue: Math.round(finalValue * 100) / 100,
+          provider_name: provider.name,
+          distance_m: Math.round(distance),
+          lpu_value: lpuValue,
+          final_value: Math.round(finalValue * 100) / 100,
           notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
         });
       }
     } catch {
       // skip
     }
-  }
-
-  if (provResults.length > 0) {
-    const stageOrder: Record<string, number> = { "Cross NTT": 0, "Dentro Cobertura": 1, "LPU Viável": 2 };
-    provResults.sort((a, b) => (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance - b.distance);
-    const best = provResults[0];
-    return {
-      stage: best.stage,
-      provider_name: best.provider.name,
-      distance_m: best.distance,
-      lpu_value: best.lpuValue,
-      final_value: best.finalValue,
-      is_viable: true,
-      notes: best.notes,
-    };
   }
 
   // === Etapa 3: LM Histórico ===
@@ -322,26 +314,63 @@ async function processItem(
     }
 
     if (bestLM) {
-      return {
+      allOptions.push({
         stage: "LM Histórico",
         provider_name: bestLM.parceiro,
         distance_m: Math.round(bestDist * 1000),
         lpu_value: bestLM.valor_mensal,
         final_value: bestLM.valor_mensal,
-        is_viable: true,
         notes: `LM Histórico - ${bestLM.parceiro} - ${bestDist.toFixed(1)}km - R$${bestLM.valor_mensal}`,
-      };
+      });
     }
   }
 
+  // === Selecionar melhor opção ===
+  if (allOptions.length > 0) {
+    // Prioridade: Rede Própria > Cross NTT > Dentro Cobertura > LPU Viável > LM Histórico
+    const stageOrder: Record<string, number> = {
+      "Rede Própria": 0,
+      "Cross NTT": 1,
+      "Dentro Cobertura": 2,
+      "LPU Viável": 3,
+      "LM Histórico": 4,
+    };
+    const sorted = [...allOptions].sort((a, b) =>
+      (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m
+    );
+    const best = sorted[0];
+
+    // Build notes with all options summary
+    const optionsSummary = allOptions.length > 1
+      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}`).join(", ")}]`
+      : "";
+
+    return {
+      best: {
+        stage: best.stage,
+        provider_name: best.provider_name,
+        distance_m: best.distance_m,
+        lpu_value: best.lpu_value,
+        final_value: best.final_value,
+        is_viable: true,
+        notes: best.notes + optionsSummary,
+        ta_info: best.ta_info,
+      },
+      all_options: sorted,
+    };
+  }
+
   return {
-    stage: null,
-    provider_name: null,
-    distance_m: null,
-    lpu_value: null,
-    final_value: null,
-    is_viable: false,
-    notes: "Sem viabilidade encontrada",
+    best: {
+      stage: null,
+      provider_name: null,
+      distance_m: null,
+      lpu_value: null,
+      final_value: null,
+      is_viable: false,
+      notes: "Sem viabilidade encontrada",
+    },
+    all_options: [],
   };
 }
 
@@ -366,9 +395,6 @@ async function saveItemResult(result: WsResult): Promise<void> {
 
 /**
  * Processa um lote completo de itens WS.
- * Salva cada resultado individualmente no banco para persistência.
- * Aceita `startIndex` para retomar processamento de onde parou.
- * Processa em mini-lotes paralelos para melhor performance.
  */
 export async function processWsBatch(
   items: WsItemInput[],
@@ -380,7 +406,6 @@ export async function processWsBatch(
   onItemResult?: (result: WsResult, index: number) => void,
   startIndex: number = 0,
 ): Promise<WsResult[]> {
-  // Index elements by provider
   const elementsByProvider: Record<string, GeoElement[]> = {};
   for (const el of geoElements) {
     if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
@@ -388,19 +413,14 @@ export async function processWsBatch(
   }
 
   const results: WsResult[] = [];
-
-  // Split items with coordinates vs items needing geocoding
-  // Items with coordinates can be processed in parallel batches
-  // Items needing geocoding must respect Nominatim rate limit
-  const PARALLEL_BATCH = 3; // process up to 3 items concurrently (avoids API overload)
+  const PARALLEL_BATCH = 3;
 
   for (let i = startIndex; i < items.length; i += PARALLEL_BATCH) {
     const batch = items.slice(i, Math.min(i + PARALLEL_BATCH, items.length));
-    
-    // Separate items that need geocoding (rate limited) from those with coords
+
     const withCoords: { item: WsItemInput; idx: number }[] = [];
     const needGeo: { item: WsItemInput; idx: number }[] = [];
-    
+
     batch.forEach((item, bIdx) => {
       if (item.lat_a != null && item.lng_a != null) {
         withCoords.push({ item, idx: i + bIdx });
@@ -409,30 +429,24 @@ export async function processWsBatch(
       }
     });
 
-    // Process items with coordinates in parallel
     const coordPromises = withCoords.map(async ({ item, idx }) => {
       const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM);
       await saveItemResult(result);
       return { result, idx };
     });
 
-    // Process items needing geocoding sequentially (Nominatim 1req/s)
     const geoResultsArr: { result: WsResult; idx: number }[] = [];
     for (const { item, idx } of needGeo) {
       const geo = await resolveGeo(item);
       const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
       await saveItemResult(result);
       geoResultsArr.push({ result, idx });
-      // Rate limit only for geocoded items
       if (geo.source === "endereco") {
         await new Promise(r => setTimeout(r, 1100));
       }
     }
 
-    // Wait for coord-based items
     const coordResults = await Promise.all(coordPromises);
-
-    // Combine and sort by original index
     const allBatchResults = [...coordResults, ...geoResultsArr].sort((a, b) => a.idx - b.idx);
 
     for (const { result, idx } of allBatchResults) {
@@ -440,7 +454,6 @@ export async function processWsBatch(
       onItemResult?.(result, idx);
     }
 
-    // Update progress
     const processed = Math.min(i + batch.length, items.length);
     onProgress?.({
       current: processed,
@@ -474,15 +487,17 @@ async function processSingleItem(
       final_value: null,
       is_viable: false,
       notes: "Endereço/coordenada não encontrado",
+      all_options: [],
     };
   }
 
-  const feasibility = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
   return {
     item,
     geo_lat: geo.lat,
     geo_lng: geo.lng,
     geo_source: geo.source,
-    ...feasibility,
+    ...best,
+    all_options,
   };
 }

@@ -130,6 +130,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
       final_value: row.result_value,
       is_viable: row.is_viable ?? false,
       notes: row.result_notes || "",
+      all_options: [],
     }));
 
     setResults(mapped);
@@ -196,6 +197,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               final_value: allItems[i].result_value,
               is_viable: allItems[i].is_viable ?? false,
               notes: allItems[i].result_notes || "",
+              all_options: [],
             });
             startIndex = i + 1;
           } else {
@@ -272,34 +274,44 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const exportToExcel = () => {
     if (!results) return;
 
-    const rows = results.map((r) => ({
-      "Linha": r.item.row_number,
-      "Designação": r.item.designacao || "",
-      "Cliente": r.item.cliente || "",
-      "Tipo Link": r.item.tipo_link || "",
-      "Vel. (Mbps)": r.item.velocidade_mbps ?? "",
-      "L2L": r.item.is_l2l ? `Sim (${r.item.l2l_suffix})` : "Não",
-      "Endereço A": r.item.endereco_a || "",
-      "Cidade A": r.item.cidade_a || "",
-      "UF A": r.item.uf_a || "",
-      "Lat A": r.geo_lat ?? "",
-      "Lng A": r.geo_lng ?? "",
-      "Endereço B": r.item.endereco_b || "",
-      "Cidade B": r.item.cidade_b || "",
-      "UF B": r.item.uf_b || "",
-      "Lat B": r.item.lat_b ?? "",
-      "Lng B": r.item.lng_b ?? "",
-      "Prazo Ativação": r.item.prazo_ativacao || "",
-      "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
-      "Viável": r.is_viable ? "SIM" : "NÃO",
-      "Etapa": r.stage || "—",
-      "Provedor": r.provider_name || "—",
-      "Distância (m)": r.distance_m ?? "",
-      "Valor LPU": r.lpu_value ?? "",
-      "Valor Final": r.final_value ?? "",
-      "Observações": r.notes,
-      "TA/CE": r.ta_info || "",
-    }));
+    const rows: Record<string, any>[] = [];
+    for (const r of results) {
+      // Build all options columns dynamically
+      const optionsText = r.all_options.length > 0
+        ? r.all_options.map((o, i) => `${i + 1}) ${o.stage} - ${o.provider_name} - ${o.distance_m}m${o.final_value != null ? ` - R$${o.final_value}` : ""}${o.ta_info ? ` [${o.ta_info}]` : ""}`).join(" | ")
+        : "";
+
+      rows.push({
+        "Linha": r.item.row_number,
+        "Designação": r.item.designacao || "",
+        "Cliente": r.item.cliente || "",
+        "Tipo Link": r.item.tipo_link || "",
+        "Vel. (Mbps)": r.item.velocidade_mbps ?? "",
+        "L2L": r.item.is_l2l ? `Sim (${r.item.l2l_suffix})` : "Não",
+        "Endereço A": r.item.endereco_a || "",
+        "Cidade A": r.item.cidade_a || "",
+        "UF A": r.item.uf_a || "",
+        "Lat A": r.geo_lat ?? "",
+        "Lng A": r.geo_lng ?? "",
+        "Endereço B": r.item.endereco_b || "",
+        "Cidade B": r.item.cidade_b || "",
+        "UF B": r.item.uf_b || "",
+        "Lat B": r.item.lat_b ?? "",
+        "Lng B": r.item.lng_b ?? "",
+        "Prazo Ativação": r.item.prazo_ativacao || "",
+        "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
+        "Viável": r.is_viable ? "SIM" : "NÃO",
+        "Qtd Opções": r.all_options.length,
+        "Melhor Etapa": r.stage || "—",
+        "Melhor Provedor": r.provider_name || "—",
+        "Distância (m)": r.distance_m ?? "",
+        "Valor LPU": r.lpu_value ?? "",
+        "Valor Final": r.final_value ?? "",
+        "TA/CE": r.ta_info || "",
+        "Todas as Opções": optionsText,
+        "Observações": r.notes,
+      });
+    }
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -428,11 +440,12 @@ export default function WsProcessor({ batchId, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">Endereço</th>
                     <th className="px-2 py-1.5 text-left">Geo</th>
                     <th className="px-2 py-1.5 text-left">Viável</th>
-                    <th className="px-2 py-1.5 text-left">Etapa</th>
+                    <th className="px-2 py-1.5 text-left">Opções</th>
+                    <th className="px-2 py-1.5 text-left">Melhor Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-left">Dist.</th>
                     <th className="px-2 py-1.5 text-left">Valor</th>
-                    <th className="px-2 py-1.5 text-left">Obs.</th>
+                    <th className="px-2 py-1.5 text-left">Todas Opções</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -453,11 +466,26 @@ export default function WsProcessor({ batchId, onReset }: Props) {
                           <Badge variant="outline" className="text-[10px] px-1 text-destructive">NÃO</Badge>
                         )}
                       </td>
+                      <td className="px-2 py-1">
+                        {r.all_options.length > 0 ? (
+                          <Badge variant="outline" className="text-[10px] px-1">{r.all_options.length}</Badge>
+                        ) : "—"}
+                      </td>
                       <td className="px-2 py-1 whitespace-nowrap">{r.stage || "—"}</td>
                       <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
                       <td className="px-2 py-1">{r.distance_m != null ? `${r.distance_m}m` : "—"}</td>
                       <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
-                      <td className="px-2 py-1 max-w-[200px] truncate">{r.notes}</td>
+                      <td className="px-2 py-1 max-w-[250px] text-[10px]">
+                        {r.all_options.length > 1 ? (
+                          r.all_options.map((o, oi) => (
+                            <div key={oi} className={oi === 0 ? "font-semibold" : "text-muted-foreground"}>
+                              {o.stage}/{o.provider_name} {o.distance_m}m {o.final_value != null ? `R$${o.final_value}` : ""}
+                            </div>
+                          ))
+                        ) : r.notes ? (
+                          <span className="truncate">{r.notes}</span>
+                        ) : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
