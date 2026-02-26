@@ -60,19 +60,32 @@ function isSignificantPolygon(coords: number[][]): boolean {
   return (maxLng - minLng) > 0.003 && (maxLat - minLat) > 0.003;
 }
 
+/** Ensure a ring has counter-clockwise (CCW) winding order for GeoJSON exterior rings.
+ *  Uses the shoelace formula to determine orientation. */
+function ensureCCW(ring: number[][]): number[][] {
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+  }
+  // area > 0 means clockwise in lng/lat space → reverse to get CCW
+  if (area > 0) return [...ring].reverse();
+  return ring;
+}
+
 /** Convert closed LineStrings to Polygons for filled rendering.
- *  Only converts lines that enclose a significant area (coverage "manchas"). */
+ *  Only converts lines that enclose a significant area (coverage "manchas").
+ *  Ensures counter-clockwise winding order so the polygon doesn't cover the whole globe. */
 export function closedLineToPolygon(geometry: any): any {
   if (!geometry) return geometry;
   if (geometry.type === "LineString" && isClosedLine(geometry.coordinates) && isSignificantPolygon(geometry.coordinates)) {
-    return { type: "Polygon", coordinates: [geometry.coordinates] };
+    return { type: "Polygon", coordinates: [ensureCCW(geometry.coordinates)] };
   }
   if (geometry.type === "MultiLineString") {
     const significant = geometry.coordinates.filter((line: number[][]) => isClosedLine(line) && isSignificantPolygon(line));
     const rest = geometry.coordinates.filter((line: number[][]) => !(isClosedLine(line) && isSignificantPolygon(line)));
     if (significant.length === 0) return geometry;
     if (rest.length === 0) {
-      return { type: "MultiPolygon", coordinates: significant.map((ring: number[][]) => [ring]) };
+      return { type: "MultiPolygon", coordinates: significant.map((ring: number[][]) => [ensureCCW(ring)]) };
     }
     return geometry;
   }
