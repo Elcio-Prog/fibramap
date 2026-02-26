@@ -23,9 +23,14 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const abortRef = useRef<AbortController | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const search = useCallback(async (query: string) => {
+    // Cancel any previous in-flight request
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (query.length < 3) {
       setSuggestions([]);
       return;
@@ -38,7 +43,7 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
       const nominatimUrl = (q: string) =>
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&countrycodes=br&addressdetails=1&accept-language=pt-BR`;
       const fetchJson = (url: string): Promise<NominatimResult[]> =>
-        fetch(url).then(r => r.json()).catch(() => []);
+        fetch(url, { signal: controller.signal }).then(r => r.json()).catch(() => []);
 
       // Build all search variants in parallel
       const promises: Promise<NominatimResult[]>[] = [
@@ -95,19 +100,21 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder }: 
         }
       }
 
+      if (controller.signal.aborted) return; // stale response
       setSuggestions(data);
       setShowDropdown(data.length > 0);
-    } catch {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return; // cancelled, ignore
       setSuggestions([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, []);
 
   const handleChange = (val: string) => {
     onChange(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(val), 400);
+    debounceRef.current = setTimeout(() => search(val), 700);
   };
 
   const handleSelect = (item: NominatimResult) => {

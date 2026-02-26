@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { useComprasLM, CompraLM } from "@/hooks/useComprasLM";
-import { haversineDistance } from "@/lib/geo-utils";
+import { haversineDistance, geocodeAddress } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { Search, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,12 +37,14 @@ interface ResultWithDistance extends CompraLM {
 
 export default function RadiusSearch() {
   const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState(5);
   const [results, setResults] = useState<ResultWithDistance[] | null>(null);
   const [metrics, setMetrics] = useState<PartnerMetrics[]>([]);
   const [searchTab, setSearchTab] = useState("address");
   const [cep, setCep] = useState("");
+  const [cepNumber, setCepNumber] = useState("");
   const [coordLat, setCoordLat] = useState("");
   const [coordLng, setCoordLng] = useState("");
   const [loadingCep, setLoadingCep] = useState(false);
@@ -61,11 +63,12 @@ export default function RadiusSearch() {
         return;
       }
       let results: any[] = [];
-      // Step 1: structured search (only if logradouro is not empty)
+      // Step 1: structured search with number if provided
       if (data.logradouro) {
+        const street = cepNumber ? `${data.logradouro}, ${cepNumber}` : data.logradouro;
         const params = new URLSearchParams({
           format: "json",
-          street: data.logradouro,
+          street,
           city: data.localidade,
           state: data.uf,
           country: "BR",
@@ -126,14 +129,22 @@ export default function RadiusSearch() {
     }
   };
 
-  const analyze = () => {
-    if (!center || !allData) return;
+  const analyze = async () => {
+    if (!allData) return;
+    // If address tab has a number, re-geocode for precision
+    let useCenter = center;
+    if (searchTab === "address" && addressNumber && center) {
+      const fullAddr = address.includes(addressNumber) ? address : `${address}, ${addressNumber}`;
+      const geo = await geocodeAddress(fullAddr);
+      if (geo) useCenter = { lat: geo.lat, lng: geo.lng };
+    }
+    if (!useCenter) return;
     const radiusM = radius * 1000;
     const filtered: ResultWithDistance[] = allData
       .filter(r => r.lat && r.lng)
       .map(r => ({
         ...r,
-        distanceM: haversineDistance(center.lat, center.lng, r.lat!, r.lng!),
+        distanceM: haversineDistance(useCenter!.lat, useCenter!.lng, r.lat!, r.lng!),
       }))
       .filter(r => r.distanceM <= radiusM)
       .sort((a, b) => a.distanceM - b.distanceM);
@@ -248,15 +259,19 @@ export default function RadiusSearch() {
             <TabsTrigger value="cep" className="flex-1">CEP</TabsTrigger>
             <TabsTrigger value="coords" className="flex-1">Coordenadas</TabsTrigger>
           </TabsList>
-          <TabsContent value="address" className="mt-2">
+          <TabsContent value="address" className="mt-2 space-y-2">
             <AddressAutocomplete
               value={address}
               onChange={setAddress}
               onSelect={r => setCenter({ lat: r.lat, lng: r.lng })}
               placeholder="Endereço do centro da busca..."
             />
+            <div className="w-32">
+              <label className="text-xs text-muted-foreground">Número</label>
+              <Input placeholder="243" value={addressNumber} onChange={e => setAddressNumber(e.target.value)} />
+            </div>
           </TabsContent>
-          <TabsContent value="cep" className="mt-2">
+          <TabsContent value="cep" className="mt-2 space-y-2">
             <div className="flex gap-2">
               <Input
                 placeholder="Digite o CEP (ex: 13015-100)"
@@ -267,6 +282,10 @@ export default function RadiusSearch() {
               <Button onClick={handleCepSearch} disabled={loadingCep} size="sm">
                 {loadingCep ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
               </Button>
+            </div>
+            <div className="w-32">
+              <label className="text-xs text-muted-foreground">Número</label>
+              <Input placeholder="275" value={cepNumber} onChange={e => setCepNumber(e.target.value)} />
             </div>
           </TabsContent>
           <TabsContent value="coords" className="mt-2">
