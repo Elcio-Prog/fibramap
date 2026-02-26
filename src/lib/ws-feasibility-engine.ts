@@ -392,7 +392,7 @@ export async function processWsBatch(
   // Split items with coordinates vs items needing geocoding
   // Items with coordinates can be processed in parallel batches
   // Items needing geocoding must respect Nominatim rate limit
-  const PARALLEL_BATCH = 5; // process up to 5 items concurrently
+  const PARALLEL_BATCH = 3; // process up to 3 items concurrently (avoids API overload)
 
   for (let i = startIndex; i < items.length; i += PARALLEL_BATCH) {
     const batch = items.slice(i, Math.min(i + PARALLEL_BATCH, items.length));
