@@ -1,0 +1,421 @@
+import { useState, useRef } from "react";
+import * as XLSX from "xlsx";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+/** Campos-alvo que o usuário pode mapear */
+const TARGET_FIELDS = [
+  { key: "designacao", label: "Designação" },
+  { key: "cliente", label: "Cliente" },
+  { key: "tipo_link", label: "Tipo de Link" },
+  { key: "velocidade", label: "Velocidade" },
+  { key: "endereco_a", label: "Endereço (Ponta A)" },
+  { key: "cidade_a", label: "Cidade (Ponta A)" },
+  { key: "uf_a", label: "UF (Ponta A)" },
+  { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
+  { key: "cidade_b", label: "Cidade (Ponta B)" },
+  { key: "uf_b", label: "UF (Ponta B)" },
+] as const;
+
+type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
+
+type Step = "upload" | "mapping" | "preview" | "done";
+
+interface ParsedItem {
+  row: number;
+  designacao?: string;
+  cliente?: string;
+  tipo_link?: string;
+  velocidade_original?: string;
+  velocidade_mbps: number | null;
+  is_l2l: boolean;
+  l2l_suffix: string | null;
+  l2l_pair_id: string | null;
+  endereco_a?: string;
+  cidade_a?: string;
+  uf_a?: string;
+  endereco_b?: string;
+  cidade_b?: string;
+  uf_b?: string;
+  raw_data: Record<string, any>;
+}
+
+export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId: string) => void }) {
+  const [step, setStep] = useState<Step>("upload");
+  const [fileName, setFileName] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rows, setRows] = useState<any[][]>([]);
+  const [mapping, setMapping] = useState<Record<TargetKey, string>>({} as any);
+  const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // ---- Step 1: File upload ----
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const data = new Uint8Array(ev.target?.result as ArrayBuffer);
+      const wb = XLSX.read(data, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      if (json.length < 2) {
+        toast({ title: "Planilha vazia", variant: "destructive" });
+        return;
+      }
+      const h = json[0].map((c: any, i: number) =>
+        String(c).trim() || (i < WS_COLUMN_LETTERS.length ? `Col ${WS_COLUMN_LETTERS[i]}` : `Col ${i + 1}`)
+      );
+      // Limit to columns A-W (23)
+      setHeaders(h.slice(0, 23));
+      setRows(json.slice(1));
+      setStep("mapping");
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // ---- Step 2: Parse with mapping ----
+  const parseData = () => {
+    const items: ParsedItem[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const getValue = (key: TargetKey): string | undefined => {
+        const col = mapping[key];
+        if (!col) return undefined;
+        const idx = headers.indexOf(col);
+        if (idx === -1) return undefined;
+        const v = row[idx];
+        return v === "" || v === null || v === undefined ? undefined : String(v).trim();
+      };
+
+      const endereco_a = getValue("endereco_a");
+      // Skip empty rows
+      if (!endereco_a && !getValue("designacao") && !getValue("cliente")) continue;
+
+      const velRaw = getValue("velocidade");
+      const desig = getValue("designacao");
+      const l2l = parseL2L(desig);
+
+      // Raw data object
+      const raw: Record<string, any> = {};
+      headers.forEach((h, hi) => {
+        if (row[hi] !== "" && row[hi] !== null && row[hi] !== undefined) {
+          raw[h] = row[hi];
+        }
+      });
+
+      items.push({
+        row: i + 2,
+        designacao: desig,
+        cliente: getValue("cliente"),
+        tipo_link: getValue("tipo_link"),
+        velocidade_original: velRaw,
+        velocidade_mbps: normalizeSpeedToMbps(velRaw),
+        is_l2l: l2l.isL2L,
+        l2l_suffix: l2l.suffix,
+        l2l_pair_id: l2l.pairId,
+        endereco_a,
+        cidade_a: getValue("cidade_a"),
+        uf_a: getValue("uf_a"),
+        endereco_b: getValue("endereco_b"),
+        cidade_b: getValue("cidade_b"),
+        uf_b: getValue("uf_b"),
+        raw_data: raw,
+      });
+    }
+    setParsedItems(items);
+    setStep("preview");
+  };
+
+  // ---- Step 3: Save to DB ----
+  const saveToDb = async () => {
+    if (!user?.id || parsedItems.length === 0) return;
+    setSaving(true);
+
+    try {
+      // Create batch
+      const { data: batch, error: batchErr } = await supabase
+        .from("ws_batches")
+        .insert({ user_id: user.id, file_name: fileName, total_items: parsedItems.length })
+        .select("id")
+        .single();
+
+      if (batchErr || !batch) throw batchErr || new Error("Erro ao criar lote");
+
+      // Insert items in chunks of 500
+      const CHUNK = 500;
+      let saved = 0;
+      for (let i = 0; i < parsedItems.length; i += CHUNK) {
+        const chunk = parsedItems.slice(i, i + CHUNK).map((item) => ({
+          batch_id: batch.id,
+          row_number: item.row,
+          designacao: item.designacao || null,
+          cliente: item.cliente || null,
+          tipo_link: item.tipo_link || null,
+          velocidade_original: item.velocidade_original || null,
+          velocidade_mbps: item.velocidade_mbps,
+          is_l2l: item.is_l2l,
+          l2l_suffix: item.l2l_suffix,
+          l2l_pair_id: item.l2l_pair_id,
+          endereco_a: item.endereco_a || null,
+          cidade_a: item.cidade_a || null,
+          uf_a: item.uf_a || null,
+          endereco_b: item.endereco_b || null,
+          cidade_b: item.cidade_b || null,
+          uf_b: item.uf_b || null,
+          raw_data: item.raw_data,
+        }));
+
+        const { error } = await supabase.from("ws_feasibility_items").insert(chunk);
+        if (error) throw error;
+        saved += chunk.length;
+        setSavedCount(saved);
+      }
+
+      // Update batch status
+      await supabase
+        .from("ws_batches")
+        .update({ status: "uploaded", total_items: saved })
+        .eq("id", batch.id);
+
+      toast({ title: `${saved} itens importados com sucesso!` });
+      setStep("done");
+      onBatchCreated?.(batch.id);
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reset = () => {
+    setStep("upload");
+    setFileName("");
+    setHeaders([]);
+    setRows([]);
+    setMapping({} as any);
+    setParsedItems([]);
+    setSavedCount(0);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const l2lCount = parsedItems.filter((i) => i.is_l2l).length;
+  const noSpeedCount = parsedItems.filter((i) => i.velocidade_mbps === null && i.velocidade_original).length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4" />
+          Upload de Planilha WS
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Step: Upload */}
+        {step === "upload" && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Selecione um arquivo XLSX/CSV com os dados de viabilidade. As colunas A-W serão lidas automaticamente.
+            </p>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFile} />
+            <Button variant="outline" className="w-full gap-2" onClick={() => fileRef.current?.click()}>
+              <Upload className="h-4 w-4" /> Selecionar arquivo
+            </Button>
+          </div>
+        )}
+
+        {/* Step: Mapping */}
+        {step === "mapping" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">
+                {fileName} — {rows.length} linhas
+              </p>
+              <Button variant="ghost" size="sm" onClick={reset}>
+                Trocar arquivo
+              </Button>
+            </div>
+
+            {/* Preview table */}
+            <div className="overflow-x-auto max-h-36 border rounded-md">
+              <table className="text-xs w-full">
+                <thead>
+                  <tr className="bg-muted">
+                    {headers.map((h, i) => (
+                      <th key={i} className="px-2 py-1 text-left whitespace-nowrap font-medium">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, 4).map((row, ri) => (
+                    <tr key={ri} className="border-t">
+                      {headers.map((_, ci) => (
+                        <td key={ci} className="px-2 py-1 whitespace-nowrap max-w-[140px] truncate">
+                          {String(row[ci] ?? "")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Column mapping */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Mapeamento de colunas:</p>
+              {TARGET_FIELDS.map((field) => (
+                <div key={field.key} className="flex items-center gap-2">
+                  <span className="text-sm w-48 shrink-0">{field.label}</span>
+                  <Select
+                    value={mapping[field.key] || "__ignore__"}
+                    onValueChange={(v) =>
+                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-sm h-8">
+                      <SelectValue placeholder="Ignorar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>
+                          {h}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+
+            <Button className="w-full" onClick={parseData} disabled={!mapping.endereco_a}>
+              Pré-visualizar dados
+            </Button>
+          </div>
+        )}
+
+        {/* Step: Preview */}
+        {step === "preview" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{parsedItems.length} itens válidos</p>
+              <Button variant="ghost" size="sm" onClick={() => setStep("mapping")}>
+                Voltar
+              </Button>
+            </div>
+
+            {/* Stats */}
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{parsedItems.length} itens</Badge>
+              {l2lCount > 0 && (
+                <Badge variant="outline" className="gap-1">
+                  L2L: {l2lCount}
+                </Badge>
+              )}
+              {noSpeedCount > 0 && (
+                <Badge variant="outline" className="gap-1 text-destructive">
+                  <AlertTriangle className="h-3 w-3" /> Velocidade não reconhecida: {noSpeedCount}
+                </Badge>
+              )}
+            </div>
+
+            {/* Preview table */}
+            <div className="overflow-x-auto max-h-64 border rounded-md">
+              <table className="text-xs w-full">
+                <thead>
+                  <tr className="bg-muted">
+                    <th className="px-2 py-1 text-left">#</th>
+                    <th className="px-2 py-1 text-left">Designação</th>
+                    <th className="px-2 py-1 text-left">Cliente</th>
+                    <th className="px-2 py-1 text-left">Tipo</th>
+                    <th className="px-2 py-1 text-left">Vel. (Mbps)</th>
+                    <th className="px-2 py-1 text-left">L2L</th>
+                    <th className="px-2 py-1 text-left">Endereço A</th>
+                    <th className="px-2 py-1 text-left">Cidade A</th>
+                    <th className="px-2 py-1 text-left">UF</th>
+                    <th className="px-2 py-1 text-left">Endereço B</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsedItems.slice(0, 50).map((item, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-2 py-1">{item.row}</td>
+                      <td className="px-2 py-1 max-w-[120px] truncate">{item.designacao || "—"}</td>
+                      <td className="px-2 py-1 max-w-[120px] truncate">{item.cliente || "—"}</td>
+                      <td className="px-2 py-1">{item.tipo_link || "—"}</td>
+                      <td className="px-2 py-1">
+                        {item.velocidade_mbps !== null ? item.velocidade_mbps : (
+                          <span className="text-destructive">{item.velocidade_original || "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1">
+                        {item.is_l2l ? (
+                          <Badge variant="outline" className="text-xs px-1">
+                            {item.l2l_suffix}
+                          </Badge>
+                        ) : "—"}
+                      </td>
+                      <td className="px-2 py-1 max-w-[160px] truncate">{item.endereco_a || "—"}</td>
+                      <td className="px-2 py-1">{item.cidade_a || "—"}</td>
+                      <td className="px-2 py-1">{item.uf_a || "—"}</td>
+                      <td className="px-2 py-1 max-w-[160px] truncate">{item.endereco_b || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {parsedItems.length > 50 && (
+              <p className="text-xs text-muted-foreground text-center">
+                Mostrando 50 de {parsedItems.length} itens
+              </p>
+            )}
+
+            <Button className="w-full gap-2" onClick={saveToDb} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Salvando... ({savedCount}/{parsedItems.length})
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Importar {parsedItems.length} itens
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Step: Done */}
+        {step === "done" && (
+          <div className="space-y-4 text-center py-4">
+            <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
+            <p className="font-medium">{savedCount} itens importados com sucesso!</p>
+            <p className="text-sm text-muted-foreground">
+              O lote está pronto para processamento de viabilidade.
+            </p>
+            <Button variant="outline" onClick={reset}>
+              Novo upload
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

@@ -1,10 +1,18 @@
+import { useState } from "react";
+import WsUpload from "@/components/ws/WsUpload";
+
 export default function WsDashboard() {
+  const [lastBatchId, setLastBatchId] = useState<string | null>(null);
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Ferramenta WS</h1>
-      <p className="text-muted-foreground">
-        Bem-vindo à Ferramenta de WS. Em breve, aqui você poderá fazer upload de planilhas e processar viabilidades em massa.
-      </p>
+      <WsUpload onBatchCreated={(id) => setLastBatchId(id)} />
+      {lastBatchId && (
+        <p className="text-sm text-muted-foreground">
+          Último lote importado: <span className="font-mono text-xs">{lastBatchId}</span>
+        </p>
+      )}
     </div>
   );
 }

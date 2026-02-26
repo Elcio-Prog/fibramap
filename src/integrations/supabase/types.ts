@@ -353,6 +353,140 @@ export type Database = {
         }
         Relationships: []
       }
+      ws_batches: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          processed_at: string | null
+          status: string
+          total_items: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          processed_at?: string | null
+          status?: string
+          total_items?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          processed_at?: string | null
+          status?: string
+          total_items?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ws_feasibility_items: {
+        Row: {
+          batch_id: string
+          cidade_a: string | null
+          cidade_b: string | null
+          cliente: string | null
+          created_at: string
+          designacao: string | null
+          endereco_a: string | null
+          endereco_b: string | null
+          id: string
+          is_l2l: boolean
+          is_viable: boolean | null
+          l2l_pair_id: string | null
+          l2l_suffix: string | null
+          lat_a: number | null
+          lat_b: number | null
+          lng_a: number | null
+          lng_b: number | null
+          processing_status: string
+          raw_data: Json
+          result_notes: string | null
+          result_provider: string | null
+          result_stage: string | null
+          result_value: number | null
+          row_number: number
+          tipo_link: string | null
+          uf_a: string | null
+          uf_b: string | null
+          velocidade_mbps: number | null
+          velocidade_original: string | null
+        }
+        Insert: {
+          batch_id: string
+          cidade_a?: string | null
+          cidade_b?: string | null
+          cliente?: string | null
+          created_at?: string
+          designacao?: string | null
+          endereco_a?: string | null
+          endereco_b?: string | null
+          id?: string
+          is_l2l?: boolean
+          is_viable?: boolean | null
+          l2l_pair_id?: string | null
+          l2l_suffix?: string | null
+          lat_a?: number | null
+          lat_b?: number | null
+          lng_a?: number | null
+          lng_b?: number | null
+          processing_status?: string
+          raw_data?: Json
+          result_notes?: string | null
+          result_provider?: string | null
+          result_stage?: string | null
+          result_value?: number | null
+          row_number: number
+          tipo_link?: string | null
+          uf_a?: string | null
+          uf_b?: string | null
+          velocidade_mbps?: number | null
+          velocidade_original?: string | null
+        }
+        Update: {
+          batch_id?: string
+          cidade_a?: string | null
+          cidade_b?: string | null
+          cliente?: string | null
+          created_at?: string
+          designacao?: string | null
+          endereco_a?: string | null
+          endereco_b?: string | null
+          id?: string
+          is_l2l?: boolean
+          is_viable?: boolean | null
+          l2l_pair_id?: string | null
+          l2l_suffix?: string | null
+          lat_a?: number | null
+          lat_b?: number | null
+          lng_a?: number | null
+          lng_b?: number | null
+          processing_status?: string
+          raw_data?: Json
+          result_notes?: string | null
+          result_provider?: string | null
+          result_stage?: string | null
+          result_value?: number | null
+          row_number?: number
+          tipo_link?: string | null
+          uf_a?: string | null
+          uf_b?: string | null
+          velocidade_mbps?: number | null
+          velocidade_original?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ws_feasibility_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "ws_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
