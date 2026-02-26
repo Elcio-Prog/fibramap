@@ -8,12 +8,15 @@ import {
   geocodeAddress,
   findNearestPoint,
   findBestTA,
+  findBestConnectionPoint,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
   haversineDistance,
   closedLineToPolygon,
+  routeCrossesCPFL,
   type TAResult,
+  type ProviderRules,
 } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
@@ -65,6 +68,8 @@ interface FeasibilityResult {
   isOwnNetwork?: boolean;
   hasCrossNtt?: boolean;
   taResult?: TAResult;
+  cpflBlocked?: boolean;
+  cpflMessage?: string;
 }
 
 export default function FeasibilityPage() {
@@ -244,7 +249,18 @@ export default function FeasibilityPage() {
         const maxDist = provider.max_lpu_distance_m;
 
         if (isNetTurbo) {
-          // Net Turbo: own network - check coverage polygon first, then use TA logic
+          // Net Turbo: own network - extract rules from provider
+          const rules: ProviderRules = {
+            regras_usar_porta_disponivel: (provider as any).regras_usar_porta_disponivel ?? true,
+            regras_considerar_ta: (provider as any).regras_considerar_ta ?? true,
+            regras_considerar_ce: (provider as any).regras_considerar_ce ?? false,
+            regras_bloquear_splitter_1x2: (provider as any).regras_bloquear_splitter_1x2 ?? true,
+            regras_bloquear_splitter_des: (provider as any).regras_bloquear_splitter_des ?? true,
+            regras_bloquear_portas_livres_zero: (provider as any).regras_bloquear_portas_livres_zero ?? true,
+            regras_bloquear_atendimento_nao_sim: (provider as any).regras_bloquear_atendimento_nao_sim ?? true,
+            regras_habilitar_exclusao_cpfl: (provider as any).regras_habilitar_exclusao_cpfl ?? true,
+          };
+
           const insideNT = providerElements.length > 0 && isInsideCoverage(geo.lat, geo.lng, providerElements);
 
           let distance = 0;
@@ -252,40 +268,42 @@ export default function FeasibilityPage() {
           let nearestPt: [number, number] | undefined = undefined;
           let isViableNT = false;
           let taResult: TAResult | undefined = undefined;
+          let cpflBlocked = false;
+          let cpflMessage: string | undefined = undefined;
+
+          const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
           if (insideNT) {
-            // Inside coverage polygon - still find nearest TA for info
-            const ta = findBestTA(
-              geo.lat, geo.lng,
-              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
-              maxDist,
-              (provider as any).use_saturated_ta ?? false
-            );
-            if (ta) {
-              taResult = ta;
-              nearestPt = ta.point;
+            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, rules);
+            if (cp) {
+              taResult = cp;
+              nearestPt = cp.point;
             }
             distance = 0;
             isViableNT = true;
           } else {
-            // Outside polygon - use TA-based logic
-            const ta = findBestTA(
-              geo.lat, geo.lng,
-              providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })),
-              maxDist,
-              (provider as any).use_saturated_ta ?? false
-            );
+            // Outside polygon - use connection point logic
+            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, rules);
 
-            if (ta) {
-              taResult = ta;
-              nearestPt = ta.point;
+            if (cp) {
+              taResult = cp;
+              nearestPt = cp.point;
 
-              // Get route via streets (mandatory - no straight fallback)
               try {
-                const route = await getRouteDistance(geo.lat, geo.lng, ta.point[0], ta.point[1]);
+                const route = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
                 if (route?.geometry) {
                   distance = route.distance;
                   routeGeometry = route.geometry;
+
+                  // CPFL exclusion check
+                  if (rules.regras_habilitar_exclusao_cpfl) {
+                    const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                    if (cpflCheck.crosses) {
+                      cpflBlocked = true;
+                      cpflMessage = cpflCheck.message;
+                      isViableNT = false;
+                    }
+                  }
                 } else {
                   continue;
                 }
@@ -293,13 +311,12 @@ export default function FeasibilityPage() {
                 continue;
               }
 
-              isViableNT = distance <= maxDist;
+              if (!cpflBlocked) {
+                isViableNT = distance <= maxDist;
+              }
             } else {
-              // No TAs found - fallback to nearest point, still requiring street route
-              const nearest = findNearestPoint(
-                geo.lat, geo.lng,
-                providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }))
-              );
+              // No connection points found - fallback to nearest point
+              const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
               if (!nearest) continue;
               nearestPt = nearest.point;
               try {
@@ -318,7 +335,7 @@ export default function FeasibilityPage() {
           }
 
           const taNote = taResult
-            ? `TA: ${taResult.nome} | Porta: ${taResult.portaDisponivel ? "Disponível" : "Saturado"} | ${taResult.motivo === "mais_proximo" ? "TA mais próximo" : taResult.motivo === "verde_mais_proximo" ? "TA verde mais próximo" : "Fallback saturado"}`
+            ? `${taResult.tipo}: ${taResult.nome} | ${taResult.aptoNovoCliente ? "Apto" : "Não apto"} | ${taResult.motivoBloqueio || taResult.motivo}`
             : "";
 
           const result: FeasibilityResult = {
@@ -333,12 +350,14 @@ export default function FeasibilityPage() {
             lpuType: "Rede Própria",
             multiplier: 1,
             finalValue: 0,
-            status: insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
+            status: cpflBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id,
             routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt,
             isOwnNetwork: true,
             taResult,
+            cpflBlocked,
+            cpflMessage,
           };
           newResults.push(result);
 
@@ -352,12 +371,14 @@ export default function FeasibilityPage() {
             lpu_value: 0,
             multiplier: 1,
             final_value: 0,
-            is_viable: isViableNT,
-            notes: insideNT
-              ? `Rede própria - Dentro da cobertura. ${taNote}`
-              : isViableNT
-                ? `Rede própria - Viável. ${taNote}`
-                : `Rede própria - Não atende. ${taNote}`,
+            is_viable: cpflBlocked ? false : isViableNT,
+            notes: cpflBlocked
+              ? cpflMessage
+              : insideNT
+                ? `Rede própria - Dentro da cobertura. ${taNote}`
+                : isViableNT
+                  ? `Rede própria - Viável. ${taNote}`
+                  : `Rede própria - Não atende. ${taNote}`,
           });
 
           // If Net Turbo is viable, we still continue to show other providers for comparison
@@ -747,23 +768,25 @@ function ResultCard({
             const taAvailable = props.porta_disponivel === true;
             const taColor = taAvailable ? "#22c55e" : "#1a1a1a";
             L.circleMarker(pointLatLng, {
-              radius: 4,
-              fillColor: taColor,
-              color: "#fff",
-              weight: 1.5,
-              fillOpacity: 0.95,
+              radius: 4, fillColor: taColor, color: "#fff", weight: 1.5, fillOpacity: 0.95,
             }).addTo(map).bindTooltip(`<b>${nome}</b><br/>${taAvailable ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
+            bounds.extend(pointLatLng);
+          } else if (tipo === "CE") {
+            L.circleMarker(pointLatLng, {
+              radius: 3, fillColor: "#f59e0b", color: "#fff", weight: 1, fillOpacity: 0.85,
+            }).addTo(map).bindTooltip(`<b>${nome}</b><br/>CE${props.tem_splitter ? ` | ${props.splitter_portas_livres ?? '?'} portas livres` : ''}`, { sticky: true, direction: "top", opacity: 0.95 });
             bounds.extend(pointLatLng);
           }
         } else {
+          const isCPFL = props.tipo === "EXCLUSAO_CPFL";
           const layer = L.geoJSON(
             { type: "Feature", geometry: geo, properties: props } as any,
             {
               style: () => {
-                const color = props.stroke || r.providerColor;
-                const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
-                const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
-                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
+                const color = isCPFL ? "#ef4444" : (props.stroke || r.providerColor);
+                const weight = isCPFL ? 2 : (isConvertedPolygon ? 2 : (props["stroke-width"] || 3));
+                const fillOpacity = isCPFL ? 0.3 : ((geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2);
+                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity, dashArray: isCPFL ? "8 4" : undefined };
               },
             }
           ).addTo(map);
@@ -794,8 +817,8 @@ function ResultCard({
     }
 
     if (r.nearestPoint) {
-      const taLabel = r.taResult ? `<b>${r.taResult.nome}</b><br/>${r.taResult.portaDisponivel ? "🟢 Porta disponível" : "⚫ Saturado"}` : `<b>Rede ${r.providerName}</b>`;
-      const taColor = r.taResult ? (r.taResult.portaDisponivel ? "#22c55e" : "#1a1a1a") : r.providerColor;
+      const taLabel = r.taResult ? `<b>${r.taResult.tipo}: ${r.taResult.nome}</b><br/>${r.taResult.aptoNovoCliente ? "✅ Apto" : "⚠️ Não apto"}${r.taResult.motivoBloqueio ? `<br/><small>${r.taResult.motivoBloqueio}</small>` : ""}` : `<b>Rede ${r.providerName}</b>`;
+      const taColor = r.taResult ? (r.taResult.aptoNovoCliente ? "#22c55e" : "#f59e0b") : r.providerColor;
       L.circleMarker(r.nearestPoint, {
         radius: 5, fillColor: taColor, color: "#fff", weight: 1.5, fillOpacity: 0.9,
       }).addTo(map).bindPopup(taLabel);
@@ -829,6 +852,9 @@ function ResultCard({
 
   // Badge config
   const getBadgeConfig = () => {
+    if (r.cpflBlocked) {
+      return { label: "BLOQUEADO - CPFL", variant: "destructive" as const, icon: Ban, color: "text-red-600" };
+    }
     if (r.isOwnNetwork && r.status === "outside_viable") {
       return { label: "REDE PRÓPRIA - VIÁVEL", variant: "secondary" as const, icon: CheckCircle, color: "text-blue-600" };
     }
@@ -870,19 +896,31 @@ function ResultCard({
           <div ref={mapContainerRef} style={{ width: "100%", height: "200px" }} className="rounded-lg overflow-hidden border" />
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-              {r.isOwnNetwork && r.taResult && (
+              {/* CPFL block takes priority */}
+              {r.cpflBlocked && (
+                <p className="col-span-2 text-sm font-bold text-destructive bg-destructive/10 p-3 rounded">
+                  🚫 {r.cpflMessage}
+                </p>
+              )}
+              {r.isOwnNetwork && r.taResult && !r.cpflBlocked && (
                 <>
                   <p className="col-span-2">
-                    <span className="text-muted-foreground">TA destino:</span>{" "}
+                    <span className="text-muted-foreground">{r.taResult.tipo} destino:</span>{" "}
                     <strong>{r.taResult.nome}</strong>
-                    <Badge variant={r.taResult.portaDisponivel ? "default" : "destructive"} className="ml-2 text-xs">
-                      {r.taResult.portaDisponivel ? "Porta disponível" : "Saturado"}
+                    <Badge variant={r.taResult.aptoNovoCliente ? "default" : "destructive"} className="ml-2 text-xs">
+                      {r.taResult.aptoNovoCliente ? "Apto para ativação" : "Não apto"}
                     </Badge>
                   </p>
+                  {r.taResult.motivoBloqueio && (
+                    <p className="col-span-2 text-xs text-muted-foreground">
+                      ⚠️ {r.taResult.motivoBloqueio}
+                    </p>
+                  )}
                   <p className="col-span-2 text-xs text-muted-foreground">
-                    {r.taResult.motivo === "mais_proximo" && "📍 TA mais próximo com porta disponível"}
-                    {r.taResult.motivo === "verde_mais_proximo" && "🟢 TA verde mais próximo (o mais perto estava saturado)"}
-                    {r.taResult.motivo === "fallback_saturado" && "⚠️ Nenhum TA com porta disponível no raio — usando TA mais próximo (saturado)"}
+                    {r.taResult.motivo === "mais_proximo" && `📍 ${r.taResult.tipo} mais próximo apto`}
+                    {r.taResult.motivo === "verde_mais_proximo" && `🟢 ${r.taResult.tipo} verde mais próximo (o mais perto estava saturado)`}
+                    {r.taResult.motivo === "fallback_saturado" && `⚠️ Nenhum ${r.taResult.tipo} com porta disponível no raio — usando o mais próximo (saturado)`}
+                    {r.taResult.motivo === "sem_apto" && "⚠️ Nenhum ponto apto pelas regras atuais — usando o mais próximo para referência"}
                   </p>
                   {r.taResult.mensagem && (
                     <p className="col-span-2 text-sm font-medium text-destructive bg-destructive/10 p-2 rounded">

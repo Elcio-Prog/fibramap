@@ -90,10 +90,11 @@ export default function MapPage() {
             { type: "Feature", geometry: geo, properties: props } as any,
             {
               style: () => {
-                const color = props.stroke || providerColor;
-                const weight = isConvertedPolygon ? 2 : (props["stroke-width"] || 3);
-                const fillOpacity = (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2;
-                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity };
+                const isCPFL = props.tipo === "EXCLUSAO_CPFL";
+                const color = isCPFL ? "#ef4444" : (props.stroke || providerColor);
+                const weight = isCPFL ? 2 : (isConvertedPolygon ? 2 : (props["stroke-width"] || 3));
+                const fillOpacity = isCPFL ? 0.3 : ((geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.25 : 0.2);
+                return { color, weight, opacity: 0.8, fillColor: color, fillOpacity, dashArray: isCPFL ? "8 4" : undefined };
               },
               pointToLayer: (_f, latlng) => {
                 const fp = (_f.properties as any) || {};
@@ -107,9 +108,13 @@ export default function MapPage() {
                   }).bindTooltip(`<b>${label}</b><br/>${isGreen ? "🟢 Porta disponível" : "⚫ Saturado"}`, { sticky: true, direction: "top", opacity: 0.95 });
                 }
                 if (fp.tipo === "CE") {
+                  const label = fp.nome || "CE";
                   return L.circleMarker(latlng, {
                     radius: 3, fillColor: "#f59e0b", color: "#fff", weight: 1, fillOpacity: 0.85,
-                  }).bindTooltip(`<b>${fp.nome || "CE"}</b><br/>Caixa de Emenda`, { sticky: true, direction: "top", opacity: 0.95 });
+                  }).bindTooltip(`<b>${label}</b><br/>Caixa de Emenda${fp.tem_splitter ? `<br/>Splitter: ${fp.splitter_portas_livres ?? '?'} portas livres` : ''}`, { sticky: true, direction: "top", opacity: 0.95 });
+                }
+                if (fp.tipo === "EXCLUSAO_CPFL") {
+                  // CPFL exclusion polygons are handled as regular polygons below with special styling
                 }
                 const pColor = fp.stroke || providerColor;
                 return L.circleMarker(latlng, { radius: 3, fillColor: pColor, color: "#fff", weight: 1.5, fillOpacity: 0.9 });
