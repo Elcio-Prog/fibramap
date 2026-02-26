@@ -1,11 +1,12 @@
 import { ReactNode, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database } from "lucide-react";
+import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const links = [
+const baseLinks = [
   { to: "/", label: "Mapa", icon: Map },
   { to: "/providers", label: "Provedores", icon: Building2 },
   { to: "/feasibility", label: "Viabilidade", icon: Calculator },
@@ -15,7 +16,13 @@ const links = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { signOut, user } = useAuth();
+  const { isAdmin } = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const links = [
+    ...baseLinks,
+    ...(isAdmin ? [{ to: "/ws-users", label: "Usuários WS", icon: Users }] : []),
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden">

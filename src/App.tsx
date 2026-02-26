@@ -4,21 +4,27 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
+import WsLayout from "@/components/WsLayout";
 import Auth from "@/pages/Auth";
+import WsAuth from "@/pages/WsAuth";
 import MapPage from "@/pages/MapPage";
 import ProvidersPage from "@/pages/ProvidersPage";
 import FeasibilityPage from "@/pages/FeasibilityPage";
 import HistoryPage from "@/pages/HistoryPage";
 import BaseLMPage from "@/pages/BaseLMPage";
+import WsUsersPage from "@/pages/WsUsersPage";
+import WsDashboard from "@/pages/WsDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { session, loading } = useAuth();
+  const { isAdmin, isWsUser, isLoading: roleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -28,6 +34,9 @@ function ProtectedRoutes() {
 
   if (!session) return <Navigate to="/auth" replace />;
 
+  // ws_user without admin role → redirect to WS area
+  if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
+
   return (
     <AppLayout>
       <Routes>
@@ -36,9 +45,37 @@ function ProtectedRoutes() {
         <Route path="/feasibility" element={<FeasibilityPage />} />
         <Route path="/base-lm" element={<BaseLMPage />} />
         <Route path="/history" element={<HistoryPage />} />
+        <Route path="/ws-users" element={isAdmin ? <WsUsersPage /> : <Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
+  );
+}
+
+function WsRoutes() {
+  const { session, loading } = useAuth();
+  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+
+  if (loading || roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) return <Navigate to="/ws/login" replace />;
+
+  // Admin accessing /ws → let them through too
+  if (!isWsUser && !isAdmin) return <Navigate to="/" replace />;
+
+  return (
+    <WsLayout>
+      <Routes>
+        <Route path="/" element={<WsDashboard />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </WsLayout>
   );
 }
 
@@ -47,6 +84,15 @@ function AuthRoute() {
   if (loading) return null;
   if (session) return <Navigate to="/" replace />;
   return <Auth />;
+}
+
+function WsAuthRoute() {
+  const { session, loading } = useAuth();
+  const { isWsUser, isLoading: roleLoading } = useUserRole();
+  if (loading) return null;
+  if (session && !roleLoading && isWsUser) return <Navigate to="/ws" replace />;
+  if (session) return <Navigate to="/" replace />;
+  return <WsAuth />;
 }
 
 const App = () => (
@@ -58,6 +104,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
+            <Route path="/ws/login" element={<WsAuthRoute />} />
+            <Route path="/ws/*" element={<WsRoutes />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </BrowserRouter>
