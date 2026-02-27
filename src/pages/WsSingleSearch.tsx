@@ -520,11 +520,28 @@ export default function WsSingleSearch() {
 
     // Draw routes from options
     for (const opt of options) {
-      if (opt.route_geometry && opt.nearest_point) {
+      if (opt.nearest_point) {
         const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
-        L.geoJSON(opt.route_geometry, { style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }) }).addTo(layerGroup);
-        L.circleMarker(opt.nearest_point, { radius: 5, fillColor: routeColor, color: "#fff", weight: 1.5, fillOpacity: 0.9 })
-          .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m`);
+        // Draw route line if geometry exists
+        if (opt.route_geometry) {
+          try {
+            const geojsonData = opt.route_geometry.type === "Feature" || opt.route_geometry.type === "FeatureCollection"
+              ? opt.route_geometry
+              : { type: "Feature", geometry: opt.route_geometry, properties: {} };
+            L.geoJSON(geojsonData, {
+              style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
+            }).addTo(layerGroup);
+          } catch {}
+        } else {
+          // No route geometry, draw straight line
+          L.polyline(
+            [[geoResult.lat, geoResult.lng], opt.nearest_point],
+            { color: routeColor, weight: 3, opacity: 0.6, dashArray: "6 4" }
+          ).addTo(layerGroup);
+        }
+        // Connection point marker
+        L.circleMarker(opt.nearest_point, { radius: 6, fillColor: routeColor, color: "#fff", weight: 2, fillOpacity: 0.9 })
+          .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m<br/>${opt.ta_info || ""}`);
         bounds.extend(L.latLng(opt.nearest_point[0], opt.nearest_point[1]));
       }
     }
@@ -550,8 +567,9 @@ export default function WsSingleSearch() {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
 
-    setTimeout(() => map.invalidateSize(), 200);
-    setTimeout(() => map.invalidateSize(), 500);
+    setTimeout(() => map.invalidateSize(), 100);
+    setTimeout(() => map.invalidateSize(), 300);
+    setTimeout(() => map.invalidateSize(), 600);
   }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
 
   useEffect(() => {
