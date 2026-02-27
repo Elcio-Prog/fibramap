@@ -375,50 +375,58 @@ export default function WsSingleSearch() {
 
   const exportToExcel = () => {
     if (!geoResult || (options.length === 0 && (!radiusResults || radiusResults.length === 0))) return;
-    const rows: Record<string, any>[] = [];
 
-    // Options sheet
-    for (const o of options) {
-      rows.push({
-        "Designação": designacao || "",
-        "Cliente": cliente || "",
-        "Tipo Link": tipoLink || "",
-        "Vel. (Mbps)": velocidade || "",
-        "Endereço": geoResult.display,
-        "Lat": geoResult.lat,
-        "Lng": geoResult.lng,
-        "Etapa": o.stage,
-        "Provedor": o.provider_name,
-        "Distância (m)": o.distance_m,
-        "Valor LPU": o.lpu_value ?? "",
-        "Valor Final": o.final_value ?? "",
-        "TA/CE": o.ta_info || "",
-        "Observações": o.notes,
-      });
+    // Determine max LM results to create columns
+    const maxLM = radiusResults?.length || 0;
+
+    // Build a single row with all viability options as columns + LM radius as columns
+    const row: Record<string, any> = {
+      "Designação": designacao || "",
+      "Cliente": cliente || "",
+      "Tipo Link": tipoLink || "",
+      "Vel. (Mbps)": velocidade || "",
+      "Endereço": geoResult.display,
+      "Lat": geoResult.lat,
+      "Lng": geoResult.lng,
+    };
+
+    // Add viability options as columns
+    for (let i = 0; i < options.length; i++) {
+      const o = options[i];
+      const prefix = `Opção ${i + 1}`;
+      row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.stage;
+      row[`${prefix} - Provedor`] = o.provider_name;
+      row[`${prefix} - Distância (m)`] = o.distance_m;
+      row[`${prefix} - Valor LPU`] = o.lpu_value ?? "";
+      row[`${prefix} - Valor Final`] = o.final_value ?? "";
+      row[`${prefix} - TA/CE`] = o.ta_info || "";
+      row[`${prefix} - Obs`] = o.notes;
+    }
+
+    // Viability summary
+    const nonBlocked = options.filter(o => !o.is_blocked);
+    row["Viável"] = nonBlocked.length > 0 ? "SIM" : "NÃO";
+
+    // Add LM radius results as columns on the same row
+    if (radiusResults && radiusResults.length > 0) {
+      for (let i = 0; i < radiusResults.length; i++) {
+        const r = radiusResults[i];
+        const prefix = `LM ${i + 1}`;
+        const distLabel = r.distanceM >= 1000 ? `${(r.distanceM / 1000).toFixed(1)} km` : `${r.distanceM.toFixed(0)} m`;
+        row[`${prefix} - Parceiro`] = r.compra.parceiro;
+        row[`${prefix} - Cliente`] = r.compra.cliente || "";
+        row[`${prefix} - Endereço`] = r.compra.endereco;
+        row[`${prefix} - Valor Mensal`] = r.compra.valor_mensal;
+        row[`${prefix} - Banda (Mbps)`] = r.compra.banda_mbps ?? "";
+        row[`${prefix} - Status`] = r.compra.status;
+        row[`${prefix} - Distância`] = distLabel;
+      }
     }
 
     const wb = XLSX.utils.book_new();
-    const ws1 = XLSX.utils.json_to_sheet(rows);
-    ws1["!cols"] = Object.keys(rows[0] || {}).map(key => ({ wch: Math.max(key.length, 15) }));
+    const ws1 = XLSX.utils.json_to_sheet([row]);
+    ws1["!cols"] = Object.keys(row).map(key => ({ wch: Math.max(key.length + 2, 15) }));
     XLSX.utils.book_append_sheet(wb, ws1, "Viabilidade");
-
-    // Radius sheet
-    if (radiusResults && radiusResults.length > 0) {
-      const radiusRows = radiusResults.map(r => ({
-        "Parceiro": r.compra.parceiro,
-        "Cliente": r.compra.cliente || "",
-        "Endereço": r.compra.endereco,
-        "Cidade": r.compra.cidade || "",
-        "UF": r.compra.uf || "",
-        "Valor Mensal": r.compra.valor_mensal,
-        "Banda (Mbps)": r.compra.banda_mbps ?? "",
-        "Status": r.compra.status,
-        "Distância (m)": Math.round(r.distanceM),
-      }));
-      const ws2 = XLSX.utils.json_to_sheet(radiusRows);
-      ws2["!cols"] = Object.keys(radiusRows[0] || {}).map(key => ({ wch: Math.max(key.length, 12) }));
-      XLSX.utils.book_append_sheet(wb, ws2, "Base LM Raio");
-    }
 
     XLSX.writeFile(wb, `ws_busca_${designacao || "single"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };

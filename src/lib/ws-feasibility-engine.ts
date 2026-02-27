@@ -57,6 +57,8 @@ export interface ViableOption {
   nearest_point?: [number, number];
   is_own_network?: boolean;
   has_cross_ntt?: boolean;
+  /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
+  is_blocked?: boolean;
 }
 
 export interface WsResult {
@@ -259,6 +261,7 @@ async function processItem(
               final_value: null,
               notes: `Rede própria próxima, mas bloqueada por regra técnica: ${lastBlockedMsg}`,
               is_own_network: true,
+              is_blocked: true,
             });
           }
         } catch (err) {
@@ -376,14 +379,21 @@ async function processItem(
       "LPU Viável": 3,
       "LM Histórico": 4,
     };
-    const sorted = [...allOptions].sort((a, b) =>
-      (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m
-    );
-    const best = sorted[0];
+    const sorted = [...allOptions].sort((a, b) => {
+      // Blocked options go last
+      if (a.is_blocked && !b.is_blocked) return 1;
+      if (!a.is_blocked && b.is_blocked) return -1;
+      return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m;
+    });
+    
+    // Best is first non-blocked option
+    const bestNonBlocked = sorted.find(o => !o.is_blocked);
+    const best = bestNonBlocked || sorted[0];
+    const isViable = !!bestNonBlocked;
 
     // Build notes with all options summary
     const optionsSummary = allOptions.length > 1
-      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}`).join(", ")}]`
+      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : ""}`).join(", ")}]`
       : "";
 
     return {
@@ -393,8 +403,8 @@ async function processItem(
         distance_m: best.distance_m,
         lpu_value: best.lpu_value,
         final_value: best.final_value,
-        is_viable: true,
-        notes: best.notes + optionsSummary,
+        is_viable: isViable,
+        notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.notes) + optionsSummary,
         ta_info: best.ta_info,
       },
       all_options: sorted,

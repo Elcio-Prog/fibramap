@@ -274,14 +274,12 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const exportToExcel = () => {
     if (!results) return;
 
+    // Find max number of options across all results
+    const maxOptions = results.reduce((max, r) => Math.max(max, r.all_options.length), 0);
+
     const rows: Record<string, any>[] = [];
     for (const r of results) {
-      // Build all options columns dynamically
-      const optionsText = r.all_options.length > 0
-        ? r.all_options.map((o, i) => `${i + 1}) ${o.stage} - ${o.provider_name} - ${o.distance_m}m${o.final_value != null ? ` - R$${o.final_value}` : ""}${o.ta_info ? ` [${o.ta_info}]` : ""}`).join(" | ")
-        : "";
-
-      rows.push({
+      const row: Record<string, any> = {
         "Linha": r.item.row_number,
         "Designação": r.item.designacao || "",
         "Cliente": r.item.cliente || "",
@@ -301,16 +299,40 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         "Prazo Ativação": r.item.prazo_ativacao || "",
         "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
         "Viável": r.is_viable ? "SIM" : "NÃO",
-        "Qtd Opções": r.all_options.length,
+        "Qtd Opções": r.all_options.filter(o => !o.is_blocked).length,
         "Melhor Etapa": r.stage || "—",
         "Melhor Provedor": r.provider_name || "—",
         "Distância (m)": r.distance_m ?? "",
         "Valor LPU": r.lpu_value ?? "",
         "Valor Final": r.final_value ?? "",
         "TA/CE": r.ta_info || "",
-        "Todas as Opções": optionsText,
         "Observações": r.notes,
-      });
+      };
+
+      // Add each option as separate columns
+      for (let i = 0; i < maxOptions; i++) {
+        const o = r.all_options[i];
+        const prefix = `Opção ${i + 1}`;
+        if (o) {
+          row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.stage;
+          row[`${prefix} - Provedor`] = o.provider_name;
+          row[`${prefix} - Distância (m)`] = o.distance_m;
+          row[`${prefix} - Valor LPU`] = o.lpu_value ?? "";
+          row[`${prefix} - Valor Final`] = o.final_value ?? "";
+          row[`${prefix} - TA/CE`] = o.ta_info || "";
+          row[`${prefix} - Obs`] = o.notes;
+        } else {
+          row[`${prefix} - Etapa`] = "";
+          row[`${prefix} - Provedor`] = "";
+          row[`${prefix} - Distância (m)`] = "";
+          row[`${prefix} - Valor LPU`] = "";
+          row[`${prefix} - Valor Final`] = "";
+          row[`${prefix} - TA/CE`] = "";
+          row[`${prefix} - Obs`] = "";
+        }
+      }
+
+      rows.push(row);
     }
 
     const ws = XLSX.utils.json_to_sheet(rows);
