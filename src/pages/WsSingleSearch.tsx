@@ -350,8 +350,15 @@ export default function WsSingleSearch() {
       }
     }
 
+    // Extend bounds to include radius circle
+    const radiusM = radius * 1000;
+    const latOffset = radiusM / 111320;
+    const lngOffset = radiusM / (111320 * Math.cos(geoResult.lat * Math.PI / 180));
+    bounds.extend(L.latLng(geoResult.lat + latOffset, geoResult.lng + lngOffset));
+    bounds.extend(L.latLng(geoResult.lat - latOffset, geoResult.lng - lngOffset));
+
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      map.fitBounds(bounds, { padding: [40, 40] });
     }
 
     setTimeout(() => map.invalidateSize(), 100);
@@ -367,7 +374,7 @@ export default function WsSingleSearch() {
   }, []);
 
   const exportToExcel = () => {
-    if (options.length === 0 || !geoResult) return;
+    if (!geoResult || (options.length === 0 && (!radiusResults || radiusResults.length === 0))) return;
     const rows: Record<string, any>[] = [];
 
     // Options sheet
@@ -566,11 +573,27 @@ export default function WsSingleSearch() {
         </Card>
       )}
 
+      {/* Export button when no viability options but radius results exist */}
+      {options.length === 0 && radiusResults && radiusResults.length > 0 && geoResult && (
+        <div className="flex justify-end">
+          <Button size="sm" className="gap-2" onClick={exportToExcel}>
+            <Download className="h-4 w-4" /> Exportar Excel
+          </Button>
+        </div>
+      )}
+
       {/* Radius LM results */}
       {radiusResults && radiusResults.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Base LM no Raio ({radiusResults.length} conexões, {Object.keys(radiusPartners).length} parceiros)</CardTitle>
+            <CardTitle className="text-base flex items-center justify-between">
+              <span>Base LM no Raio ({radiusResults.length} conexões, {Object.keys(radiusPartners).length} parceiros)</span>
+              {options.length > 0 && (
+                <Button size="sm" variant="outline" className="gap-2" onClick={exportToExcel}>
+                  <Download className="h-4 w-4" /> Excel Completo
+                </Button>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2 mb-3">
