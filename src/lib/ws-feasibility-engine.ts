@@ -17,6 +17,7 @@ import {
   type TAResult,
   type ProviderRules,
 } from "@/lib/geo-utils";
+import { fetchCep } from "@/lib/cep-utils";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WsItemInput {
@@ -28,11 +29,15 @@ export interface WsItemInput {
   endereco_a?: string | null;
   cidade_a?: string | null;
   uf_a?: string | null;
+  cep_a?: string | null;
+  numero_a?: string | null;
   lat_a?: number | null;
   lng_a?: number | null;
   endereco_b?: string | null;
   cidade_b?: string | null;
   uf_b?: string | null;
+  cep_b?: string | null;
+  numero_b?: string | null;
   lat_b?: number | null;
   lng_b?: number | null;
   prazo_ativacao?: string | null;
@@ -65,7 +70,7 @@ export interface WsResult {
   item: WsItemInput;
   geo_lat: number | null;
   geo_lng: number | null;
-  geo_source: "coordenada" | "endereco" | "nao_encontrado";
+  geo_source: "coordenada" | "cep" | "endereco" | "nao_encontrado";
   // Best result
   stage: string | null;
   provider_name: string | null;
@@ -132,12 +137,34 @@ export interface ProcessingProgress {
 async function resolveGeo(item: WsItemInput): Promise<{
   lat: number | null;
   lng: number | null;
-  source: "coordenada" | "endereco" | "nao_encontrado";
+  source: "coordenada" | "cep" | "endereco" | "nao_encontrado";
 }> {
+  // 1) Coordenadas fornecidas na planilha
   if (item.lat_a != null && item.lng_a != null) {
     return { lat: item.lat_a, lng: item.lng_a, source: "coordenada" };
   }
 
+  // 2) CEP + Número (via ViaCEP → Nominatim)
+  if (item.cep_a) {
+    try {
+      const cepData = await fetchCep(item.cep_a);
+      if (cepData) {
+        // Build address from CEP data + optional number
+        const parts = [cepData.logradouro];
+        if (item.numero_a) parts.push(item.numero_a);
+        parts.push(cepData.bairro, cepData.localidade, cepData.uf);
+        const cepAddress = parts.filter(Boolean).join(", ");
+        const result = await geocodeAddress(cepAddress);
+        if (result) {
+          return { lat: result.lat, lng: result.lng, source: "cep" };
+        }
+      }
+    } catch {
+      // fallback to address
+    }
+  }
+
+  // 3) Endereço completo
   if (item.endereco_a) {
     try {
       const result = await geocodeAddress(item.endereco_a);
@@ -518,7 +545,7 @@ export async function processWsBatch(
 
 export async function processWsSingleItem(
   item: WsItemInput,
-  geo: { lat: number | null; lng: number | null; source: "coordenada" | "endereco" | "nao_encontrado" },
+  geo: { lat: number | null; lng: number | null; source: "coordenada" | "cep" | "endereco" | "nao_encontrado" },
   providers: Provider[],
   geoElements: GeoElement[],
   lpuItems: LpuItem[],
@@ -536,7 +563,7 @@ export async function processWsSingleItem(
 /** Helper to process a single item with resolved geo */
 async function processSingleItem(
   item: WsItemInput,
-  geo: { lat: number | null; lng: number | null; source: "coordenada" | "endereco" | "nao_encontrado" },
+  geo: { lat: number | null; lng: number | null; source: "coordenada" | "cep" | "endereco" | "nao_encontrado" },
   providers: Provider[],
   elementsByProvider: Record<string, GeoElement[]>,
   lpuItems: LpuItem[],
