@@ -129,6 +129,72 @@ serve(async (req) => {
       });
     }
 
+    // ---- List users WITHOUT any role (pending) ----
+    if (action === "list_pending_users") {
+      // Get all auth users
+      const { data: { users: allUsers }, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 500 });
+      if (listErr) throw listErr;
+
+      // Get all user_ids that have roles
+      const { data: allRoles, error: rolesErr } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id");
+      if (rolesErr) throw rolesErr;
+
+      const assignedIds = new Set((allRoles || []).map((r: any) => r.user_id));
+
+      const pending = (allUsers || [])
+        .filter((u: any) => !assignedIds.has(u.id))
+        .map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          display_name: u.user_metadata?.display_name || u.email,
+          created_at: u.created_at,
+        }));
+
+      return new Response(JSON.stringify({ users: pending }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- Assign role to a user ----
+    if (action === "assign_role") {
+      const { user_id, role } = params;
+      const targetRole = role === "admin" ? "admin" : "ws_user";
+
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if user already has this role
+      const { data: existing } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("role", targetRole)
+        .single();
+
+      if (existing) {
+        return new Response(JSON.stringify({ error: "Usuário já possui este papel" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id, role: targetRole });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ---- Toggle user active/inactive ----
     if (action === "toggle_user") {
       const { user_id, is_active, role } = params;
