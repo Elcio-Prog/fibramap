@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2 } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-interface WsUser {
+interface ManagedUser {
   id: string;
   email: string;
   display_name: string;
@@ -29,7 +30,7 @@ function invokeManageUsers(action: string, params: Record<string, any> = {}) {
   });
 }
 
-export default function WsUsersPage() {
+function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; label: string; icon: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -40,11 +41,11 @@ export default function WsUsersPage() {
   const [resetPassword, setResetPassword] = useState("");
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ["ws-users"],
+    queryKey: ["managed-users", role],
     queryFn: async () => {
-      const { data, error } = await invokeManageUsers("list_users");
+      const { data, error } = await invokeManageUsers("list_users", { role });
       if (error) throw error;
-      return (data as any).users as WsUser[];
+      return (data as any).users as ManagedUser[];
     },
   });
 
@@ -54,14 +55,15 @@ export default function WsUsersPage() {
         email: newEmail,
         password: newPassword,
         display_name: newName || newEmail,
+        role,
       });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Usuário WS criado com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ["ws-users"] });
+      toast({ title: `Usuário ${label} criado com sucesso!` });
+      queryClient.invalidateQueries({ queryKey: ["managed-users", role] });
       setCreateOpen(false);
       setNewEmail("");
       setNewPassword("");
@@ -74,12 +76,12 @@ export default function WsUsersPage() {
 
   const toggleUser = useMutation({
     mutationFn: async ({ user_id, is_active }: { user_id: string; is_active: boolean }) => {
-      const { data, error } = await invokeManageUsers("toggle_user", { user_id, is_active });
+      const { data, error } = await invokeManageUsers("toggle_user", { user_id, is_active, role });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ws-users"] });
+      queryClient.invalidateQueries({ queryKey: ["managed-users", role] });
       toast({ title: "Status atualizado!" });
     },
     onError: (err: any) => {
@@ -104,18 +106,20 @@ export default function WsUsersPage() {
   });
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Usuários WS</h1>
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <Icon className="h-5 w-5" /> Usuários {label}
+        </h2>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <UserPlus className="h-4 w-4" /> Novo Usuário WS
+            <Button size="sm" className="gap-2">
+              <UserPlus className="h-4 w-4" /> Novo {label}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar Usuário WS</DialogTitle>
+              <DialogTitle>Criar Usuário {label}</DialogTitle>
             </DialogHeader>
             <form
               onSubmit={(e) => {
@@ -137,41 +141,41 @@ export default function WsUsersPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex justify-center py-6">
+          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : !users?.length ? (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
-            Nenhum usuário WS cadastrado.
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Nenhum usuário {label} cadastrado.
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {users.map((u) => (
             <Card key={u.id}>
-              <CardContent className="flex items-center justify-between py-4">
+              <CardContent className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium">{u.display_name}</p>
-                  <p className="text-sm text-muted-foreground">{u.email}</p>
+                  <p className="font-medium text-sm">{u.display_name}</p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={u.is_active ? "default" : "secondary"}>
+                  <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs">
                     {u.is_active ? "Ativo" : "Inativo"}
                   </Badge>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })}
-                    className="gap-1"
+                    className="gap-1 text-xs h-7"
                   >
-                    {u.is_active ? <ShieldOff className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                    {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
                     {u.is_active ? "Desativar" : "Ativar"}
                   </Button>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <KeyRound className="h-3.5 w-3.5" /> Resetar senha
+                      <Button variant="outline" size="sm" className="gap-1 text-xs h-7">
+                        <KeyRound className="h-3 w-3" /> Senha
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -199,6 +203,26 @@ export default function WsUsersPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+export default function WsUsersPage() {
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
+      <Tabs defaultValue="ws">
+        <TabsList>
+          <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS</TabsTrigger>
+          <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Administradores</TabsTrigger>
+        </TabsList>
+        <TabsContent value="ws" className="mt-4">
+          <UserList role="ws_user" label="WS" icon={Wifi} />
+        </TabsContent>
+        <TabsContent value="admin" className="mt-4">
+          <UserList role="admin" label="Admin" icon={Users} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

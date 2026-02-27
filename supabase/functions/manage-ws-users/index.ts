@@ -55,8 +55,11 @@ serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // ---- Create user (ws_user or admin) ----
     if (action === "create_user") {
-      const { email, password, display_name } = params;
+      const { email, password, display_name, role } = params;
+      const userRole = role === "admin" ? "admin" : "ws_user";
+
       if (!email || !password) {
         return new Response(JSON.stringify({ error: "Email e senha obrigatórios" }), {
           status: 400,
@@ -64,7 +67,6 @@ serve(async (req) => {
         });
       }
 
-      // Create user via admin API (auto-confirms email)
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
@@ -79,10 +81,9 @@ serve(async (req) => {
         });
       }
 
-      // Assign ws_user role
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
-        .insert({ user_id: newUser.user.id, role: "ws_user" });
+        .insert({ user_id: newUser.user.id, role: userRole });
 
       if (roleError) {
         return new Response(JSON.stringify({ error: roleError.message }), {
@@ -96,16 +97,17 @@ serve(async (req) => {
       });
     }
 
+    // ---- List users by role ----
     if (action === "list_users") {
+      const filterRole = params.role || "ws_user";
       const { data: roles, error } = await supabaseAdmin
         .from("user_roles")
         .select("user_id, role, is_active, created_at, updated_at")
-        .eq("role", "ws_user")
+        .eq("role", filterRole)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Get user details
       const userIds = [...new Set((roles || []).map((r: any) => r.user_id))];
       const users = [];
       for (const uid of userIds) {
@@ -127,13 +129,15 @@ serve(async (req) => {
       });
     }
 
+    // ---- Toggle user active/inactive ----
     if (action === "toggle_user") {
-      const { user_id, is_active } = params;
+      const { user_id, is_active, role } = params;
+      const targetRole = role || "ws_user";
       const { error } = await supabaseAdmin
         .from("user_roles")
         .update({ is_active })
         .eq("user_id", user_id)
-        .eq("role", "ws_user");
+        .eq("role", targetRole);
 
       if (error) throw error;
 
@@ -142,6 +146,7 @@ serve(async (req) => {
       });
     }
 
+    // ---- Reset password ----
     if (action === "reset_password") {
       const { user_id, new_password } = params;
       const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
