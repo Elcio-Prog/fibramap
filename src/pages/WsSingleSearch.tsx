@@ -266,7 +266,8 @@ export default function WsSingleSearch() {
                 ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
               });
             } else {
-              // Fallback igual à Viabilidade: ainda tenta o melhor TA/CE pelas regras
+              // Fallback igual à Viabilidade: ainda tenta o melhor TA/CE pelas regras,
+              // mas NUNCA usa distância em linha reta para viabilidade.
               const cp = findBestConnectionPoint(
                 geo.lat,
                 geo.lng,
@@ -276,45 +277,46 @@ export default function WsSingleSearch() {
               );
 
               if (cp) {
-                let routeDistance = Math.round(cp.distance);
+                let routeDistance: number | null = null;
                 let routeGeometry: any = null;
                 let blockedByRule = false;
 
                 try {
                   const route = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
-                  if (route) {
+                  if (route?.geometry) {
                     routeDistance = Math.round(route.distance);
                     routeGeometry = route.geometry;
 
-                    if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                    if (rules.regras_habilitar_exclusao_cpfl) {
                       const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
                       if (cpflCheck.crosses) blockedByRule = true;
                     }
-                    if (route.geometry) {
-                      const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
-                      if (hwCheck.blocked) blockedByRule = true;
-                    }
+
+                    const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                    if (hwCheck.blocked) blockedByRule = true;
                   }
                 } catch {}
 
-                allOpts.push({
-                  stage: "Rede Própria",
-                  provider_name: netTurboProvider.name,
-                  provider_color: netTurboProvider.color,
-                  distance_m: routeDistance,
-                  lpu_value: null,
-                  final_value: null,
-                  provider_id: netTurboProvider.id,
-                  is_own_network: true,
-                  route_geometry: routeGeometry,
-                  nearest_point: cp.point,
-                  notes: blockedByRule
-                    ? `Rede própria próxima, mas rota bloqueada por regra técnica`
-                    : routeDistance <= netTurboProvider.max_lpu_distance_m
-                      ? `Rede própria viável - ${routeDistance}m`
-                      : `Rede própria - ${routeDistance}m (acima do limite)`,
-                  ta_info: `${cp.tipo}: ${cp.nome}`,
-                });
+                if (routeDistance != null && routeGeometry) {
+                  allOpts.push({
+                    stage: "Rede Própria",
+                    provider_name: netTurboProvider.name,
+                    provider_color: netTurboProvider.color,
+                    distance_m: routeDistance,
+                    lpu_value: null,
+                    final_value: null,
+                    provider_id: netTurboProvider.id,
+                    is_own_network: true,
+                    route_geometry: routeGeometry,
+                    nearest_point: cp.point,
+                    notes: blockedByRule
+                      ? `Rede própria próxima, mas rota bloqueada por regra técnica`
+                      : routeDistance <= netTurboProvider.max_lpu_distance_m
+                        ? `Rede própria viável - ${routeDistance}m`
+                        : `Rede própria - ${routeDistance}m (acima do limite)`,
+                    ta_info: `${cp.tipo}: ${cp.nome}`,
+                  });
+                }
               }
             }
           }
@@ -353,12 +355,11 @@ export default function WsSingleSearch() {
           const nearestAny = findNearestPoint(geo.lat, geo.lng, elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
           const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
-          let distance = bestNearest.distance;
-          let routeGeometry: any = null;
-          try {
-            const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-            if (route) { distance = route.distance; routeGeometry = route.geometry; }
-          } catch {}
+          const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
+          if (!route?.geometry) continue;
+
+          const distance = route.distance;
+          const routeGeometry: any = route.geometry;
 
           if (distance <= maxDist) {
             allOpts.push({
@@ -522,7 +523,7 @@ export default function WsSingleSearch() {
     for (const opt of options) {
       if (opt.nearest_point) {
         const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
-        // Draw route line if geometry exists
+        // Draw route line only when we have real road geometry
         if (opt.route_geometry) {
           try {
             const geojsonData = opt.route_geometry.type === "Feature" || opt.route_geometry.type === "FeatureCollection"
@@ -532,12 +533,6 @@ export default function WsSingleSearch() {
               style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
             }).addTo(layerGroup);
           } catch {}
-        } else {
-          // No route geometry, draw straight line
-          L.polyline(
-            [[geoResult.lat, geoResult.lng], opt.nearest_point],
-            { color: routeColor, weight: 3, opacity: 0.6, dashArray: "6 4" }
-          ).addTo(layerGroup);
         }
         // Connection point marker
         L.circleMarker(opt.nearest_point, { radius: 6, fillColor: routeColor, color: "#fff", weight: 2, fillOpacity: 0.9 })
