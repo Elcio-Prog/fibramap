@@ -224,8 +224,9 @@ export default function WsSingleSearch() {
               ta_info: cp ? `${cp.tipo}: ${cp.nome}` : undefined,
             });
           } else {
+            let cpByRoute: Awaited<ReturnType<typeof findBestConnectionPointByRoute>> | null = null;
             try {
-              const cpByRoute = await findBestConnectionPointByRoute(
+              cpByRoute = await findBestConnectionPointByRoute(
                 geo.lat,
                 geo.lng,
                 elMapped,
@@ -244,27 +245,78 @@ export default function WsSingleSearch() {
                   return true;
                 }
               );
+            } catch {}
 
-              if (cpByRoute) {
-                const isViable = cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m;
+            if (cpByRoute) {
+              const isViable = cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m;
+              allOpts.push({
+                stage: "Rede Própria",
+                provider_name: netTurboProvider.name,
+                provider_color: netTurboProvider.color,
+                distance_m: Math.round(cpByRoute.routeDistance),
+                lpu_value: null,
+                final_value: null,
+                provider_id: netTurboProvider.id,
+                is_own_network: true,
+                route_geometry: cpByRoute.routeGeometry,
+                nearest_point: cpByRoute.taResult.point,
+                notes: isViable
+                  ? `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m`
+                  : `Rede própria - ${Math.round(cpByRoute.routeDistance)}m (acima do limite)`,
+                ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
+              });
+            } else {
+              // Fallback igual à Viabilidade: ainda tenta o melhor TA/CE pelas regras
+              const cp = findBestConnectionPoint(
+                geo.lat,
+                geo.lng,
+                elMapped,
+                netTurboProvider.max_lpu_distance_m,
+                rules
+              );
+
+              if (cp) {
+                let routeDistance = Math.round(cp.distance);
+                let routeGeometry: any = null;
+                let blockedByRule = false;
+
+                try {
+                  const route = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
+                  if (route) {
+                    routeDistance = Math.round(route.distance);
+                    routeGeometry = route.geometry;
+
+                    if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                      const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                      if (cpflCheck.crosses) blockedByRule = true;
+                    }
+                    if (route.geometry) {
+                      const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                      if (hwCheck.blocked) blockedByRule = true;
+                    }
+                  }
+                } catch {}
+
                 allOpts.push({
                   stage: "Rede Própria",
                   provider_name: netTurboProvider.name,
                   provider_color: netTurboProvider.color,
-                  distance_m: Math.round(cpByRoute.routeDistance),
+                  distance_m: routeDistance,
                   lpu_value: null,
                   final_value: null,
                   provider_id: netTurboProvider.id,
                   is_own_network: true,
-                  route_geometry: cpByRoute.routeGeometry,
-                  nearest_point: cpByRoute.taResult.point,
-                  notes: isViable
-                    ? `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m`
-                    : `Rede própria - ${Math.round(cpByRoute.routeDistance)}m (acima do limite)`,
-                  ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
+                  route_geometry: routeGeometry,
+                  nearest_point: cp.point,
+                  notes: blockedByRule
+                    ? `Rede própria próxima, mas rota bloqueada por regra técnica`
+                    : routeDistance <= netTurboProvider.max_lpu_distance_m
+                      ? `Rede própria viável - ${routeDistance}m`
+                      : `Rede própria - ${routeDistance}m (acima do limite)`,
+                  ta_info: `${cp.tipo}: ${cp.nome}`,
                 });
               }
-            } catch {}
+            }
           }
         }
       }
