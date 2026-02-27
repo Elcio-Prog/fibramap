@@ -24,7 +24,12 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Redirect is handled by the router based on role
+        // Store chosen view so redirect logic can use it
+        if (view === "ws") {
+          sessionStorage.setItem("login_view", "ws");
+        } else {
+          sessionStorage.removeItem("login_view");
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,

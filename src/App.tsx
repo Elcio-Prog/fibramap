@@ -48,6 +48,7 @@ function ProtectedRoutes() {
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/ws-users" element={isAdmin ? <WsUsersPage /> : <Navigate to="/" replace />} />
         <Route path="/ws-upload" element={isAdmin ? <WsUploadPage /> : <Navigate to="/" replace />} />
+        <Route path="/ws-single" element={isAdmin ? <WsSingleSearch /> : <Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
@@ -85,7 +86,12 @@ function WsRoutes() {
 function AuthRoute() {
   const { session, loading } = useAuth();
   if (loading) return null;
-  if (session) return <Navigate to="/" replace />;
+  if (session) {
+    const chosenView = sessionStorage.getItem("login_view");
+    sessionStorage.removeItem("login_view");
+    if (chosenView === "ws") return <Navigate to="/ws" replace />;
+    return <Navigate to="/" replace />;
+  }
   return <Auth />;
 }
 
