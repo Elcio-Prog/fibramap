@@ -35,8 +35,8 @@ function ProtectedRoutes() {
 
   if (!session) return <Navigate to="/auth" replace />;
 
-  // ws_user without admin role → redirect to WS area
-  if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
+  // Only admin users can access the admin panel
+  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/auth"} replace />;
 
   return (
     <AppLayout>
