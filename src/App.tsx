@@ -85,23 +85,41 @@ function WsRoutes() {
 
 function AuthRoute() {
   const { session, loading } = useAuth();
+  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+
   if (loading) return null;
-  if (session) {
-    const chosenView = sessionStorage.getItem("login_view");
-    sessionStorage.removeItem("login_view");
-    if (chosenView === "ws") return <Navigate to="/ws" replace />;
-    return <Navigate to="/" replace />;
+  if (!session) return <Auth />;
+  if (roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
-  return <Auth />;
+
+  // Always redirect based on actual DB role, never sessionStorage
+  if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
+  return <Navigate to="/" replace />;
 }
 
 function WsAuthRoute() {
   const { session, loading } = useAuth();
-  const { isWsUser, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+
   if (loading) return null;
-  if (session && !roleLoading && isWsUser) return <Navigate to="/ws" replace />;
-  if (session) return <Navigate to="/" replace />;
-  return <Auth />;
+  if (!session) return <Auth />;
+  if (roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // ws_user or admin → go to /ws
+  if (isWsUser || isAdmin) return <Navigate to="/ws" replace />;
+  // Non-ws user that somehow hit /ws/login → send to admin area
+  return <Navigate to="/" replace />;
 }
 
 const App = () => (
