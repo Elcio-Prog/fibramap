@@ -1,0 +1,748 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import * as XLSX from "xlsx";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { useProviders } from "@/hooks/useProviders";
+import { useGeoElements } from "@/hooks/useGeoElements";
+import { useLpuItems } from "@/hooks/useLpuItems";
+import { useComprasLM, CompraLM } from "@/hooks/useComprasLM";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { Slider } from "@/components/ui/slider";
+import {
+  geocodeAddress,
+  findNearestPoint,
+  findBestConnectionPoint,
+  findBestConnectionPointByRoute,
+  getRouteDistance,
+  isInsideCoverage,
+  findNearestBoundaryPoint,
+  haversineDistance,
+  closedLineToPolygon,
+  routeCrossesCPFL,
+  checkRouteHighwayRailway,
+  evaluateConnectionAptness,
+  type TAResult,
+  type ProviderRules,
+} from "@/lib/geo-utils";
+import { fetchCep } from "@/lib/cep-utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Search, MapPin, Navigation, Hash, Loader2, Download,
+  CheckCircle2, XCircle, Building2,
+} from "lucide-react";
+
+// Fix leaflet icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+interface ViableOption {
+  stage: string;
+  provider_name: string;
+  provider_color: string;
+  distance_m: number;
+  lpu_value: number | null;
+  final_value: number | null;
+  notes: string;
+  ta_info?: string;
+  route_geometry?: any;
+  nearest_point?: [number, number];
+  is_own_network?: boolean;
+  has_cross_ntt?: boolean;
+  provider_id: string;
+}
+
+interface RadiusResult {
+  compra: CompraLM;
+  distanceM: number;
+}
+
+export default function WsSingleSearch() {
+  const { toast } = useToast();
+  const { data: providers } = useProviders();
+  const { data: allGeoElements } = useGeoElements();
+  const { data: allLpuItems } = useLpuItems();
+  const { data: comprasLM } = useComprasLM();
+
+  // Input fields
+  const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">("address");
+  const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [coordLat, setCoordLat] = useState("");
+  const [coordLng, setCoordLng] = useState("");
+  const [cep, setCep] = useState("");
+  const [cepAddress, setCepAddress] = useState("");
+  const [cepNumber, setCepNumber] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null);
+  const [resolvedGeo, setResolvedGeo] = useState<{ lat: number; lng: number; display: string } | null>(null);
+
+  // WS extra fields
+  const [cliente, setCliente] = useState("");
+  const [designacao, setDesignacao] = useState("");
+  const [tipoLink, setTipoLink] = useState("");
+  const [velocidade, setVelocidade] = useState("");
+
+  // Results
+  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState<ViableOption[]>([]);
+  const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(null);
+
+  // Radius
+  const [radius, setRadius] = useState(5);
+  const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
+
+  // Map
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const mapLayers = useRef<L.LayerGroup | null>(null);
+
+  const handleCepLookup = async (value: string) => {
+    setCep(value);
+    const clean = value.replace(/\D/g, "");
+    if (clean.length === 8) {
+      setCepLoading(true);
+      const result = await fetchCep(clean);
+      setCepLoading(false);
+      if (result) {
+        const fullAddr = `${result.logradouro}, ${result.bairro}, ${result.localidade} - ${result.uf}`;
+        setCepAddress(fullAddr);
+        setCepData({ logradouro: result.logradouro, bairro: result.bairro, localidade: result.localidade, uf: result.uf });
+      } else {
+        toast({ title: "CEP não encontrado", variant: "destructive" });
+        setCepAddress("");
+        setCepData(null);
+      }
+    }
+  };
+
+  const geocodeCepAddress = async (number?: string): Promise<{ lat: number; lng: number; display: string } | null> => {
+    if (!cepData) return null;
+    const street = number ? `${cepData.logradouro}, ${number}` : cepData.logradouro;
+    const params = new URLSearchParams({ format: "json", street, city: cepData.localidade, state: cepData.uf, country: "BR", limit: "1" });
+    let res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+    let results = await res.json();
+    if (results.length === 0) {
+      const clean = cep.replace(/\D/g, "");
+      const p2 = new URLSearchParams({ format: "json", postalcode: clean, country: "BR", limit: "1" });
+      res = await fetch(`https://nominatim.openstreetmap.org/search?${p2}`);
+      results = await res.json();
+    }
+    if (results.length === 0) {
+      const q = `${cepData.logradouro}, ${cepData.localidade}, ${cepData.uf}`;
+      res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
+      results = await res.json();
+    }
+    if (results.length > 0) {
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon), display: results[0].display_name || cepAddress };
+    }
+    return null;
+  };
+
+  const handleSearch = async () => {
+    setLoading(true);
+    setOptions([]);
+    setRadiusResults(null);
+    setGeoResult(null);
+
+    try {
+      let geo: { lat: number; lng: number; display: string } | null = null;
+
+      if (inputMode === "address") {
+        if (resolvedGeo && !addressNumber) geo = resolvedGeo;
+        else if (resolvedGeo && addressNumber) {
+          const fullAddr = address.includes(addressNumber) ? address : `${address}, ${addressNumber}`;
+          geo = await geocodeAddress(fullAddr);
+          if (!geo) geo = resolvedGeo;
+        } else if (address.trim()) {
+          const fullAddr = addressNumber ? `${address}, ${addressNumber}` : address;
+          geo = await geocodeAddress(fullAddr);
+        }
+      } else if (inputMode === "coords") {
+        const lat = parseFloat(coordLat);
+        const lng = parseFloat(coordLng);
+        if (!isNaN(lat) && !isNaN(lng)) geo = { lat, lng, display: `${lat}, ${lng}` };
+      } else if (inputMode === "cep") {
+        if (cepData) geo = await geocodeCepAddress(cepNumber || undefined);
+      }
+
+      if (!geo) {
+        toast({ title: "Endereço não encontrado", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      setGeoResult(geo);
+
+      if (!providers?.length || !allGeoElements?.length) {
+        toast({ title: "Sem dados de rede carregados", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+
+      const elementsByProvider: Record<string, typeof allGeoElements> = {};
+      for (const el of allGeoElements) {
+        if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
+        elementsByProvider[el.provider_id].push(el);
+      }
+
+      const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
+      const allOpts: ViableOption[] = [];
+
+      // === NTT ===
+      if (netTurboProvider) {
+        const elements = elementsByProvider[netTurboProvider.id] || [];
+        if (elements.length > 0) {
+          const rules: ProviderRules = {
+            regras_usar_porta_disponivel: (netTurboProvider as any).regras_usar_porta_disponivel ?? true,
+            regras_considerar_ta: (netTurboProvider as any).regras_considerar_ta ?? true,
+            regras_considerar_ce: (netTurboProvider as any).regras_considerar_ce ?? false,
+            regras_bloquear_splitter_1x2: (netTurboProvider as any).regras_bloquear_splitter_1x2 ?? true,
+            regras_bloquear_splitter_des: (netTurboProvider as any).regras_bloquear_splitter_des ?? true,
+            regras_bloquear_portas_livres_zero: (netTurboProvider as any).regras_bloquear_portas_livres_zero ?? true,
+            regras_bloquear_atendimento_nao_sim: (netTurboProvider as any).regras_bloquear_atendimento_nao_sim ?? true,
+            regras_habilitar_exclusao_cpfl: (netTurboProvider as any).regras_habilitar_exclusao_cpfl ?? true,
+          };
+          const inside = isInsideCoverage(geo.lat, geo.lng, elements);
+          const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
+
+          if (inside) {
+            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
+            allOpts.push({
+              stage: "Rede Própria", provider_name: netTurboProvider.name, provider_color: netTurboProvider.color,
+              distance_m: 0, lpu_value: null, final_value: null, provider_id: netTurboProvider.id,
+              notes: `Dentro da cobertura NTT`, is_own_network: true,
+              ta_info: cp ? `${cp.tipo}: ${cp.nome}` : undefined,
+            });
+          } else {
+            try {
+              const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, netTurboProvider.max_lpu_distance_m, rules, 10,
+                async (_candidate, route) => {
+                  if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                    const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                    if (cpflCheck.crosses) return false;
+                  }
+                  if (route.geometry) {
+                    const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                    if (hwCheck.blocked) return false;
+                  }
+                  return true;
+                }
+              );
+              if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
+                allOpts.push({
+                  stage: "Rede Própria", provider_name: netTurboProvider.name, provider_color: netTurboProvider.color,
+                  distance_m: Math.round(cpByRoute.routeDistance), lpu_value: null, final_value: null,
+                  provider_id: netTurboProvider.id, is_own_network: true,
+                  route_geometry: cpByRoute.routeGeometry,
+                  nearest_point: cpByRoute.taResult.point,
+                  notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m`,
+                  ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
+                });
+              }
+            } catch {}
+          }
+        }
+      }
+
+      // === Providers ===
+      for (const provider of providers) {
+        if (provider.id === netTurboProvider?.id) continue;
+        const elements = elementsByProvider[provider.id] || [];
+        if (elements.length === 0) continue;
+
+        const providerLpu = allLpuItems?.filter(l => l.provider_id === provider.id) || [];
+        const lpuItem = providerLpu.length > 0 ? providerLpu[0] : null;
+        const lpuValue = lpuItem?.value || 0;
+        const mult = provider.multiplier;
+        const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
+        const maxDist = provider.max_lpu_distance_m;
+
+        const inside = isInsideCoverage(geo.lat, geo.lng, elements);
+        if (inside) {
+          allOpts.push({
+            stage: provider.has_cross_ntt ? "Cross NTT" : "Dentro Cobertura",
+            provider_name: provider.name, provider_color: provider.color,
+            distance_m: 0, lpu_value: lpuValue,
+            final_value: Math.round(finalValue * 100) / 100,
+            provider_id: provider.id, has_cross_ntt: provider.has_cross_ntt,
+            notes: `${provider.has_cross_ntt ? "Cross NTT" : "Dentro cobertura"} - ${provider.name}`,
+          });
+          continue;
+        }
+
+        try {
+          const nearest = findNearestBoundaryPoint(geo.lat, geo.lng, elements);
+          if (!nearest) continue;
+          const nearestAny = findNearestPoint(geo.lat, geo.lng, elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
+          const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
+
+          let distance = bestNearest.distance;
+          let routeGeometry: any = null;
+          try {
+            const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
+            if (route) { distance = route.distance; routeGeometry = route.geometry; }
+          } catch {}
+
+          if (distance <= maxDist) {
+            allOpts.push({
+              stage: "LPU Viável", provider_name: provider.name, provider_color: provider.color,
+              distance_m: Math.round(distance), lpu_value: lpuValue,
+              final_value: Math.round(finalValue * 100) / 100,
+              provider_id: provider.id,
+              route_geometry: routeGeometry,
+              nearest_point: bestNearest.point,
+              notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
+            });
+          }
+        } catch {}
+      }
+
+      // === LM Histórico ===
+      const velMbps = velocidade ? parseFloat(velocidade) : null;
+      if (comprasLM && comprasLM.length > 0 && (velMbps == null || velMbps <= 100)) {
+        const RADIUS_KM = 50;
+        let bestLM: CompraLM | null = null;
+        let bestDist = Infinity;
+        for (const lm of comprasLM) {
+          if (lm.lat == null || lm.lng == null) continue;
+          if (lm.status?.toUpperCase() !== "ATIVO") continue;
+          const dLat = (lm.lat - geo.lat) * 111.32;
+          const dLng = (lm.lng - geo.lng) * 111.32 * Math.cos(geo.lat * Math.PI / 180);
+          const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+          if (dist <= RADIUS_KM && dist < bestDist) {
+            bestDist = dist;
+            bestLM = lm;
+          }
+        }
+        if (bestLM) {
+          allOpts.push({
+            stage: "LM Histórico", provider_name: bestLM.parceiro, provider_color: "#f59e0b",
+            distance_m: Math.round(bestDist * 1000), lpu_value: bestLM.valor_mensal,
+            final_value: bestLM.valor_mensal, provider_id: "lm",
+            notes: `LM Histórico - ${bestLM.parceiro} - ${bestDist.toFixed(1)}km - R$${bestLM.valor_mensal}`,
+          });
+        }
+      }
+
+      // Sort
+      const stageOrder: Record<string, number> = { "Rede Própria": 0, "Cross NTT": 1, "Dentro Cobertura": 2, "LPU Viável": 3, "LM Histórico": 4 };
+      allOpts.sort((a, b) => (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m);
+      setOptions(allOpts);
+
+      // Radius search on LM base
+      if (comprasLM) {
+        const radiusM = radius * 1000;
+        const filtered: RadiusResult[] = comprasLM
+          .filter(c => c.lat != null && c.lng != null)
+          .map(c => ({ compra: c, distanceM: haversineDistance(geo.lat, geo.lng, c.lat!, c.lng!) }))
+          .filter(r => r.distanceM <= radiusM)
+          .sort((a, b) => a.distanceM - b.distanceM);
+        setRadiusResults(filtered);
+      }
+
+      if (allOpts.length === 0) {
+        toast({ title: "Nenhuma opção viável encontrada" });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Re-run radius when radius changes and we have a geo result
+  useEffect(() => {
+    if (!geoResult || !comprasLM) return;
+    const radiusM = radius * 1000;
+    const filtered: RadiusResult[] = comprasLM
+      .filter(c => c.lat != null && c.lng != null)
+      .map(c => ({ compra: c, distanceM: haversineDistance(geoResult.lat, geoResult.lng, c.lat!, c.lng!) }))
+      .filter(r => r.distanceM <= radiusM)
+      .sort((a, b) => a.distanceM - b.distanceM);
+    setRadiusResults(filtered);
+  }, [radius, geoResult, comprasLM]);
+
+  // Map rendering
+  useEffect(() => {
+    if (!geoResult || !mapRef.current) return;
+
+    if (!mapInstance.current) {
+      const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
+      if (container._leaflet_id) container._leaflet_id = undefined;
+      const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
+      mapLayers.current = L.layerGroup().addTo(map);
+      mapInstance.current = map;
+    }
+
+    const map = mapInstance.current;
+    const layerGroup = mapLayers.current;
+    if (!map || !layerGroup) return;
+
+    layerGroup.clearLayers();
+    map.setView([geoResult.lat, geoResult.lng], 14);
+    const bounds = L.latLngBounds([[geoResult.lat, geoResult.lng]]);
+
+    // Client marker
+    L.marker([geoResult.lat, geoResult.lng]).addTo(layerGroup).bindPopup(`<b>Cliente</b><br/>${cliente || geoResult.display}`);
+
+    // Radius circle
+    L.circle([geoResult.lat, geoResult.lng], { radius: radius * 1000, color: "#3388ff", fillOpacity: 0.05, weight: 1, dashArray: "8 4" }).addTo(layerGroup);
+
+    // Draw provider coverages near the point
+    if (allGeoElements) {
+      const maxRenderDist = 10000;
+      const nearbyElements = allGeoElements.filter(el => {
+        const rawGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+        if (!rawGeo?.coordinates) return false;
+        let sampleCoord: number[] | null = null;
+        if (rawGeo.type === "Point") sampleCoord = rawGeo.coordinates;
+        else if (rawGeo.type === "Polygon") sampleCoord = rawGeo.coordinates?.[0]?.[0];
+        else if (rawGeo.type === "MultiPolygon") sampleCoord = rawGeo.coordinates?.[0]?.[0]?.[0];
+        else if (rawGeo.type === "LineString") sampleCoord = rawGeo.coordinates?.[0];
+        if (!sampleCoord) return false;
+        return haversineDistance(geoResult.lat, geoResult.lng, sampleCoord[1], sampleCoord[0]) <= maxRenderDist;
+      });
+
+      for (const el of nearbyElements) {
+        try {
+          const rawGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+          const geo = closedLineToPolygon(rawGeo);
+          const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+          const provider = providers?.find(p => p.id === el.provider_id);
+          const color = provider?.color || "#3388ff";
+
+          if (geo.type === "Point") {
+            const pt: [number, number] = [geo.coordinates[1], geo.coordinates[0]];
+            if (props.tipo === "TA") {
+              const taAvailable = props.porta_disponivel === true;
+              L.circleMarker(pt, { radius: 4, fillColor: taAvailable ? "#22c55e" : "#1a1a1a", color: "#fff", weight: 1.5, fillOpacity: 0.95 })
+                .addTo(layerGroup).bindTooltip(`<b>${props.nome || "TA"}</b><br/>${taAvailable ? "🟢 Disponível" : "⚫ Saturado"}`, { sticky: true });
+            } else if (props.tipo === "CE") {
+              L.circleMarker(pt, { radius: 3, fillColor: "#f59e0b", color: "#fff", weight: 1, fillOpacity: 0.85 })
+                .addTo(layerGroup).bindTooltip(`<b>${props.nome || "CE"}</b>`, { sticky: true });
+            }
+          } else {
+            const isCPFL = props.tipo === "EXCLUSAO_CPFL";
+            L.geoJSON({ type: "Feature", geometry: geo, properties: props } as any, {
+              style: () => ({
+                color: isCPFL ? "#ef4444" : color,
+                weight: isCPFL ? 2 : 2,
+                opacity: 0.7,
+                fillColor: isCPFL ? "#ef4444" : color,
+                fillOpacity: (geo.type === "Polygon" || geo.type === "MultiPolygon") ? 0.2 : 0.15,
+                dashArray: isCPFL ? "8 4" : undefined,
+              }),
+            }).addTo(layerGroup);
+          }
+        } catch {}
+      }
+    }
+
+    // Draw routes from options
+    for (const opt of options) {
+      if (opt.route_geometry && opt.nearest_point) {
+        const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
+        L.geoJSON(opt.route_geometry, { style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }) }).addTo(layerGroup);
+        L.circleMarker(opt.nearest_point, { radius: 5, fillColor: routeColor, color: "#fff", weight: 1.5, fillOpacity: 0.9 })
+          .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m`);
+        bounds.extend(L.latLng(opt.nearest_point[0], opt.nearest_point[1]));
+      }
+    }
+
+    // Draw LM radius results
+    if (radiusResults) {
+      const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c"];
+      const partnerColors: Record<string, string> = {};
+      let ci = 0;
+      for (const r of radiusResults) {
+        if (!r.compra.lat || !r.compra.lng) continue;
+        if (!partnerColors[r.compra.parceiro]) { partnerColors[r.compra.parceiro] = colors[ci % colors.length]; ci++; }
+        const c = partnerColors[r.compra.parceiro];
+        const distLabel = r.distanceM >= 1000 ? `${(r.distanceM / 1000).toFixed(1)} km` : `${r.distanceM.toFixed(0)} m`;
+        L.circleMarker([r.compra.lat, r.compra.lng], { radius: 5, fillColor: c, color: "#fff", weight: 1.5, fillOpacity: 0.85 })
+          .addTo(layerGroup).bindPopup(
+            `<b>${r.compra.parceiro}</b><br/>${r.compra.cliente || ""}<br/>R$ ${r.compra.valor_mensal.toFixed(2)}${r.compra.banda_mbps ? `<br/>${r.compra.banda_mbps} Mbps` : ""}<br/><b>${distLabel}</b>`
+          );
+      }
+    }
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    }
+
+    setTimeout(() => map.invalidateSize(), 200);
+    setTimeout(() => map.invalidateSize(), 500);
+  }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
+
+  useEffect(() => {
+    return () => {
+      if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
+      mapLayers.current = null;
+    };
+  }, []);
+
+  const exportToExcel = () => {
+    if (options.length === 0 || !geoResult) return;
+    const rows: Record<string, any>[] = [];
+
+    // Options sheet
+    for (const o of options) {
+      rows.push({
+        "Designação": designacao || "",
+        "Cliente": cliente || "",
+        "Tipo Link": tipoLink || "",
+        "Vel. (Mbps)": velocidade || "",
+        "Endereço": geoResult.display,
+        "Lat": geoResult.lat,
+        "Lng": geoResult.lng,
+        "Etapa": o.stage,
+        "Provedor": o.provider_name,
+        "Distância (m)": o.distance_m,
+        "Valor LPU": o.lpu_value ?? "",
+        "Valor Final": o.final_value ?? "",
+        "TA/CE": o.ta_info || "",
+        "Observações": o.notes,
+      });
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.json_to_sheet(rows);
+    ws1["!cols"] = Object.keys(rows[0] || {}).map(key => ({ wch: Math.max(key.length, 15) }));
+    XLSX.utils.book_append_sheet(wb, ws1, "Viabilidade");
+
+    // Radius sheet
+    if (radiusResults && radiusResults.length > 0) {
+      const radiusRows = radiusResults.map(r => ({
+        "Parceiro": r.compra.parceiro,
+        "Cliente": r.compra.cliente || "",
+        "Endereço": r.compra.endereco,
+        "Cidade": r.compra.cidade || "",
+        "UF": r.compra.uf || "",
+        "Valor Mensal": r.compra.valor_mensal,
+        "Banda (Mbps)": r.compra.banda_mbps ?? "",
+        "Status": r.compra.status,
+        "Distância (m)": Math.round(r.distanceM),
+      }));
+      const ws2 = XLSX.utils.json_to_sheet(radiusRows);
+      ws2["!cols"] = Object.keys(radiusRows[0] || {}).map(key => ({ wch: Math.max(key.length, 12) }));
+      XLSX.utils.book_append_sheet(wb, ws2, "Base LM Raio");
+    }
+
+    XLSX.writeFile(wb, `ws_busca_${designacao || "single"}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  // Radius metrics
+  const radiusPartners: Record<string, number> = {};
+  radiusResults?.forEach(r => { radiusPartners[r.compra.parceiro] = (radiusPartners[r.compra.parceiro] || 0) + 1; });
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Busca Unitária</h1>
+
+      {/* Input Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <MapPin className="h-5 w-5" /> Dados da Consulta
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* WS fields */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <Label>Cliente</Label>
+              <Input placeholder="Nome do cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
+            </div>
+            <div>
+              <Label>Designação</Label>
+              <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Tipo Link</Label>
+              <Input placeholder="FO, Rádio..." value={tipoLink} onChange={e => setTipoLink(e.target.value)} />
+            </div>
+            <div>
+              <Label>Velocidade (Mbps)</Label>
+              <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
+            </div>
+          </div>
+
+          {/* Address input */}
+          <Tabs value={inputMode} onValueChange={v => setInputMode(v as any)}>
+            <TabsList className="w-full">
+              <TabsTrigger value="address" className="flex-1 gap-1"><MapPin className="h-3.5 w-3.5" /> Endereço</TabsTrigger>
+              <TabsTrigger value="coords" className="flex-1 gap-1"><Navigation className="h-3.5 w-3.5" /> Coordenadas</TabsTrigger>
+              <TabsTrigger value="cep" className="flex-1 gap-1"><Hash className="h-3.5 w-3.5" /> CEP</TabsTrigger>
+            </TabsList>
+            <TabsContent value="address" className="mt-3 space-y-2">
+              <AddressAutocomplete
+                value={address}
+                onChange={val => { setAddress(val); setResolvedGeo(null); }}
+                onSelect={r => { setAddress(r.address); setResolvedGeo({ lat: r.lat, lng: r.lng, display: r.address }); }}
+                placeholder="Ex: Rua Sergio Potulski, Sumaré - SP"
+              />
+              <div className="w-32">
+                <Label>Número</Label>
+                <Input placeholder="243" value={addressNumber} onChange={e => setAddressNumber(e.target.value)} />
+              </div>
+            </TabsContent>
+            <TabsContent value="coords" className="mt-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Latitude</Label><Input type="number" step="any" placeholder="-22.8231" value={coordLat} onChange={e => setCoordLat(e.target.value)} /></div>
+                <div><Label>Longitude</Label><Input type="number" step="any" placeholder="-47.2668" value={coordLng} onChange={e => setCoordLng(e.target.value)} /></div>
+              </div>
+            </TabsContent>
+            <TabsContent value="cep" className="mt-3 space-y-2">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>CEP</Label>
+                  <div className="relative">
+                    <Input placeholder="13170-000" value={cep} onChange={e => handleCepLookup(e.target.value)} maxLength={9} />
+                    {cepLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                </div>
+                <div className="col-span-2"><Label>Endereço</Label><Input value={cepAddress} readOnly className="bg-muted" /></div>
+              </div>
+              <div className="w-32"><Label>Número</Label><Input placeholder="275" value={cepNumber} onChange={e => setCepNumber(e.target.value)} /></div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Radius control */}
+          <div className="space-y-1">
+            <Label className="text-sm">Raio de busca LM: {radius} km</Label>
+            <Slider min={1} max={50} step={1} value={[radius]} onValueChange={([v]) => setRadius(v)} />
+          </div>
+
+          <Button onClick={handleSearch} disabled={loading} className="w-full gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {loading ? "Buscando..." : "Buscar Viabilidade"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Map */}
+      {geoResult && (
+        <div ref={mapRef} className="h-96 rounded-lg border" />
+      )}
+
+      {/* Results */}
+      {options.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Opções de Viabilidade ({options.length})
+              </span>
+              <Button size="sm" className="gap-2" onClick={exportToExcel}>
+                <Download className="h-4 w-4" /> Excel
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto border rounded-md">
+              <table className="text-xs w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left">#</th>
+                    <th className="px-2 py-1.5 text-left">Etapa</th>
+                    <th className="px-2 py-1.5 text-left">Provedor</th>
+                    <th className="px-2 py-1.5 text-right">Distância</th>
+                    <th className="px-2 py-1.5 text-right">Valor LPU</th>
+                    <th className="px-2 py-1.5 text-right">Valor Final</th>
+                    <th className="px-2 py-1.5 text-left">TA/CE</th>
+                    <th className="px-2 py-1.5 text-left">Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {options.map((o, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-2 py-1">{i + 1}</td>
+                      <td className="px-2 py-1">
+                        <Badge variant="outline" className="text-[10px]">{o.stage}</Badge>
+                      </td>
+                      <td className="px-2 py-1 flex items-center gap-1">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: o.provider_color }} />
+                        {o.provider_name}
+                        {o.has_cross_ntt && <Building2 className="h-3 w-3 text-muted-foreground" />}
+                      </td>
+                      <td className="px-2 py-1 text-right">{o.distance_m}m</td>
+                      <td className="px-2 py-1 text-right">{o.lpu_value != null ? `R$${o.lpu_value}` : "—"}</td>
+                      <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
+                      <td className="px-2 py-1 max-w-[120px] truncate">{o.ta_info || "—"}</td>
+                      <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Radius LM results */}
+      {radiusResults && radiusResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Base LM no Raio ({radiusResults.length} conexões, {Object.keys(radiusPartners).length} parceiros)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {Object.entries(radiusPartners).sort((a, b) => b[1] - a[1]).map(([p, c]) => (
+                <Badge key={p} variant="outline" className="text-xs">{p}: {c}</Badge>
+              ))}
+            </div>
+            <div className="overflow-x-auto max-h-64 border rounded-md overflow-y-auto">
+              <table className="text-xs w-full">
+                <thead className="sticky top-0 bg-muted">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left">Distância</th>
+                    <th className="px-2 py-1.5 text-left">Parceiro</th>
+                    <th className="px-2 py-1.5 text-left">Cliente</th>
+                    <th className="px-2 py-1.5 text-left">Endereço</th>
+                    <th className="px-2 py-1.5 text-right">Valor</th>
+                    <th className="px-2 py-1.5 text-right">Banda</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {radiusResults.slice(0, 100).map((r, i) => {
+                    const d = r.distanceM;
+                    const distLabel = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${d.toFixed(0)} m`;
+                    return (
+                      <tr key={i} className="border-t">
+                        <td className="px-2 py-1 font-mono">{distLabel}</td>
+                        <td className="px-2 py-1">{r.compra.parceiro}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.compra.cliente || "—"}</td>
+                        <td className="px-2 py-1 max-w-[150px] truncate">{r.compra.endereco}</td>
+                        <td className="px-2 py-1 text-right">R$ {r.compra.valor_mensal.toFixed(2)}</td>
+                        <td className="px-2 py-1 text-right">{r.compra.banda_mbps ?? "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {geoResult && options.length === 0 && !loading && (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground flex items-center justify-center gap-2">
+            <XCircle className="h-4 w-4" /> Nenhuma opção viável encontrada para este endereço.
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

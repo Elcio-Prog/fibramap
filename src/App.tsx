@@ -8,7 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import WsLayout from "@/components/WsLayout";
 import Auth from "@/pages/Auth";
-import WsAuth from "@/pages/WsAuth";
+import WsSingleSearch from "@/pages/WsSingleSearch";
 import MapPage from "@/pages/MapPage";
 import ProvidersPage from "@/pages/ProvidersPage";
 import FeasibilityPage from "@/pages/FeasibilityPage";
@@ -75,6 +75,7 @@ function WsRoutes() {
     <WsLayout>
       <Routes>
         <Route path="/" element={<WsUploadPage />} />
+        <Route path="/single" element={<WsSingleSearch />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
@@ -94,7 +95,7 @@ function WsAuthRoute() {
   if (loading) return null;
   if (session && !roleLoading && isWsUser) return <Navigate to="/ws" replace />;
   if (session) return <Navigate to="/" replace />;
-  return <WsAuth />;
+  return <Auth />;
 }
 
 const App = () => (
