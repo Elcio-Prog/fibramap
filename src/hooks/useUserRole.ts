@@ -7,7 +7,7 @@ export type AppRole = "admin" | "ws_user";
 export function useUserRole() {
   const { user } = useAuth();
 
-  const { data: roles, isLoading } = useQuery({
+  const { data: roles, status, fetchStatus } = useQuery({
     queryKey: ["user-roles", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -22,14 +22,16 @@ export function useUserRole() {
     enabled: !!user?.id,
   });
 
-  // When enabled transitions from false→true, isLoading can briefly be false
-  // while data is still undefined. We must treat that as loading.
-  const stillLoading = isLoading || (!!user?.id && roles === undefined);
+  // BULLETPROOF loading check:
+  // If user is logged in, we MUST have successfully fetched roles before saying "not loading"
+  // status === 'success' means we have actual data from the server
+  const hasUser = !!user?.id;
+  const isReady = !hasUser || status === "success";
 
   return {
     roles: roles || [],
     isAdmin: roles?.includes("admin") || false,
     isWsUser: roles?.includes("ws_user") || false,
-    isLoading: stillLoading,
+    isLoading: !isReady,
   };
 }
