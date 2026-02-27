@@ -224,8 +224,9 @@ export default function WsSingleSearch() {
               ta_info: cp ? `${cp.tipo}: ${cp.nome}` : undefined,
             });
           } else {
+            let found = false;
             try {
-              const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, netTurboProvider.max_lpu_distance_m, rules, 10,
+              const cpByRoute = await findBestConnectionPointByRoute(geo.lat, geo.lng, elMapped, netTurboProvider.max_lpu_distance_m, rules, Number.POSITIVE_INFINITY,
                 async (_candidate, route) => {
                   if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
                     const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
@@ -238,18 +239,46 @@ export default function WsSingleSearch() {
                   return true;
                 }
               );
-              if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
+              if (cpByRoute) {
+                found = true;
+                const isViable = cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m;
                 allOpts.push({
                   stage: "Rede Própria", provider_name: netTurboProvider.name, provider_color: netTurboProvider.color,
                   distance_m: Math.round(cpByRoute.routeDistance), lpu_value: null, final_value: null,
                   provider_id: netTurboProvider.id, is_own_network: true,
                   route_geometry: cpByRoute.routeGeometry,
                   nearest_point: cpByRoute.taResult.point,
-                  notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m`,
+                  notes: isViable ? `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m` : `Rede própria - ${Math.round(cpByRoute.routeDistance)}m (acima do limite)`,
                   ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
                 });
               }
             } catch {}
+
+            // Fallback: find nearest point and calculate route
+            if (!found) {
+              try {
+                const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
+                if (nearest) {
+                  let distance = nearest.distance;
+                  let routeGeometry: any = null;
+                  try {
+                    const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
+                    if (route) { distance = route.distance; routeGeometry = route.geometry; }
+                  } catch {}
+                  allOpts.push({
+                    stage: "Rede Própria", provider_name: netTurboProvider.name, provider_color: netTurboProvider.color,
+                    distance_m: Math.round(distance), lpu_value: null, final_value: null,
+                    provider_id: netTurboProvider.id, is_own_network: true,
+                    route_geometry: routeGeometry,
+                    nearest_point: nearest.point,
+                    notes: distance <= netTurboProvider.max_lpu_distance_m
+                      ? `Rede própria viável - ${Math.round(distance)}m`
+                      : `Rede própria - ${Math.round(distance)}m (acima do limite)`,
+                    ta_info: nearest.properties?.tipo ? `${nearest.properties.tipo}: ${nearest.properties.nome}` : undefined,
+                  });
+                }
+              } catch {}
+            }
           }
         }
       }
@@ -376,21 +405,23 @@ export default function WsSingleSearch() {
   useEffect(() => {
     if (!geoResult || !mapRef.current) return;
 
-    if (!mapInstance.current) {
-      const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
-      if (container._leaflet_id) container._leaflet_id = undefined;
-      const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
-      mapLayers.current = L.layerGroup().addTo(map);
-      mapInstance.current = map;
+    // Destroy previous map to avoid stale state
+    if (mapInstance.current) {
+      mapInstance.current.remove();
+      mapInstance.current = null;
+      mapLayers.current = null;
     }
 
-    const map = mapInstance.current;
-    const layerGroup = mapLayers.current;
-    if (!map || !layerGroup) return;
+    const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
+    if (container._leaflet_id) container._leaflet_id = undefined;
+    const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
+    mapLayers.current = L.layerGroup().addTo(map);
+    mapInstance.current = map;
 
-    layerGroup.clearLayers();
-    map.setView([geoResult.lat, geoResult.lng], 14);
+    const layerGroup = mapLayers.current;
+    if (!layerGroup) return;
+
     const bounds = L.latLngBounds([[geoResult.lat, geoResult.lng]]);
 
     // Client marker
@@ -631,10 +662,12 @@ export default function WsSingleSearch() {
         </CardContent>
       </Card>
 
-      {/* Map */}
-      {geoResult && (
-        <div ref={mapRef} className="h-96 rounded-lg border" />
-      )}
+      {/* Map - always in DOM, hidden when no result */}
+      <div
+        ref={mapRef}
+        className="rounded-lg border"
+        style={{ height: geoResult ? "24rem" : "0", overflow: "hidden", transition: "height 0.3s" }}
+      />
 
       {/* Results */}
       {options.length > 0 && (
