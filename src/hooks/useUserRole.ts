@@ -7,7 +7,7 @@ export type AppRole = "admin" | "ws_user";
 export function useUserRole() {
   const { user } = useAuth();
 
-  const { data: roles, isLoading } = useQuery({
+  const { data: roles, isLoading, fetchStatus } = useQuery({
     queryKey: ["user-roles", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -22,10 +22,14 @@ export function useUserRole() {
     enabled: !!user?.id,
   });
 
+  // When enabled transitions from false→true, isLoading can briefly be false
+  // while fetchStatus is still 'idle'. We must treat that as loading.
+  const stillLoading = isLoading || (!user?.id ? false : fetchStatus === "idle");
+
   return {
     roles: roles || [],
     isAdmin: roles?.includes("admin") || false,
     isWsUser: roles?.includes("ws_user") || false,
-    isLoading,
+    isLoading: stillLoading,
   };
 }
