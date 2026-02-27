@@ -10,20 +10,10 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Slider } from "@/components/ui/slider";
 import {
   geocodeAddress,
-  findNearestPoint,
-  findBestConnectionPoint,
-  findBestConnectionPointByRoute,
-  getRouteDistance,
-  isInsideCoverage,
-  findNearestBoundaryPoint,
   haversineDistance,
   closedLineToPolygon,
-  routeCrossesCPFL,
-  checkRouteHighwayRailway,
-  evaluateConnectionAptness,
-  type TAResult,
-  type ProviderRules,
 } from "@/lib/geo-utils";
+import { processWsSingleItem, type WsItemInput, type ViableOption } from "@/lib/ws-feasibility-engine";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,21 +35,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-interface ViableOption {
-  stage: string;
-  provider_name: string;
-  provider_color: string;
-  distance_m: number;
-  lpu_value: number | null;
-  final_value: number | null;
-  notes: string;
-  ta_info?: string;
-  route_geometry?: any;
-  nearest_point?: [number, number];
-  is_own_network?: boolean;
-  has_cross_ntt?: boolean;
-  provider_id: string;
-}
+type SingleSearchOption = ViableOption;
 
 interface RadiusResult {
   compra: CompraLM;
@@ -94,7 +70,7 @@ export default function WsSingleSearch() {
 
   // Results
   const [loading, setLoading] = useState(false);
-  const [options, setOptions] = useState<ViableOption[]>([]);
+  const [options, setOptions] = useState<SingleSearchOption[]>([]);
   const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(null);
 
   // Radius
@@ -189,223 +165,39 @@ export default function WsSingleSearch() {
         return;
       }
 
-      const elementsByProvider: Record<string, typeof allGeoElements> = {};
-      for (const el of allGeoElements) {
-        if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
-        elementsByProvider[el.provider_id].push(el);
-      }
+      const wsItem: WsItemInput = {
+        id: `single-${Date.now()}`,
+        designacao: designacao || null,
+        cliente: cliente || null,
+        tipo_link: tipoLink || null,
+        velocidade_mbps: velocidade ? Number(velocidade) : null,
+        endereco_a: geo.display,
+        cidade_a: null,
+        uf_a: null,
+        lat_a: geo.lat,
+        lng_a: geo.lng,
+        endereco_b: null,
+        cidade_b: null,
+        uf_b: null,
+        lat_b: null,
+        lng_b: null,
+        prazo_ativacao: null,
+        is_l2l: false,
+        l2l_suffix: null,
+        l2l_pair_id: null,
+        row_number: 1,
+      };
 
-      const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
-      const allOpts: ViableOption[] = [];
+      const wsResult = await processWsSingleItem(
+        wsItem,
+        { lat: geo.lat, lng: geo.lng, source: inputMode === "coords" ? "coordenada" : "endereco" },
+        providers as any,
+        allGeoElements as any,
+        (allLpuItems || []) as any,
+        (comprasLM || []) as any
+      );
 
-      // === NTT ===
-      if (netTurboProvider) {
-        const elements = elementsByProvider[netTurboProvider.id] || [];
-        if (elements.length > 0) {
-          const rules: ProviderRules = {
-            regras_usar_porta_disponivel: (netTurboProvider as any).regras_usar_porta_disponivel ?? true,
-            regras_considerar_ta: (netTurboProvider as any).regras_considerar_ta ?? true,
-            regras_considerar_ce: (netTurboProvider as any).regras_considerar_ce ?? false,
-            regras_bloquear_splitter_1x2: (netTurboProvider as any).regras_bloquear_splitter_1x2 ?? true,
-            regras_bloquear_splitter_des: (netTurboProvider as any).regras_bloquear_splitter_des ?? true,
-            regras_bloquear_portas_livres_zero: (netTurboProvider as any).regras_bloquear_portas_livres_zero ?? true,
-            regras_bloquear_atendimento_nao_sim: (netTurboProvider as any).regras_bloquear_atendimento_nao_sim ?? true,
-            regras_habilitar_exclusao_cpfl: (netTurboProvider as any).regras_habilitar_exclusao_cpfl ?? true,
-          };
-          const inside = isInsideCoverage(geo.lat, geo.lng, elements);
-          const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
-
-          if (inside) {
-            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
-            allOpts.push({
-              stage: "Rede Própria", provider_name: netTurboProvider.name, provider_color: netTurboProvider.color,
-              distance_m: 0, lpu_value: null, final_value: null, provider_id: netTurboProvider.id,
-              notes: `Dentro da cobertura NTT`, is_own_network: true,
-              ta_info: cp ? `${cp.tipo}: ${cp.nome}` : undefined,
-            });
-          } else {
-            let cpByRoute: Awaited<ReturnType<typeof findBestConnectionPointByRoute>> | null = null;
-            try {
-              cpByRoute = await findBestConnectionPointByRoute(
-                geo.lat,
-                geo.lng,
-                elMapped,
-                netTurboProvider.max_lpu_distance_m,
-                rules,
-                Number.POSITIVE_INFINITY,
-                async (_candidate, route) => {
-                  if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
-                    const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
-                    if (cpflCheck.crosses) return false;
-                  }
-                  if (route.geometry) {
-                    const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
-                    if (hwCheck.blocked) return false;
-                  }
-                  return true;
-                }
-              );
-            } catch {}
-
-            if (cpByRoute) {
-              const isViable = cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m;
-              allOpts.push({
-                stage: "Rede Própria",
-                provider_name: netTurboProvider.name,
-                provider_color: netTurboProvider.color,
-                distance_m: Math.round(cpByRoute.routeDistance),
-                lpu_value: null,
-                final_value: null,
-                provider_id: netTurboProvider.id,
-                is_own_network: true,
-                route_geometry: cpByRoute.routeGeometry,
-                nearest_point: cpByRoute.taResult.point,
-                notes: isViable
-                  ? `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m`
-                  : `Rede própria - ${Math.round(cpByRoute.routeDistance)}m (acima do limite)`,
-                ta_info: `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`,
-              });
-            } else {
-              // Fallback igual à Viabilidade: ainda tenta o melhor TA/CE pelas regras,
-              // mas NUNCA usa distância em linha reta para viabilidade.
-              const cp = findBestConnectionPoint(
-                geo.lat,
-                geo.lng,
-                elMapped,
-                netTurboProvider.max_lpu_distance_m,
-                rules
-              );
-
-              if (cp) {
-                let routeDistance: number | null = null;
-                let routeGeometry: any = null;
-                let blockedByRule = false;
-
-                try {
-                  const route = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
-                  if (route?.geometry) {
-                    routeDistance = Math.round(route.distance);
-                    routeGeometry = route.geometry;
-
-                    if (rules.regras_habilitar_exclusao_cpfl) {
-                      const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
-                      if (cpflCheck.crosses) blockedByRule = true;
-                    }
-
-                    const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
-                    if (hwCheck.blocked) blockedByRule = true;
-                  }
-                } catch {}
-
-                if (routeDistance != null && routeGeometry) {
-                  allOpts.push({
-                    stage: "Rede Própria",
-                    provider_name: netTurboProvider.name,
-                    provider_color: netTurboProvider.color,
-                    distance_m: routeDistance,
-                    lpu_value: null,
-                    final_value: null,
-                    provider_id: netTurboProvider.id,
-                    is_own_network: true,
-                    route_geometry: routeGeometry,
-                    nearest_point: cp.point,
-                    notes: blockedByRule
-                      ? `Rede própria próxima, mas rota bloqueada por regra técnica`
-                      : routeDistance <= netTurboProvider.max_lpu_distance_m
-                        ? `Rede própria viável - ${routeDistance}m`
-                        : `Rede própria - ${routeDistance}m (acima do limite)`,
-                    ta_info: `${cp.tipo}: ${cp.nome}`,
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // === Providers ===
-      for (const provider of providers) {
-        if (provider.id === netTurboProvider?.id) continue;
-        const elements = elementsByProvider[provider.id] || [];
-        if (elements.length === 0) continue;
-
-        const providerLpu = allLpuItems?.filter(l => l.provider_id === provider.id) || [];
-        const lpuItem = providerLpu.length > 0 ? providerLpu[0] : null;
-        const lpuValue = lpuItem?.value || 0;
-        const mult = provider.multiplier;
-        const finalValue = mult > 0 ? lpuValue / mult : lpuValue;
-        const maxDist = provider.max_lpu_distance_m;
-
-        const inside = isInsideCoverage(geo.lat, geo.lng, elements);
-        if (inside) {
-          allOpts.push({
-            stage: provider.has_cross_ntt ? "Cross NTT" : "Dentro Cobertura",
-            provider_name: provider.name, provider_color: provider.color,
-            distance_m: 0, lpu_value: lpuValue,
-            final_value: Math.round(finalValue * 100) / 100,
-            provider_id: provider.id, has_cross_ntt: provider.has_cross_ntt,
-            notes: `${provider.has_cross_ntt ? "Cross NTT" : "Dentro cobertura"} - ${provider.name}`,
-          });
-          continue;
-        }
-
-        try {
-          const nearest = findNearestBoundaryPoint(geo.lat, geo.lng, elements);
-          if (!nearest) continue;
-          const nearestAny = findNearestPoint(geo.lat, geo.lng, elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
-          const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
-
-          const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-          if (!route?.geometry) continue;
-
-          const distance = route.distance;
-          const routeGeometry: any = route.geometry;
-
-          if (distance <= maxDist) {
-            allOpts.push({
-              stage: "LPU Viável", provider_name: provider.name, provider_color: provider.color,
-              distance_m: Math.round(distance), lpu_value: lpuValue,
-              final_value: Math.round(finalValue * 100) / 100,
-              provider_id: provider.id,
-              route_geometry: routeGeometry,
-              nearest_point: bestNearest.point,
-              notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
-            });
-          }
-        } catch {}
-      }
-
-      // === LM Histórico ===
-      const velMbps = velocidade ? parseFloat(velocidade) : null;
-      if (comprasLM && comprasLM.length > 0 && (velMbps == null || velMbps <= 100)) {
-        const RADIUS_KM = 50;
-        let bestLM: CompraLM | null = null;
-        let bestDist = Infinity;
-        for (const lm of comprasLM) {
-          if (lm.lat == null || lm.lng == null) continue;
-          if (lm.status?.toUpperCase() !== "ATIVO") continue;
-          const dLat = (lm.lat - geo.lat) * 111.32;
-          const dLng = (lm.lng - geo.lng) * 111.32 * Math.cos(geo.lat * Math.PI / 180);
-          const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-          if (dist <= RADIUS_KM && dist < bestDist) {
-            bestDist = dist;
-            bestLM = lm;
-          }
-        }
-        if (bestLM) {
-          allOpts.push({
-            stage: "LM Histórico", provider_name: bestLM.parceiro, provider_color: "#f59e0b",
-            distance_m: Math.round(bestDist * 1000), lpu_value: bestLM.valor_mensal,
-            final_value: bestLM.valor_mensal, provider_id: "lm",
-            notes: `LM Histórico - ${bestLM.parceiro} - ${bestDist.toFixed(1)}km - R$${bestLM.valor_mensal}`,
-          });
-        }
-      }
-
-      // Sort
-      const stageOrder: Record<string, number> = { "Rede Própria": 0, "Cross NTT": 1, "Dentro Cobertura": 2, "LPU Viável": 3, "LM Histórico": 4 };
-      allOpts.sort((a, b) => (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m);
-      setOptions(allOpts);
+      setOptions(wsResult.all_options as SingleSearchOption[]);
 
       // Radius search on LM base
       if (comprasLM) {
@@ -418,7 +210,7 @@ export default function WsSingleSearch() {
         setRadiusResults(filtered);
       }
 
-      if (allOpts.length === 0) {
+      if (wsResult.all_options.length === 0) {
         toast({ title: "Nenhuma opção viável encontrada" });
       }
     } catch (err: any) {
