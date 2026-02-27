@@ -23,9 +23,28 @@ export default function Auth() {
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Redirect is handled by AuthRoute/WsAuthRoute based on actual DB roles
+
+        // If logging in via /auth (admin), check if user has admin role
+        if (!isWsLogin && data.user) {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", data.user.id)
+            .eq("is_active", true);
+
+          const hasAdmin = roles?.some((r: any) => r.role === "admin");
+          if (!hasAdmin) {
+            await supabase.auth.signOut();
+            toast({
+              title: "Acesso negado",
+              description: "Você não tem permissão para acessar o painel administrativo.",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
