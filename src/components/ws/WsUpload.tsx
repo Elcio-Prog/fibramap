@@ -21,11 +21,15 @@ const TARGET_FIELDS = [
   { key: "endereco_a", label: "Endereço (Ponta A)" },
   { key: "cidade_a", label: "Cidade (Ponta A)" },
   { key: "uf_a", label: "UF (Ponta A)" },
+  { key: "cep_a", label: "CEP (Ponta A)" },
+  { key: "numero_a", label: "Número (Ponta A)" },
   { key: "lat_a", label: "Latitude (Ponta A)" },
   { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
   { key: "cidade_b", label: "Cidade (Ponta B)" },
   { key: "uf_b", label: "UF (Ponta B)" },
+  { key: "cep_b", label: "CEP (Ponta B)" },
+  { key: "numero_b", label: "Número (Ponta B)" },
   { key: "lat_b", label: "Latitude (Ponta B)" },
   { key: "lng_b", label: "Longitude (Ponta B)" },
   { key: "prazo_ativacao", label: "Prazo de Ativação" },
@@ -48,11 +52,15 @@ interface ParsedItem {
   endereco_a?: string;
   cidade_a?: string;
   uf_a?: string;
+  cep_a?: string;
+  numero_a?: string;
   lat_a?: number;
   lng_a?: number;
   endereco_b?: string;
   cidade_b?: string;
   uf_b?: string;
+  cep_b?: string;
+  numero_b?: string;
   lat_b?: number;
   lng_b?: number;
   prazo_ativacao?: string;
@@ -206,11 +214,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         endereco_a,
         cidade_a: getValue("cidade_a"),
         uf_a: getValue("uf_a"),
+        cep_a: getValue("cep_a"),
+        numero_a: getValue("numero_a"),
         lat_a: getNumber("lat_a"),
         lng_a: getNumber("lng_a"),
         endereco_b: getValue("endereco_b"),
         cidade_b: getValue("cidade_b"),
         uf_b: getValue("uf_b"),
+        cep_b: getValue("cep_b"),
+        numero_b: getValue("numero_b"),
         lat_b: getNumber("lat_b"),
         lng_b: getNumber("lng_b"),
         prazo_ativacao: getValue("prazo_ativacao"),
@@ -252,11 +264,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           endereco_a: item.endereco_a || null,
           cidade_a: item.cidade_a || null,
           uf_a: item.uf_a || null,
+          cep_a: item.cep_a || null,
+          numero_a: item.numero_a || null,
           lat_a: item.lat_a ?? null,
           lng_a: item.lng_a ?? null,
           endereco_b: item.endereco_b || null,
           cidade_b: item.cidade_b || null,
           uf_b: item.uf_b || null,
+          cep_b: item.cep_b || null,
+          numero_b: item.numero_b || null,
           lat_b: item.lat_b ?? null,
           lng_b: item.lng_b ?? null,
           prazo_ativacao: item.prazo_ativacao || null,

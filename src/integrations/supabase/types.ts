@@ -386,6 +386,8 @@ export type Database = {
       ws_feasibility_items: {
         Row: {
           batch_id: string
+          cep_a: string | null
+          cep_b: string | null
           cidade_a: string | null
           cidade_b: string | null
           cliente: string | null
@@ -402,6 +404,8 @@ export type Database = {
           lat_b: number | null
           lng_a: number | null
           lng_b: number | null
+          numero_a: string | null
+          numero_b: string | null
           prazo_ativacao: string | null
           processing_status: string
           raw_data: Json
@@ -418,6 +422,8 @@ export type Database = {
         }
         Insert: {
           batch_id: string
+          cep_a?: string | null
+          cep_b?: string | null
           cidade_a?: string | null
           cidade_b?: string | null
           cliente?: string | null
@@ -434,6 +440,8 @@ export type Database = {
           lat_b?: number | null
           lng_a?: number | null
           lng_b?: number | null
+          numero_a?: string | null
+          numero_b?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
@@ -450,6 +458,8 @@ export type Database = {
         }
         Update: {
           batch_id?: string
+          cep_a?: string | null
+          cep_b?: string | null
           cidade_a?: string | null
           cidade_b?: string | null
           cliente?: string | null
@@ -466,6 +476,8 @@ export type Database = {
           lat_b?: number | null
           lng_a?: number | null
           lng_b?: number | null
+          numero_a?: string | null
+          numero_b?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
