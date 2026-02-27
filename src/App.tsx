@@ -84,7 +84,7 @@ function WsRoutes() {
 }
 
 function AuthRoute() {
-  const { session, loading } = useAuth();
+  const { session, loading, signOut } = useAuth();
   const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
@@ -97,9 +97,13 @@ function AuthRoute() {
     );
   }
 
-  // Always redirect based on actual DB role, never sessionStorage
+  // ws_user → redirect to WS area
   if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
-  return <Navigate to="/" replace />;
+  // admin → redirect to admin area
+  if (isAdmin) return <Navigate to="/" replace />;
+  // No role at all → sign out and show login
+  signOut();
+  return <Auth />;
 }
 
 function WsAuthRoute() {
