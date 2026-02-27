@@ -46,11 +46,17 @@ export interface WsItemInput {
 export interface ViableOption {
   stage: string;
   provider_name: string;
+  provider_id: string;
+  provider_color: string;
   distance_m: number;
   lpu_value: number | null;
   final_value: number | null;
   notes: string;
   ta_info?: string;
+  route_geometry?: any;
+  nearest_point?: [number, number];
+  is_own_network?: boolean;
+  has_cross_ntt?: boolean;
 }
 
 export interface WsResult {
@@ -184,11 +190,15 @@ async function processItem(
         allOptions.push({
           stage: "Rede Própria",
           provider_name: netTurboProvider.name,
+          provider_id: netTurboProvider.id,
+          provider_color: netTurboProvider.color,
           distance_m: 0,
           lpu_value: null,
           final_value: null,
           notes: `Dentro da cobertura NTT. ${taNote}`,
           ta_info: taNote,
+          nearest_point: cp?.point,
+          is_own_network: true,
         });
       } else {
         // Tentar por rota
@@ -227,11 +237,28 @@ async function processItem(
             allOptions.push({
               stage: "Rede Própria",
               provider_name: netTurboProvider.name,
+              provider_id: netTurboProvider.id,
+              provider_color: netTurboProvider.color,
               distance_m: Math.round(cpByRoute.routeDistance),
               lpu_value: null,
               final_value: null,
               notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
               ta_info: taNote,
+              nearest_point: cpByRoute.taResult.point,
+              route_geometry: cpByRoute.routeGeometry,
+              is_own_network: true,
+            });
+          } else if (lastBlockedMsg) {
+            allOptions.push({
+              stage: "Rede Própria",
+              provider_name: netTurboProvider.name,
+              provider_id: netTurboProvider.id,
+              provider_color: netTurboProvider.color,
+              distance_m: netTurboProvider.max_lpu_distance_m,
+              lpu_value: null,
+              final_value: null,
+              notes: `Rede própria próxima, mas bloqueada por regra técnica: ${lastBlockedMsg}`,
+              is_own_network: true,
             });
           }
         } catch (err) {
@@ -260,10 +287,13 @@ async function processItem(
       allOptions.push({
         stage,
         provider_name: provider.name,
+        provider_id: provider.id,
+        provider_color: provider.color,
         distance_m: 0,
         lpu_value: lpuValue,
         final_value: Math.round(finalValue * 100) / 100,
         notes: `${stage} - ${provider.name}`,
+        has_cross_ntt: provider.has_cross_ntt,
       });
       continue;
     }
@@ -275,19 +305,28 @@ async function processItem(
       const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
       let distance = bestNearest.distance;
+      let routeGeometry: any = null;
       try {
         const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
-        if (route) distance = route.distance;
+        if (route) {
+          distance = route.distance;
+          routeGeometry = route.geometry;
+        }
       } catch {}
 
       if (distance <= maxDist) {
         allOptions.push({
           stage: "LPU Viável",
           provider_name: provider.name,
+          provider_id: provider.id,
+          provider_color: provider.color,
           distance_m: Math.round(distance),
           lpu_value: lpuValue,
           final_value: Math.round(finalValue * 100) / 100,
           notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
+          nearest_point: bestNearest.point,
+          route_geometry: routeGeometry,
+          has_cross_ntt: provider.has_cross_ntt,
         });
       }
     } catch {
@@ -317,6 +356,8 @@ async function processItem(
       allOptions.push({
         stage: "LM Histórico",
         provider_name: bestLM.parceiro,
+        provider_id: "lm",
+        provider_color: "#f59e0b",
         distance_m: Math.round(bestDist * 1000),
         lpu_value: bestLM.valor_mensal,
         final_value: bestLM.valor_mensal,
@@ -463,6 +504,23 @@ export async function processWsBatch(
   }
 
   return results;
+}
+
+export async function processWsSingleItem(
+  item: WsItemInput,
+  geo: { lat: number | null; lng: number | null; source: "coordenada" | "endereco" | "nao_encontrado" },
+  providers: Provider[],
+  geoElements: GeoElement[],
+  lpuItems: LpuItem[],
+  comprasLM: CompraLM[],
+): Promise<WsResult> {
+  const elementsByProvider: Record<string, GeoElement[]> = {};
+  for (const el of geoElements) {
+    if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
+    elementsByProvider[el.provider_id].push(el);
+  }
+
+  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
 }
 
 /** Helper to process a single item with resolved geo */
