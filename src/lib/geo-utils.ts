@@ -346,11 +346,12 @@ export async function findBestConnectionPointByRoute(
   // route distances for the top few apt candidates
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
   
-  // Among pre-filtered, pick top 3 apt candidates to compute routes for
-  // This dramatically reduces OSRM + Overpass API calls
-  const ROUTE_CALC_LIMIT = 3;
+  // Among pre-filtered, pick top apt candidates to compute routes for
+  // Use a generous limit so that if early candidates are blocked by route filters
+  // (CPFL, highway/railway), the system continues trying further candidates
+  const ROUTE_CALC_LIMIT = 10;
   const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
-  // If no apt candidates, fall back to top 3 overall
+  // If no apt candidates, fall back to top candidates overall
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
   let best:
