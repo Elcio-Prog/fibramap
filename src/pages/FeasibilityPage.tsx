@@ -16,7 +16,9 @@ import {
   haversineDistance,
   closedLineToPolygon,
   routeCrossesCPFL,
-  checkRouteHighwayRailway,
+  checkRouteHighwayRailwayWithCache,
+  prefetchHighwaysForArea,
+  extractNttCables,
   evaluateConnectionAptness,
   type TAResult,
   type ProviderRules,
@@ -277,6 +279,12 @@ export default function FeasibilityPage() {
 
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
+          // Pre-fetch highways/railways ONCE for the customer area
+          const [cachedWays, nttCables] = await Promise.all([
+            prefetchHighwaysForArea(geo.lat, geo.lng, maxDist + 1000),
+            Promise.resolve(extractNttCables(elMapped)),
+          ]);
+
           if (insideNT) {
             const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, providerRules);
             if (cp) { taResult = cp; nearestPt = cp.point; }
@@ -302,7 +310,7 @@ export default function FeasibilityPage() {
                 }
 
                 if (route.geometry) {
-                  const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                  const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
                   if (hwCheck.blocked) {
                     lastBlocked = { type: "highway", message: hwCheck.message };
                     return false;
@@ -337,9 +345,9 @@ export default function FeasibilityPage() {
                 if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; }
                 else return null;
               } catch { return null; }
-              // Also check highway/railway for fallback route
+              // Also check highway/railway for fallback route using cached data
               if (routeGeometry) {
-                const hwCheck = await checkRouteHighwayRailway(routeGeometry, elMapped);
+                const hwCheck = checkRouteHighwayRailwayWithCache(routeGeometry, cachedWays, nttCables);
                 if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; }
               }
               isViableNT = !highwayBlocked && distance <= maxDist;
