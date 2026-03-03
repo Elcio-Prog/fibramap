@@ -13,9 +13,12 @@ import {
   isInsideCoverage,
   findNearestBoundaryPoint,
   routeCrossesCPFL,
-  checkRouteHighwayRailway,
+  checkRouteHighwayRailwayWithCache,
+  prefetchHighwaysForArea,
+  extractNttCables,
   type TAResult,
   type ProviderRules,
+  type OverpassWay,
 } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,6 +216,12 @@ async function processItem(
       const inside = isInsideCoverage(lat, lng, elements);
       const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
+      // Pre-fetch highways/railways ONCE for the customer area to avoid Overpass rate limiting
+      const [cachedWays, nttCables] = await Promise.all([
+        prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000),
+        Promise.resolve(extractNttCables(elMapped)),
+      ]);
+
       if (inside) {
         const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
         const taNote = cp ? `${cp.tipo}: ${cp.nome} | ${cp.aptoNovoCliente ? "Apto" : "Não apto"}` : "";
@@ -250,7 +259,7 @@ async function processItem(
               }
 
               if (route.geometry) {
-                const hwCheck = await checkRouteHighwayRailway(route.geometry, elMapped);
+                const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
                 if (hwCheck.blocked) {
                   lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
                   return false;

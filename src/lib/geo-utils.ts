@@ -1249,3 +1249,30 @@ export async function checkRouteHighwayRailway(
   if (ways.length === 0) return { blocked: false };
   return routeCrossesHighwayOrRailway(routeGeometry, ways, cables);
 }
+
+/** Check highway/railway crossing using PRE-FETCHED Overpass data (avoids rate limiting) */
+export function checkRouteHighwayRailwayWithCache(
+  routeGeometry: any,
+  cachedWays: OverpassWay[],
+  nttCables: Array<{ coords: number[][] }>
+): HighwayRailwayCheckResult {
+  if (!routeGeometry || cachedWays.length === 0) return { blocked: false };
+  return routeCrossesHighwayOrRailway(routeGeometry, cachedWays, nttCables);
+}
+
+/**
+ * Pre-fetch highways/railways for a broad area around a customer location.
+ * Call this ONCE before iterating candidates to avoid Overpass rate limiting.
+ */
+export async function prefetchHighwaysForArea(
+  lat: number,
+  lng: number,
+  radiusM: number = 5000
+): Promise<OverpassWay[]> {
+  const padDeg = radiusM / 111320;
+  const lngPad = radiusM / (111320 * Math.cos(lat * Math.PI / 180));
+  return fetchHighwaysAndRailways(lat - padDeg, lng - lngPad, lat + padDeg, lng + lngPad);
+}
+
+/** Export OverpassWay type for external use */
+export type { OverpassWay };
