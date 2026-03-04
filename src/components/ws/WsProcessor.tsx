@@ -130,7 +130,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
       geo_source: row.processing_status === "geo_failed" ? "nao_encontrado" : row.lat_a != null ? "coordenada" : "nao_encontrado",
       stage: row.result_stage,
       provider_name: row.result_provider,
-      distance_m: null,
+      distance_m: row.result_distance_m ?? null,
       lpu_value: null,
       final_value: row.result_value,
       is_viable: row.is_viable ?? false,
@@ -349,6 +349,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         "Qtd Opções": r.all_options.filter(o => !o.is_blocked).length,
         "Melhor Etapa": r.stage || "—",
         "Melhor Provedor": r.provider_name || "—",
+        "Distância NTT (m)": r.stage === "Rede Própria" && r.distance_m != null ? r.distance_m : "",
         "Distância (m)": r.distance_m ?? "",
         "Valor LPU": r.lpu_value ?? "",
         "Valor Final": r.final_value ?? "",
@@ -546,15 +547,17 @@ export default function WsProcessor({ batchId, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">Geo</th>
                     <th className="px-2 py-1.5 text-left">Viável</th>
                     <th className="px-2 py-1.5 text-left">Melhor Etapa</th>
-                    <th className="px-2 py-1.5 text-left">Provedor</th>
-                    <th className="px-2 py-1.5 text-left">Valor</th>
+                     <th className="px-2 py-1.5 text-left">Provedor</th>
+                     <th className="px-2 py-1.5 text-left min-w-[200px]">Obs. Usuário</th>
+                     <th className="px-2 py-1.5 text-left">Distância</th>
+                     <th className="px-2 py-1.5 text-left">Valor</th>
                     <th className="px-2 py-1.5 text-left">Vigência</th>
                     <th className="px-2 py-1.5 text-left">Taxa Inst.</th>
                     <th className="px-2 py-1.5 text-left">Bloco IP</th>
                     <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
                     <th className="px-2 py-1.5 text-left">Vlr Venda</th>
                     <th className="px-2 py-1.5 text-left">Cód. Smark</th>
-                    <th className="px-2 py-1.5 text-left min-w-[200px]">Observações</th>
+                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -579,31 +582,33 @@ export default function WsProcessor({ batchId, onReset }: Props) {
                           )}
                         </td>
                         <td className="px-2 py-1 whitespace-nowrap">{r.stage || "—"}</td>
-                        <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
-                        <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
+                         <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
+                         <td className="px-2 py-1 min-w-[200px]">
+                           <div className="relative">
+                             <Textarea
+                               className="text-[10px] min-h-[40px] h-10 resize-y"
+                               value={editingObs[r.item.id] ?? ""}
+                               onChange={(e) => handleObsChange(r.item.id, e.target.value)}
+                               placeholder="Observação do usuário..."
+                             />
+                             {savingObs[r.item.id] && (
+                               <Save className="absolute top-1 right-1 h-3 w-3 text-muted-foreground animate-pulse" />
+                             )}
+                           </div>
+                         </td>
+                         <td className="px-2 py-1 whitespace-nowrap">
+                           {r.stage === "Rede Própria" && r.distance_m != null ? `${r.distance_m}m` : "—"}
+                         </td>
+                         <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
                         <td className="px-2 py-1">{dbRow?.vigencia || "—"}</td>
                         <td className="px-2 py-1">{dbRow?.taxa_instalacao != null ? `R$${dbRow.taxa_instalacao}` : "—"}</td>
                         <td className="px-2 py-1">{dbRow?.bloco_ip || "—"}</td>
                         <td className="px-2 py-1">{dbRow?.tipo_solicitacao || "—"}</td>
                         <td className="px-2 py-1">{dbRow?.valor_a_ser_vendido != null ? `R$${dbRow.valor_a_ser_vendido}` : "—"}</td>
                         <td className="px-2 py-1">{dbRow?.codigo_smark || "—"}</td>
-                        <td className="px-2 py-1 min-w-[200px]">
-                          {!processing ? (
-                            <div className="relative">
-                              <Textarea
-                                className="text-[10px] min-h-[40px] h-10 resize-y"
-                                value={editingObs[r.item.id] ?? ""}
-                                onChange={(e) => handleObsChange(r.item.id, e.target.value)}
-                                placeholder="Observações..."
-                              />
-                              {savingObs[r.item.id] && (
-                                <Save className="absolute top-1 right-1 h-3 w-3 text-muted-foreground animate-pulse" />
-                              )}
-                            </div>
-                          ) : (
-                            <span className="truncate">{r.notes || "—"}</span>
-                          )}
-                        </td>
+                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
+                           {dbRow?.observacoes_system || r.notes || "—"}
+                         </td>
                       </tr>
                     );
                   })}

@@ -478,6 +478,7 @@ async function saveItemResult(result: WsResult): Promise<void> {
       result_stage: result.stage,
       result_provider: result.provider_name,
       result_value: result.final_value,
+      result_distance_m: result.distance_m,
       result_notes: notes,
       is_viable: result.is_viable,
       observacoes_system: notes,

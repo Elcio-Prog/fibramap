@@ -443,6 +443,7 @@ export type Database = {
           prazo_ativacao: string | null
           processing_status: string
           raw_data: Json
+          result_distance_m: number | null
           result_notes: string | null
           result_provider: string | null
           result_stage: string | null
@@ -491,6 +492,7 @@ export type Database = {
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
+          result_distance_m?: number | null
           result_notes?: string | null
           result_provider?: string | null
           result_stage?: string | null
@@ -539,6 +541,7 @@ export type Database = {
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
+          result_distance_m?: number | null
           result_notes?: string | null
           result_provider?: string | null
           result_stage?: string | null
