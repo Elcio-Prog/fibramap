@@ -1,0 +1,1 @@
+ALTER TABLE public.ws_feasibility_items ADD COLUMN IF NOT EXISTS result_distance_m numeric;
