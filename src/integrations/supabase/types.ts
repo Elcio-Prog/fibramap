@@ -359,45 +359,73 @@ export type Database = {
       ws_batches: {
         Row: {
           created_at: string
+          failed_items: number
           file_name: string
           id: string
+          parent_batch_id: string | null
           processed_at: string | null
+          processed_items: number
           status: string
+          title: string | null
           total_items: number
           user_id: string
+          version_number: number
         }
         Insert: {
           created_at?: string
+          failed_items?: number
           file_name: string
           id?: string
+          parent_batch_id?: string | null
           processed_at?: string | null
+          processed_items?: number
           status?: string
+          title?: string | null
           total_items?: number
           user_id: string
+          version_number?: number
         }
         Update: {
           created_at?: string
+          failed_items?: number
           file_name?: string
           id?: string
+          parent_batch_id?: string | null
           processed_at?: string | null
+          processed_items?: number
           status?: string
+          title?: string | null
           total_items?: number
           user_id?: string
+          version_number?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ws_batches_parent_batch_id_fkey"
+            columns: ["parent_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ws_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ws_feasibility_items: {
         Row: {
+          attempt_count: number
           batch_id: string
+          bloco_ip: string | null
           cep_a: string | null
           cep_b: string | null
           cidade_a: string | null
           cidade_b: string | null
           cliente: string | null
+          cnpj_cliente: string | null
+          codigo_smark: string | null
           created_at: string
           designacao: string | null
           endereco_a: string | null
           endereco_b: string | null
+          error_message: string | null
           id: string
           is_l2l: boolean
           is_viable: boolean | null
@@ -409,6 +437,9 @@ export type Database = {
           lng_b: number | null
           numero_a: string | null
           numero_b: string | null
+          observacoes_system: string | null
+          observacoes_user: string | null
+          observacoes_user_updated_at: string | null
           prazo_ativacao: string | null
           processing_status: string
           raw_data: Json
@@ -417,23 +448,32 @@ export type Database = {
           result_stage: string | null
           result_value: number | null
           row_number: number
+          taxa_instalacao: number | null
           tipo_link: string | null
+          tipo_solicitacao: string | null
           uf_a: string | null
           uf_b: string | null
+          valor_a_ser_vendido: number | null
           velocidade_mbps: number | null
           velocidade_original: string | null
+          vigencia: string | null
         }
         Insert: {
+          attempt_count?: number
           batch_id: string
+          bloco_ip?: string | null
           cep_a?: string | null
           cep_b?: string | null
           cidade_a?: string | null
           cidade_b?: string | null
           cliente?: string | null
+          cnpj_cliente?: string | null
+          codigo_smark?: string | null
           created_at?: string
           designacao?: string | null
           endereco_a?: string | null
           endereco_b?: string | null
+          error_message?: string | null
           id?: string
           is_l2l?: boolean
           is_viable?: boolean | null
@@ -445,6 +485,9 @@ export type Database = {
           lng_b?: number | null
           numero_a?: string | null
           numero_b?: string | null
+          observacoes_system?: string | null
+          observacoes_user?: string | null
+          observacoes_user_updated_at?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
@@ -453,23 +496,32 @@ export type Database = {
           result_stage?: string | null
           result_value?: number | null
           row_number: number
+          taxa_instalacao?: number | null
           tipo_link?: string | null
+          tipo_solicitacao?: string | null
           uf_a?: string | null
           uf_b?: string | null
+          valor_a_ser_vendido?: number | null
           velocidade_mbps?: number | null
           velocidade_original?: string | null
+          vigencia?: string | null
         }
         Update: {
+          attempt_count?: number
           batch_id?: string
+          bloco_ip?: string | null
           cep_a?: string | null
           cep_b?: string | null
           cidade_a?: string | null
           cidade_b?: string | null
           cliente?: string | null
+          cnpj_cliente?: string | null
+          codigo_smark?: string | null
           created_at?: string
           designacao?: string | null
           endereco_a?: string | null
           endereco_b?: string | null
+          error_message?: string | null
           id?: string
           is_l2l?: boolean
           is_viable?: boolean | null
@@ -481,6 +533,9 @@ export type Database = {
           lng_b?: number | null
           numero_a?: string | null
           numero_b?: string | null
+          observacoes_system?: string | null
+          observacoes_user?: string | null
+          observacoes_user_updated_at?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
           raw_data?: Json
@@ -489,11 +544,15 @@ export type Database = {
           result_stage?: string | null
           result_value?: number | null
           row_number?: number
+          taxa_instalacao?: number | null
           tipo_link?: string | null
+          tipo_solicitacao?: string | null
           uf_a?: string | null
           uf_b?: string | null
+          valor_a_ser_vendido?: number | null
           velocidade_mbps?: number | null
           velocidade_original?: string | null
+          vigencia?: string | null
         }
         Relationships: [
           {

@@ -2,11 +2,12 @@ import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { LogOut, Wifi, Upload, Search } from "lucide-react";
+import { LogOut, Wifi, Upload, Search, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const wsLinks = [
   { to: "/ws", label: "Upload em Lote", icon: Upload, end: true },
+  { to: "/ws/searches", label: "Minhas Buscas", icon: List },
   { to: "/ws/single", label: "Busca Unitária", icon: Search },
 ];
 
