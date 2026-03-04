@@ -33,6 +33,13 @@ const TARGET_FIELDS = [
   { key: "lat_b", label: "Latitude (Ponta B)" },
   { key: "lng_b", label: "Longitude (Ponta B)" },
   { key: "prazo_ativacao", label: "Prazo de Ativação" },
+  { key: "vigencia", label: "Vigência" },
+  { key: "taxa_instalacao", label: "Taxa de Instalação" },
+  { key: "bloco_ip", label: "Bloco IP" },
+  { key: "cnpj_cliente", label: "CNPJ Cliente" },
+  { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
+  { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
+  { key: "codigo_smark", label: "Código Smark" },
 ] as const;
 
 type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
@@ -64,6 +71,13 @@ interface ParsedItem {
   lat_b?: number;
   lng_b?: number;
   prazo_ativacao?: string;
+  vigencia?: string;
+  taxa_instalacao?: number;
+  bloco_ip?: string;
+  cnpj_cliente?: string;
+  tipo_solicitacao?: string;
+  valor_a_ser_vendido?: number;
+  codigo_smark?: string;
   raw_data: Record<string, any>;
 }
 
@@ -226,6 +240,13 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         lat_b: getNumber("lat_b"),
         lng_b: getNumber("lng_b"),
         prazo_ativacao: getValue("prazo_ativacao"),
+        vigencia: getValue("vigencia"),
+        taxa_instalacao: getNumber("taxa_instalacao"),
+        bloco_ip: getValue("bloco_ip"),
+        cnpj_cliente: getValue("cnpj_cliente"),
+        tipo_solicitacao: getValue("tipo_solicitacao"),
+        valor_a_ser_vendido: getNumber("valor_a_ser_vendido"),
+        codigo_smark: getValue("codigo_smark"),
         raw_data: raw,
       });
     }
@@ -276,6 +297,13 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           lat_b: item.lat_b ?? null,
           lng_b: item.lng_b ?? null,
           prazo_ativacao: item.prazo_ativacao || null,
+          vigencia: item.vigencia || null,
+          taxa_instalacao: item.taxa_instalacao ?? null,
+          bloco_ip: item.bloco_ip || null,
+          cnpj_cliente: item.cnpj_cliente || null,
+          tipo_solicitacao: item.tipo_solicitacao || null,
+          valor_a_ser_vendido: item.valor_a_ser_vendido ?? null,
+          codigo_smark: item.codigo_smark || null,
           raw_data: item.raw_data,
         }));
 

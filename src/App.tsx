@@ -16,6 +16,8 @@ import HistoryPage from "@/pages/HistoryPage";
 import BaseLMPage from "@/pages/BaseLMPage";
 import WsUsersPage from "@/pages/WsUsersPage";
 import WsUploadPage from "@/pages/WsUploadPage";
+import WsSearchesPage from "@/pages/WsSearchesPage";
+import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -76,6 +78,8 @@ function WsRoutes() {
     <WsLayout>
       <Routes>
         <Route path="/" element={<WsUploadPage />} />
+        <Route path="/searches" element={<WsSearchesPage />} />
+        <Route path="/batch/:batchId" element={<WsBatchDetailPage />} />
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

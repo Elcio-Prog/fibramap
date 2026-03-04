@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements } from "@/hooks/useGeoElements";
@@ -11,11 +13,21 @@ import { useLpuItems } from "@/hooks/useLpuItems";
 import { useComprasLM } from "@/hooks/useComprasLM";
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress } from "@/lib/ws-feasibility-engine";
-import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw } from "lucide-react";
+import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   batchId: string;
   onReset?: () => void;
+}
+
+/** Debounce helper for auto-save */
+function useDebounce(fn: (...args: any[]) => void, ms: number) {
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  return useCallback((...args: any[]) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fn(...args), ms);
+  }, [fn, ms]);
 }
 
 export default function WsProcessor({ batchId, onReset }: Props) {
@@ -26,7 +38,13 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const [totalItems, setTotalItems] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "viable" | "not_viable" | "pending" | "failed">("all");
+  const [editingObs, setEditingObs] = useState<Record<string, string>>({});
+  const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const cancelRef = useRef(false);
+
+  // Raw DB rows for observações tracking
+  const [dbRows, setDbRows] = useState<Record<string, any>>({});
 
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
@@ -36,7 +54,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
 
   const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM;
 
-  // On mount, check batch status and load any existing results
   useEffect(() => {
     loadBatchState();
   }, [batchId]);
@@ -44,7 +61,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const loadBatchState = async () => {
     setLoading(true);
     try {
-      // Get batch info
       const { data: batch } = await supabase
         .from("ws_batches")
         .select("status, total_items")
@@ -56,7 +72,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         setTotalItems(batch.total_items);
       }
 
-      // Count already processed items
       const { count: doneCount } = await supabase
         .from("ws_feasibility_items")
         .select("id", { count: "exact", head: true })
@@ -65,7 +80,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
 
       setProcessedCount(doneCount || 0);
 
-      // If batch is fully processed, load all results for display
       if (batch?.status === "processed") {
         await loadResults();
       }
@@ -97,29 +111,20 @@ export default function WsProcessor({ batchId, onReset }: Props) {
       }
     }
 
+    // Store raw rows for observações tracking
+    const rowMap: Record<string, any> = {};
+    allItems.forEach(r => { rowMap[r.id] = r; });
+    setDbRows(rowMap);
+
+    // Initialize editing obs from user observations
+    const obsMap: Record<string, string> = {};
+    allItems.forEach(r => {
+      obsMap[r.id] = r.observacoes_user || r.observacoes_system || r.result_notes || "";
+    });
+    setEditingObs(obsMap);
+
     const mapped: WsResult[] = allItems.map((row) => ({
-      item: {
-        id: row.id,
-        designacao: row.designacao,
-        cliente: row.cliente,
-        tipo_link: row.tipo_link,
-        velocidade_mbps: row.velocidade_mbps,
-        endereco_a: row.endereco_a,
-        cidade_a: row.cidade_a,
-        uf_a: row.uf_a,
-        lat_a: row.lat_a,
-        lng_a: row.lng_a,
-        endereco_b: row.endereco_b,
-        cidade_b: row.cidade_b,
-        uf_b: row.uf_b,
-        lat_b: row.lat_b,
-        lng_b: row.lng_b,
-        prazo_ativacao: row.prazo_ativacao,
-        is_l2l: row.is_l2l || false,
-        l2l_suffix: row.l2l_suffix,
-        l2l_pair_id: row.l2l_pair_id,
-        row_number: row.row_number,
-      },
+      item: mapRowToInput(row),
       geo_lat: row.lat_a,
       geo_lng: row.lng_a,
       geo_source: row.processing_status === "geo_failed" ? "nao_encontrado" : row.lat_a != null ? "coordenada" : "nao_encontrado",
@@ -136,6 +141,30 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     setResults(mapped);
   };
 
+  const saveObservacao = useCallback(async (itemId: string, text: string) => {
+    setSavingObs(prev => ({ ...prev, [itemId]: true }));
+    try {
+      await supabase
+        .from("ws_feasibility_items")
+        .update({
+          observacoes_user: text,
+          observacoes_user_updated_at: new Date().toISOString(),
+        })
+        .eq("id", itemId);
+    } catch {
+      // silent
+    } finally {
+      setSavingObs(prev => ({ ...prev, [itemId]: false }));
+    }
+  }, []);
+
+  const debouncedSave = useDebounce(saveObservacao, 1500);
+
+  const handleObsChange = (itemId: string, text: string) => {
+    setEditingObs(prev => ({ ...prev, [itemId]: text }));
+    debouncedSave(itemId, text);
+  };
+
   const startProcessing = async (resume = false) => {
     if (!providers?.length) {
       toast({ title: "Cadastre ao menos um provedor antes de processar", variant: "destructive" });
@@ -145,12 +174,9 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     cancelRef.current = false;
     setProcessing(true);
     if (!resume) setResults(null);
-    
-    // Show progress immediately so user knows it started
     setProgress({ current: 0, total: totalItems || 1, currentItem: "Preparando dados..." });
 
     try {
-      // Fetch all batch items
       const allItems: any[] = [];
       let offset = 0;
       const batchSize = 1000;
@@ -178,7 +204,6 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         return;
       }
 
-      // Find first unprocessed item index
       let startIndex = 0;
       const previousResults: WsResult[] = [];
 
@@ -206,14 +231,15 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         }
       }
 
-      // Update batch status to processing
       await supabase.from("ws_batches").update({ status: "processing" }).eq("id", batchId);
       setBatchStatus("processing");
 
       const wsItems: WsItemInput[] = allItems.map(mapRowToInput);
-
       const accumulated = [...previousResults];
       setResults(accumulated.length > 0 ? [...accumulated] : null);
+
+      let processedSoFar = accumulated.length;
+      let failedSoFar = 0;
 
       const batchResults = await processWsBatch(
         wsItems,
@@ -225,6 +251,8 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         (result, _index) => {
           accumulated.push(result);
           setResults([...accumulated]);
+          processedSoFar = accumulated.length;
+          if (!result.is_viable && result.geo_source !== "nao_encontrado") failedSoFar++;
           setProcessedCount(accumulated.length);
         },
         startIndex,
@@ -233,13 +261,21 @@ export default function WsProcessor({ batchId, onReset }: Props) {
       const allResults = [...previousResults, ...batchResults];
       setResults(allResults);
 
-      // Update batch status
-      await supabase.from("ws_batches").update({ status: "processed", processed_at: new Date().toISOString() }).eq("id", batchId);
+      // Update batch counters
+      const totalFailed = allResults.filter(r => !r.is_viable && r.geo_source !== "nao_encontrado").length;
+      await supabase.from("ws_batches").update({
+        status: "processed",
+        processed_at: new Date().toISOString(),
+        processed_items: allResults.length,
+        failed_items: totalFailed,
+      }).eq("id", batchId);
       setBatchStatus("processed");
 
       toast({ title: `Processamento concluído — ${allResults.length} itens` });
+
+      // Reload to get observacoes
+      await loadResults();
     } catch (err: any) {
-      // Even on error, progress is saved in DB
       toast({ title: "Erro no processamento", description: err.message, variant: "destructive" });
       await supabase.from("ws_batches").update({ status: "paused" }).eq("id", batchId);
       setBatchStatus("paused");
@@ -278,11 +314,11 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const exportToExcel = () => {
     if (!results) return;
 
-    // Find max number of options across all results
     const maxOptions = results.reduce((max, r) => Math.max(max, r.all_options.length), 0);
 
     const rows: Record<string, any>[] = [];
     for (const r of results) {
+      const dbRow = dbRows[r.item.id];
       const row: Record<string, any> = {
         "Linha": r.item.row_number,
         "Designação": r.item.designacao || "",
@@ -301,6 +337,13 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         "Lat B": r.item.lat_b ?? "",
         "Lng B": r.item.lng_b ?? "",
         "Prazo Ativação": r.item.prazo_ativacao || "",
+        "Vigência": dbRow?.vigencia || "",
+        "Taxa de Instalação": dbRow?.taxa_instalacao ?? "",
+        "Bloco IP": dbRow?.bloco_ip || "",
+        "CNPJ Cliente": dbRow?.cnpj_cliente || "",
+        "Tipo de Solicitação": dbRow?.tipo_solicitacao || "",
+        "Valor a ser Vendido": dbRow?.valor_a_ser_vendido ?? "",
+        "Código Smark": dbRow?.codigo_smark || "",
         "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "cep" ? "CEP" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
         "Viável": r.is_viable ? "SIM" : "NÃO",
         "Qtd Opções": r.all_options.filter(o => !o.is_blocked).length,
@@ -310,10 +353,10 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         "Valor LPU": r.lpu_value ?? "",
         "Valor Final": r.final_value ?? "",
         "TA/CE": r.ta_info || "",
-        "Observações": r.notes,
+        "Observações (Sistema)": dbRow?.observacoes_system || r.notes || "",
+        "Observações (Usuário)": editingObs[r.item.id] || "",
       };
 
-      // Add each option as separate columns
       for (let i = 0; i < maxOptions; i++) {
         const o = r.all_options[i];
         const prefix = `Opção ${i + 1}`;
@@ -351,6 +394,16 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     XLSX.writeFile(wb, `resultado_ws_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  // Filtered results
+  const filteredResults = results?.filter(r => {
+    if (filter === "all") return true;
+    if (filter === "viable") return r.is_viable;
+    if (filter === "not_viable") return !r.is_viable;
+    if (filter === "pending") return r.geo_source === "nao_encontrado";
+    if (filter === "failed") return !r.is_viable && r.geo_source !== "nao_encontrado";
+    return true;
+  });
+
   const viableCount = results?.filter((r) => r.is_viable).length ?? 0;
   const notViableCount = results?.filter((r) => !r.is_viable).length ?? 0;
   const geoFailCount = results?.filter((r) => r.geo_source === "nao_encontrado").length ?? 0;
@@ -361,7 +414,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     stageGroups[key] = (stageGroups[key] || 0) + 1;
   });
 
-  const canResume = (batchStatus === "processing" || batchStatus === "paused") && processedCount > 0 && processedCount < totalItems;
+  const canResume = (batchStatus === "processing" || batchStatus === "paused" || batchStatus === "uploaded") && processedCount < totalItems;
   const isComplete = batchStatus === "processed";
 
   if (loading) {
@@ -430,10 +483,11 @@ export default function WsProcessor({ batchId, onReset }: Props) {
         )}
 
         {/* Results (shown during processing and after) */}
-        {results && results.length > 0 && (
+        {filteredResults && filteredResults.length > 0 && (
           <div className="space-y-4">
+            {/* Summary badges */}
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">{results.length} itens</Badge>
+              <Badge variant="secondary">{results?.length} itens</Badge>
               <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Viáveis: {viableCount}
               </Badge>
@@ -447,6 +501,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               )}
             </div>
 
+            {/* Stage groups */}
             <div className="flex flex-wrap gap-2">
               {Object.entries(stageGroups).map(([stage, count]) => (
                 <Badge key={stage} variant="outline" className="text-xs">
@@ -455,65 +510,103 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               ))}
             </div>
 
-            <div className="overflow-x-auto max-h-[500px] border rounded-md">
+            {/* Filter */}
+            {!processing && (
+              <div className="flex items-center gap-2">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+                  <SelectTrigger className="h-8 w-40 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="viable">Viáveis</SelectItem>
+                    <SelectItem value="not_viable">Inviáveis</SelectItem>
+                    <SelectItem value="pending">Geo falhou</SelectItem>
+                    <SelectItem value="failed">Falhas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">
+                  {filteredResults.length} de {results?.length}
+                </span>
+              </div>
+            )}
+
+            {/* Results table */}
+            <div className="overflow-x-auto max-h-[600px] border rounded-md">
               <table className="text-xs w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Designação</th>
                     <th className="px-2 py-1.5 text-left">Cliente</th>
+                    <th className="px-2 py-1.5 text-left">CNPJ</th>
                     <th className="px-2 py-1.5 text-left">Vel.</th>
                     <th className="px-2 py-1.5 text-left">Endereço</th>
                     <th className="px-2 py-1.5 text-left">Geo</th>
                     <th className="px-2 py-1.5 text-left">Viável</th>
-                    <th className="px-2 py-1.5 text-left">Opções</th>
                     <th className="px-2 py-1.5 text-left">Melhor Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
-                    <th className="px-2 py-1.5 text-left">Dist.</th>
                     <th className="px-2 py-1.5 text-left">Valor</th>
-                    <th className="px-2 py-1.5 text-left">Todas Opções</th>
+                    <th className="px-2 py-1.5 text-left">Vigência</th>
+                    <th className="px-2 py-1.5 text-left">Taxa Inst.</th>
+                    <th className="px-2 py-1.5 text-left">Bloco IP</th>
+                    <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
+                    <th className="px-2 py-1.5 text-left">Vlr Venda</th>
+                    <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+                    <th className="px-2 py-1.5 text-left min-w-[200px]">Observações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.map((r, i) => (
-                    <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
-                      <td className="px-2 py-1">{r.item.row_number}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
-                      <td className="px-2 py-1">{r.item.velocidade_mbps ?? "—"}</td>
-                      <td className="px-2 py-1 max-w-[160px] truncate">{r.item.endereco_a || "—"}</td>
-                      <td className="px-2 py-1">
-                        {r.geo_source === "coordenada" ? "📍" : r.geo_source === "endereco" ? "🔍" : "❌"}
-                      </td>
-                      <td className="px-2 py-1">
-                        {r.is_viable ? (
-                          <Badge className="text-[10px] px-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">SIM</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] px-1 text-destructive">NÃO</Badge>
-                        )}
-                      </td>
-                      <td className="px-2 py-1">
-                        {r.all_options.length > 0 ? (
-                          <Badge variant="outline" className="text-[10px] px-1">{r.all_options.length}</Badge>
-                        ) : "—"}
-                      </td>
-                      <td className="px-2 py-1 whitespace-nowrap">{r.stage || "—"}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
-                      <td className="px-2 py-1">{r.distance_m != null ? `${r.distance_m}m` : "—"}</td>
-                      <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
-                      <td className="px-2 py-1 max-w-[250px] text-[10px]">
-                        {r.all_options.length > 1 ? (
-                          r.all_options.map((o, oi) => (
-                            <div key={oi} className={oi === 0 ? "font-semibold" : "text-muted-foreground"}>
-                              {o.stage}/{o.provider_name} {o.distance_m}m {o.final_value != null ? `R$${o.final_value}` : ""}
+                  {filteredResults.map((r, i) => {
+                    const dbRow = dbRows[r.item.id];
+                    return (
+                      <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
+                        <td className="px-2 py-1">{r.item.row_number}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{dbRow?.cnpj_cliente || "—"}</td>
+                        <td className="px-2 py-1">{r.item.velocidade_mbps ?? "—"}</td>
+                        <td className="px-2 py-1 max-w-[160px] truncate">{r.item.endereco_a || "—"}</td>
+                        <td className="px-2 py-1">
+                          {r.geo_source === "coordenada" ? "📍" : r.geo_source === "endereco" ? "🔍" : "❌"}
+                        </td>
+                        <td className="px-2 py-1">
+                          {r.is_viable ? (
+                            <Badge className="text-[10px] px-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">SIM</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1 text-destructive">NÃO</Badge>
+                          )}
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">{r.stage || "—"}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
+                        <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.vigencia || "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.taxa_instalacao != null ? `R$${dbRow.taxa_instalacao}` : "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.bloco_ip || "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.tipo_solicitacao || "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.valor_a_ser_vendido != null ? `R$${dbRow.valor_a_ser_vendido}` : "—"}</td>
+                        <td className="px-2 py-1">{dbRow?.codigo_smark || "—"}</td>
+                        <td className="px-2 py-1 min-w-[200px]">
+                          {!processing ? (
+                            <div className="relative">
+                              <Textarea
+                                className="text-[10px] min-h-[40px] h-10 resize-y"
+                                value={editingObs[r.item.id] ?? ""}
+                                onChange={(e) => handleObsChange(r.item.id, e.target.value)}
+                                placeholder="Observações..."
+                              />
+                              {savingObs[r.item.id] && (
+                                <Save className="absolute top-1 right-1 h-3 w-3 text-muted-foreground animate-pulse" />
+                              )}
                             </div>
-                          ))
-                        ) : r.notes ? (
-                          <span className="truncate">{r.notes}</span>
-                        ) : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                          ) : (
+                            <span className="truncate">{r.notes || "—"}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

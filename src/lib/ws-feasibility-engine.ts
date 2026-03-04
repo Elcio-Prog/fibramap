@@ -468,6 +468,7 @@ async function processItem(
  * Salva resultado de um item diretamente no banco.
  */
 async function saveItemResult(result: WsResult): Promise<void> {
+  const notes = result.notes || "";
   await supabase
     .from("ws_feasibility_items")
     .update({
@@ -477,8 +478,10 @@ async function saveItemResult(result: WsResult): Promise<void> {
       result_stage: result.stage,
       result_provider: result.provider_name,
       result_value: result.final_value,
-      result_notes: result.notes,
+      result_notes: notes,
       is_viable: result.is_viable,
+      observacoes_system: notes,
+      attempt_count: 1,
     })
     .eq("id", result.item.id);
 }
