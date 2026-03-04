@@ -18,7 +18,7 @@ import {
   extractNttCables,
   type TAResult,
   type ProviderRules,
-  type OverpassWay,
+  type OverpassFetchResult,
 } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,10 +218,12 @@ async function processItem(
       const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
       // Pre-fetch highways/railways ONCE for the customer area to avoid Overpass rate limiting
-      const [cachedWays, nttCables] = await Promise.all([
+      const [overpassResult, nttCables] = await Promise.all([
         prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000),
         Promise.resolve(extractNttCables(elMapped)),
       ]);
+      const cachedWays = overpassResult.ways;
+      const overpassFailed = !overpassResult.success;
 
       if (inside) {
         const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
@@ -260,7 +262,7 @@ async function processItem(
               }
 
               if (rules.regras_bloquear_cruzamento_rodovia && route.geometry) {
-                const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
+                const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
                 if (hwCheck.blocked) {
                   lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
                   return false;

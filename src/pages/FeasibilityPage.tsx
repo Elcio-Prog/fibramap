@@ -281,10 +281,12 @@ export default function FeasibilityPage() {
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
           // Pre-fetch highways/railways ONCE for the customer area
-          const [cachedWays, nttCables] = await Promise.all([
+          const [overpassResult, nttCables] = await Promise.all([
             prefetchHighwaysForArea(geo.lat, geo.lng, maxDist + 1000),
             Promise.resolve(extractNttCables(elMapped)),
           ]);
+          const cachedWays = overpassResult.ways;
+          const overpassFailed = !overpassResult.success;
 
           if (insideNT) {
             const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, providerRules);
@@ -311,7 +313,7 @@ export default function FeasibilityPage() {
                 }
 
                 if (providerRules.regras_bloquear_cruzamento_rodovia && route.geometry) {
-                  const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
+                  const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
                   if (hwCheck.blocked) {
                     lastBlocked = { type: "highway", message: hwCheck.message };
                     return false;
@@ -348,7 +350,7 @@ export default function FeasibilityPage() {
               } catch { return null; }
               // Also check highway/railway for fallback route using cached data
               if (providerRules.regras_bloquear_cruzamento_rodovia && routeGeometry) {
-                const hwCheck = checkRouteHighwayRailwayWithCache(routeGeometry, cachedWays, nttCables);
+                const hwCheck = checkRouteHighwayRailwayWithCache(routeGeometry, cachedWays, nttCables, overpassFailed);
                 if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; }
               }
               isViableNT = !highwayBlocked && distance <= maxDist;
