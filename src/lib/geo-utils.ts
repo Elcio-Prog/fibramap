@@ -178,6 +178,7 @@ export interface ProviderRules {
   regras_bloquear_portas_livres_zero: boolean;
   regras_bloquear_atendimento_nao_sim: boolean;
   regras_habilitar_exclusao_cpfl: boolean;
+  regras_bloquear_cruzamento_rodovia: boolean;
 }
 
 type ConnectionCandidate = {

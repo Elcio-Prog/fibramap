@@ -1,0 +1,1 @@
+ALTER TABLE public.providers ADD COLUMN regras_bloquear_cruzamento_rodovia boolean NOT NULL DEFAULT true;

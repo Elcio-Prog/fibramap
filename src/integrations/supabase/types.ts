@@ -271,6 +271,7 @@ export type Database = {
           multiplier: number
           name: string
           regras_bloquear_atendimento_nao_sim: boolean
+          regras_bloquear_cruzamento_rodovia: boolean
           regras_bloquear_portas_livres_zero: boolean
           regras_bloquear_splitter_1x2: boolean
           regras_bloquear_splitter_des: boolean
@@ -292,6 +293,7 @@ export type Database = {
           multiplier?: number
           name: string
           regras_bloquear_atendimento_nao_sim?: boolean
+          regras_bloquear_cruzamento_rodovia?: boolean
           regras_bloquear_portas_livres_zero?: boolean
           regras_bloquear_splitter_1x2?: boolean
           regras_bloquear_splitter_des?: boolean
@@ -313,6 +315,7 @@ export type Database = {
           multiplier?: number
           name?: string
           regras_bloquear_atendimento_nao_sim?: boolean
+          regras_bloquear_cruzamento_rodovia?: boolean
           regras_bloquear_portas_livres_zero?: boolean
           regras_bloquear_splitter_1x2?: boolean
           regras_bloquear_splitter_des?: boolean
