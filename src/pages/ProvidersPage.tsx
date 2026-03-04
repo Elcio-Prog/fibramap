@@ -223,6 +223,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
   const [regrasSplitterDes, setRegrasSplitterDes] = useState((provider as any).regras_bloquear_splitter_des ?? true);
   const [regrasPortasZero, setRegrasPortasZero] = useState((provider as any).regras_bloquear_portas_livres_zero ?? true);
   const [regrasAtendimento, setRegrasAtendimento] = useState((provider as any).regras_bloquear_atendimento_nao_sim ?? true);
+  const [regrasRodovia, setRegrasRodovia] = useState((provider as any).regras_bloquear_cruzamento_rodovia ?? true);
   const [regrasCpfl, setRegrasCpfl] = useState((provider as any).regras_habilitar_exclusao_cpfl ?? true);
 
   const handleSave = async () => {
@@ -245,6 +246,7 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
         regras_bloquear_portas_livres_zero: regrasPortasZero,
         regras_bloquear_atendimento_nao_sim: regrasAtendimento,
         regras_habilitar_exclusao_cpfl: regrasCpfl,
+        regras_bloquear_cruzamento_rodovia: regrasRodovia,
       } as any);
       toast({ title: "Provedor atualizado!" });
       onClose();
@@ -352,6 +354,12 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
                 <Label className="text-sm font-normal">Bloquear se atendimento ≠ "sim"</Label>
                 <Switch checked={regrasAtendimento} onCheckedChange={setRegrasAtendimento} />
               </div>
+            </div>
+
+            <p className="text-xs font-semibold text-muted-foreground mt-3">Cruzamento de Rodovias / Ferrovias</p>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-normal">Bloquear cruzamento de rodovia/ferrovia</Label>
+              <Switch checked={regrasRodovia} onCheckedChange={setRegrasRodovia} />
             </div>
 
             <p className="text-xs font-semibold text-muted-foreground mt-3">Exclusão CPFL</p>

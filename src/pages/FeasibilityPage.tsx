@@ -263,6 +263,7 @@ export default function FeasibilityPage() {
           regras_bloquear_portas_livres_zero: (provider as any).regras_bloquear_portas_livres_zero ?? true,
           regras_bloquear_atendimento_nao_sim: (provider as any).regras_bloquear_atendimento_nao_sim ?? true,
           regras_habilitar_exclusao_cpfl: (provider as any).regras_habilitar_exclusao_cpfl ?? true,
+          regras_bloquear_cruzamento_rodovia: (provider as any).regras_bloquear_cruzamento_rodovia ?? true,
         };
 
         if (isNetTurbo) {
@@ -309,7 +310,7 @@ export default function FeasibilityPage() {
                   }
                 }
 
-                if (route.geometry) {
+                if (providerRules.regras_bloquear_cruzamento_rodovia && route.geometry) {
                   const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
                   if (hwCheck.blocked) {
                     lastBlocked = { type: "highway", message: hwCheck.message };
@@ -346,7 +347,7 @@ export default function FeasibilityPage() {
                 else return null;
               } catch { return null; }
               // Also check highway/railway for fallback route using cached data
-              if (routeGeometry) {
+              if (providerRules.regras_bloquear_cruzamento_rodovia && routeGeometry) {
                 const hwCheck = checkRouteHighwayRailwayWithCache(routeGeometry, cachedWays, nttCables);
                 if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; }
               }

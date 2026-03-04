@@ -211,6 +211,7 @@ async function processItem(
         regras_bloquear_portas_livres_zero: netTurboProvider.regras_bloquear_portas_livres_zero,
         regras_bloquear_atendimento_nao_sim: netTurboProvider.regras_bloquear_atendimento_nao_sim,
         regras_habilitar_exclusao_cpfl: netTurboProvider.regras_habilitar_exclusao_cpfl,
+        regras_bloquear_cruzamento_rodovia: (netTurboProvider as any).regras_bloquear_cruzamento_rodovia ?? true,
       };
 
       const inside = isInsideCoverage(lat, lng, elements);
@@ -258,7 +259,7 @@ async function processItem(
                 }
               }
 
-              if (route.geometry) {
+              if (rules.regras_bloquear_cruzamento_rodovia && route.geometry) {
                 const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables);
                 if (hwCheck.blocked) {
                   lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
