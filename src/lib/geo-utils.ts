@@ -962,37 +962,69 @@ interface OverpassWay {
   coords: number[][]; // [lng, lat][]
 }
 
-/** Fetch highways (motorway/trunk) and railways from OSM Overpass API within a bounding box */
+/** Result from fetching highways - distinguishes "no highways" from "fetch failed" */
+export interface OverpassFetchResult {
+  ways: OverpassWay[];
+  success: boolean;
+}
+
+const OVERPASS_SERVERS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
+
+/** Fetch highways (motorway/trunk) and railways from OSM Overpass API within a bounding box.
+ *  Retries on failure using fallback servers. Returns success flag to distinguish "no highways" from "API error". */
+async function fetchHighwaysAndRailwaysWithStatus(
+  minLat: number, minLng: number, maxLat: number, maxLng: number
+): Promise<OverpassFetchResult> {
+  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
+  const query = `[out:json][timeout:15];(way["highway"~"^(motorway|trunk|motorway_link|trunk_link)$"](${bbox});way["railway"="rail"](${bbox}););out geom;`;
+
+  for (const server of OVERPASS_SERVERS) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const res = await fetch(server, {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        console.warn(`Overpass server ${server} returned ${res.status}, trying next...`);
+        continue;
+      }
+      const data = await res.json();
+      const ways: OverpassWay[] = [];
+      for (const el of data.elements || []) {
+        if (el.type !== "way" || !el.geometry) continue;
+        const coords = el.geometry.map((g: any) => [g.lon, g.lat]);
+        if (coords.length < 2) continue;
+        const isRailway = el.tags?.railway === "rail";
+        const tag = isRailway ? el.tags.railway : el.tags.highway;
+        ways.push({ type: isRailway ? "railway" : "highway", tag, coords });
+      }
+      return { ways, success: true };
+    } catch (err) {
+      console.warn(`Overpass server ${server} failed:`, err);
+      continue;
+    }
+  }
+
+  // All servers failed
+  console.error("All Overpass servers failed - highway check will be fail-safe (blocked)");
+  return { ways: [], success: false };
+}
+
+/** Legacy wrapper for backward compatibility */
 export async function fetchHighwaysAndRailways(
   minLat: number, minLng: number, maxLat: number, maxLng: number
 ): Promise<OverpassWay[]> {
-  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
-  const query = `[out:json][timeout:15];(way["highway"~"^(motorway|trunk|motorway_link|trunk_link)$"](${bbox});way["railway"="rail"](${bbox}););out geom;`;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) return [];
-    const data = await res.json();
-    const ways: OverpassWay[] = [];
-    for (const el of data.elements || []) {
-      if (el.type !== "way" || !el.geometry) continue;
-      const coords = el.geometry.map((g: any) => [g.lon, g.lat]);
-      if (coords.length < 2) continue;
-      const isRailway = el.tags?.railway === "rail";
-      const tag = isRailway ? el.tags.railway : el.tags.highway;
-      ways.push({ type: isRailway ? "railway" : "highway", tag, coords });
-    }
-    return ways;
-  } catch {
-    return [];
-  }
+  const result = await fetchHighwaysAndRailwaysWithStatus(minLat, minLng, maxLat, maxLng);
+  return result.ways;
 }
 
 /** Get bounding box of a route geometry with padding */
@@ -1251,29 +1283,43 @@ export async function checkRouteHighwayRailway(
   return routeCrossesHighwayOrRailway(routeGeometry, ways, cables);
 }
 
-/** Check highway/railway crossing using PRE-FETCHED Overpass data (avoids rate limiting) */
+/** Check highway/railway crossing using PRE-FETCHED Overpass data (avoids rate limiting).
+ *  If overpassFailed is true (API was unreachable), blocks the route as fail-safe. */
 export function checkRouteHighwayRailwayWithCache(
   routeGeometry: any,
   cachedWays: OverpassWay[],
-  nttCables: Array<{ coords: number[][] }>
+  nttCables: Array<{ coords: number[][] }>,
+  overpassFailed: boolean = false
 ): HighwayRailwayCheckResult {
-  if (!routeGeometry || cachedWays.length === 0) return { blocked: false };
+  if (!routeGeometry) return { blocked: false };
+
+  // FAIL-SAFE: if Overpass was unreachable, block the route to avoid crossing highways undetected
+  if (overpassFailed) {
+    return {
+      blocked: true,
+      type: "highway",
+      message: "INVIÁVEL – Não foi possível verificar cruzamento de rodovias/ferrovias (serviço indisponível). Bloqueado por segurança.",
+    };
+  }
+
+  if (cachedWays.length === 0) return { blocked: false };
   return routeCrossesHighwayOrRailway(routeGeometry, cachedWays, nttCables);
 }
 
 /**
  * Pre-fetch highways/railways for a broad area around a customer location.
  * Call this ONCE before iterating candidates to avoid Overpass rate limiting.
+ * Returns both the ways and whether the fetch succeeded.
  */
 export async function prefetchHighwaysForArea(
   lat: number,
   lng: number,
   radiusM: number = 5000
-): Promise<OverpassWay[]> {
+): Promise<OverpassFetchResult> {
   const padDeg = radiusM / 111320;
   const lngPad = radiusM / (111320 * Math.cos(lat * Math.PI / 180));
-  return fetchHighwaysAndRailways(lat - padDeg, lng - lngPad, lat + padDeg, lng + lngPad);
+  return fetchHighwaysAndRailwaysWithStatus(lat - padDeg, lng - lngPad, lat + padDeg, lng + lngPad);
 }
 
-/** Export OverpassWay type for external use */
+/** Export types for external use */
 export type { OverpassWay };
