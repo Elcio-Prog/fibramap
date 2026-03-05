@@ -887,7 +887,12 @@ export async function geocodeAddress(
   dbCidade?: string | null,
   dbUf?: string | null
 ): Promise<{ lat: number; lng: number; display: string } | null> {
-  const cleaned = convertNumberWords(cleanAddressForGeocoding(address));
+  // Input validation: reject empty or excessively long addresses
+  if (!address || typeof address !== "string") return null;
+  const trimmed = address.trim();
+  if (trimmed.length === 0 || trimmed.length > 300) return null;
+
+  const cleaned = convertNumberWords(cleanAddressForGeocoding(trimmed));
 
   // Extract street name and number for structured search
   const streetNumMatch = cleaned.match(/^((?:Avenida|Rua|Rodovia|Alameda|Travessa|Praça|Estrada|Praca)\s+[^,]+?)\s*,\s*(\d+)/i);
