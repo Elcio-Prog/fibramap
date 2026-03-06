@@ -20,6 +20,7 @@ import WsSearchesPage from "@/pages/WsSearchesPage";
 import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
 import PreProvidersPage from "@/pages/PreProvidersPage";
+import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
