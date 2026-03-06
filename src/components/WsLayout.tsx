@@ -2,14 +2,16 @@ import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { LogOut, Wifi, Upload, Search, List, ClipboardList } from "lucide-react";
+import { LogOut, Wifi, Upload, Search, List, ClipboardList, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CartButton from "@/components/cart/CartButton";
 
 const wsLinks = [
   { to: "/ws", label: "Upload em Lote", icon: Upload, end: true },
   { to: "/ws/searches", label: "Minhas Buscas", icon: List },
   { to: "/ws/single", label: "Busca Unitária", icon: Search },
   { to: "/ws/pre-providers", label: "Pré-Cadastro", icon: ClipboardList },
+  { to: "/ws/send-history", label: "Histórico Envios", icon: History },
 ];
 
 export default function WsLayout({ children }: { children: ReactNode }) {
@@ -47,6 +49,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <CartButton />
           <span className="text-xs text-muted-foreground">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
             <LogOut className="h-4 w-4" /> Sair

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import WsLayout from "@/components/WsLayout";
@@ -21,6 +22,8 @@ import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
 import PreProvidersPage from "@/pages/PreProvidersPage";
 import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
+import SettingsPage from "@/pages/SettingsPage";
+import SendHistoryPage from "@/pages/SendHistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,23 +41,23 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/auth" replace />;
-
-  // Only admin users can access the admin panel
   if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/auth"} replace />;
 
   return (
     <AppLayout>
       <Routes>
         <Route path="/" element={<MapPage />} />
-        <Route path="/ntt-update" element={isAdmin ? <NttNetworkUpdatePage /> : <Navigate to="/" replace />} />
+        <Route path="/ntt-update" element={<NttNetworkUpdatePage />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/feasibility" element={<FeasibilityPage />} />
         <Route path="/base-lm" element={<BaseLMPage />} />
         <Route path="/history" element={<HistoryPage />} />
-        <Route path="/ws-users" element={isAdmin ? <WsUsersPage /> : <Navigate to="/" replace />} />
-        <Route path="/ws-upload" element={isAdmin ? <WsUploadPage /> : <Navigate to="/" replace />} />
-        <Route path="/ws-single" element={isAdmin ? <WsSingleSearch /> : <Navigate to="/" replace />} />
+        <Route path="/ws-users" element={<WsUsersPage />} />
+        <Route path="/ws-upload" element={<WsUploadPage />} />
+        <Route path="/ws-single" element={<WsSingleSearch />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
@@ -74,8 +77,6 @@ function WsRoutes() {
   }
 
   if (!session) return <Navigate to="/ws/login" replace />;
-
-  // Admin accessing /ws → let them through too
   if (!isWsUser && !isAdmin) return <Navigate to="/" replace />;
 
   return (
@@ -86,6 +87,7 @@ function WsRoutes() {
         <Route path="/batch/:batchId" element={<WsBatchDetailPage />} />
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
+        <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
@@ -106,11 +108,8 @@ function AuthRoute() {
     );
   }
 
-  // ws_user → redirect to WS area
   if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
-  // admin → redirect to admin area
   if (isAdmin) return <Navigate to="/" replace />;
-  // No role at all → sign out and show login
   signOut();
   return <Auth />;
 }
@@ -129,9 +128,7 @@ function WsAuthRoute() {
     );
   }
 
-  // ws_user or admin → go to /ws
   if (isWsUser || isAdmin) return <Navigate to="/ws" replace />;
-  // Non-ws user that somehow hit /ws/login → send to admin area
   return <Navigate to="/" replace />;
 }
 
@@ -141,14 +138,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<AuthRoute />} />
-            <Route path="/ws/login" element={<WsAuthRoute />} />
-            <Route path="/ws/*" element={<WsRoutes />} />
-            <Route path="/*" element={<ProtectedRoutes />} />
-          </Routes>
-        </BrowserRouter>
+        <CartProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<AuthRoute />} />
+              <Route path="/ws/login" element={<WsAuthRoute />} />
+              <Route path="/ws/*" element={<WsRoutes />} />
+              <Route path="/*" element={<ProtectedRoutes />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

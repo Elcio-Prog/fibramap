@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCart, CartItem } from "@/contexts/CartContext";
+import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
 interface Props {
   batchId: string;
+  batchTitle?: string;
   onReset?: () => void;
 }
 
@@ -31,7 +34,7 @@ function useDebounce(fn: (...args: any[]) => void, ms: number) {
   }, [fn, ms]);
 }
 
-export default function WsProcessor({ batchId, onReset }: Props) {
+export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress | null>(null);
   const [results, setResults] = useState<WsResult[] | null>(null);
@@ -43,9 +46,12 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const cancelRef = useRef(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Raw DB rows for observações tracking
   const [dbRows, setDbRows] = useState<Record<string, any>>({});
+
+  const { isInCart, isSent, loadSentIds } = useCart();
 
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
@@ -131,6 +137,10 @@ export default function WsProcessor({ batchId, onReset }: Props) {
     const rowMap: Record<string, any> = {};
     allItems.forEach(r => { rowMap[r.id] = r; });
     setDbRows(rowMap);
+
+    // Load sent IDs
+    const sentItemIds = allItems.filter((r: any) => r.enviado_para_sharepoint).map((r: any) => r.id);
+    if (sentItemIds.length > 0) loadSentIds(sentItemIds);
 
     // Initialize editing obs from user observations
     const obsMap: Record<string, string> = {};
@@ -435,6 +445,70 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const canResume = (batchStatus === "processing" || batchStatus === "paused" || batchStatus === "uploaded") && processedCount < totalItems;
   const isComplete = batchStatus === "processed";
 
+  // Selection helpers
+  const selectableIds = useMemo(() => {
+    if (!filteredResults) return [];
+    return filteredResults
+      .filter(r => !isInCart(r.item.id) && !isSent(r.item.id))
+      .map(r => r.item.id);
+  }, [filteredResults, isInCart, isSent]);
+
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableIds));
+    }
+  };
+
+  const buildCartItems = (): CartItem[] => {
+    if (!filteredResults) return [];
+    return filteredResults
+      .filter(r => selectedIds.has(r.item.id))
+      .map(r => {
+        const dbRow = dbRows[r.item.id];
+        return {
+          id: r.item.id,
+          batchId,
+          batchTitle: batchTitle || dbRow?.batch_id || batchId.slice(0, 8),
+          designacao: r.item.designacao || "",
+          cliente: r.item.cliente || "",
+          cnpj_cliente: dbRow?.cnpj_cliente || "",
+          endereco: r.item.endereco_a || "",
+          cidade: r.item.cidade_a || "",
+          uf: r.item.uf_a || "",
+          lat: r.geo_lat,
+          lng: r.geo_lng,
+          is_viable: r.is_viable,
+          stage: r.stage || "",
+          provider_name: r.provider_name || "",
+          velocidade_mbps: r.item.velocidade_mbps,
+          velocidade_original: dbRow?.velocidade_original || "",
+          distance_m: r.distance_m,
+          final_value: r.final_value,
+          vigencia: dbRow?.vigencia || "",
+          taxa_instalacao: dbRow?.taxa_instalacao,
+          bloco_ip: dbRow?.bloco_ip || "",
+          tipo_solicitacao: dbRow?.tipo_solicitacao || "",
+          valor_a_ser_vendido: dbRow?.valor_a_ser_vendido,
+          codigo_smark: dbRow?.codigo_smark || "",
+          observacoes_user: editingObs[r.item.id] || "",
+          observacoes_system: dbRow?.observacoes_system || r.notes || "",
+          created_at: dbRow?.created_at || new Date().toISOString(),
+        };
+      });
+  };
+
   if (loading) {
     return (
       <Card>
@@ -555,6 +629,15 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               <table className="text-xs w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
+                    {!processing && isComplete && (
+                      <th className="px-2 py-1.5 text-center w-8">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={toggleAll}
+                          className="h-3.5 w-3.5"
+                        />
+                      </th>
+                    )}
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Designação</th>
                     <th className="px-2 py-1.5 text-left">Cliente</th>
@@ -582,6 +665,17 @@ export default function WsProcessor({ batchId, onReset }: Props) {
                     const dbRow = dbRows[r.item.id];
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
+                        {!processing && isComplete && (
+                          <td className="px-2 py-1 text-center">
+                            <SelectionCheckbox
+                              id={r.item.id}
+                              checked={selectedIds.has(r.item.id)}
+                              onToggle={toggleSelect}
+                              inCart={isInCart(r.item.id)}
+                              sent={isSent(r.item.id)}
+                            />
+                          </td>
+                        )}
                         <td className="px-2 py-1">{r.item.row_number}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
@@ -652,6 +746,17 @@ export default function WsProcessor({ batchId, onReset }: Props) {
               )}
             </div>
           </div>
+        )}
+
+        {/* Floating Action Bar for selection */}
+        {!processing && isComplete && (
+          <FloatingActionBar
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onToggleAll={toggleAll}
+            allSelected={allSelected}
+            buildCartItems={buildCartItems}
+          />
         )}
 
         {/* Completed batch - load results */}

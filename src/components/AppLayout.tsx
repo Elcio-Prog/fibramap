@@ -3,8 +3,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList, Network } from "lucide-react";
+import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList, Network, Settings, History } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CartButton from "@/components/cart/CartButton";
 
 const baseLinks = [
   { to: "/", label: "Mapa", icon: Map },
@@ -27,6 +28,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       { to: "/ws-upload", label: "Upload WS", icon: Upload },
       { to: "/ws-single", label: "Busca Unitária WS", icon: Search },
       { to: "/ws-users", label: "Usuários WS", icon: Users },
+      { to: "/send-history", label: "Histórico Envios", icon: History },
+      { to: "/settings", label: "Configurações", icon: Settings },
     ] : []),
   ];
 
@@ -76,7 +79,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="border-t border-sidebar-border p-3">
-          <p className="mb-2 truncate px-3 text-xs text-sidebar-foreground/50">{user?.email}</p>
+          <div className="flex items-center justify-between mb-2 px-3">
+            <p className="truncate text-xs text-sidebar-foreground/50">{user?.email}</p>
+            <CartButton />
+          </div>
           <Button
             variant="ghost"
             size="sm"
