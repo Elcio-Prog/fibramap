@@ -138,6 +138,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     allItems.forEach(r => { rowMap[r.id] = r; });
     setDbRows(rowMap);
 
+    // Load sent IDs
+    const sentItemIds = allItems.filter((r: any) => r.enviado_para_sharepoint).map((r: any) => r.id);
+    if (sentItemIds.length > 0) loadSentIds(sentItemIds);
+
     // Initialize editing obs from user observations
     const obsMap: Record<string, string> = {};
     allItems.forEach(r => {
