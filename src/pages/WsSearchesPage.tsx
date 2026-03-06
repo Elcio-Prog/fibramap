@@ -361,7 +361,7 @@ export default function WsSearchesPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => openBatch(latest.id)}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => openBatch(latest.id, latest.title || latest.file_name)}>
                   <Eye className="h-3 w-3" /> Abrir
                 </Button>
                 {canResume && (
