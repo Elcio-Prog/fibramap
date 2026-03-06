@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, UserCheck, Clock } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, UserCheck, Clock, ArrowLeftRight } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -184,6 +184,23 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
     },
   });
 
+  const changeRole = useMutation({
+    mutationFn: async ({ user_id }: { user_id: string }) => {
+      const toRole = role === "ws_user" ? "admin" : "ws_user";
+      const { data, error } = await invokeManageUsers("change_role", { user_id, from_role: role, to_role: toRole });
+      if (error) throw error;
+      if ((data as any).error) throw new Error((data as any).error);
+    },
+    onSuccess: () => {
+      const toLabel = role === "ws_user" ? "Admin" : "WS";
+      toast({ title: `Usuário alterado para ${toLabel}!` });
+      queryClient.invalidateQueries({ queryKey: ["managed-users"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -225,10 +242,20 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
                   <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs">
                     {u.is_active ? "Ativo" : "Inativo"}
                   </Badge>
-                  <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
-                    {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                    {u.is_active ? "Desativar" : "Ativar"}
-                  </Button>
+                   <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
+                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                     {u.is_active ? "Desativar" : "Ativar"}
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     className="gap-1 text-xs h-7"
+                     onClick={() => changeRole.mutate({ user_id: u.id })}
+                     disabled={changeRole.isPending}
+                   >
+                     <ArrowLeftRight className="h-3 w-3" />
+                     {role === "ws_user" ? "→ Admin" : "→ WS"}
+                   </Button>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Senha</Button>
