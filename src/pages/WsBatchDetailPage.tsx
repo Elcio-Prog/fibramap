@@ -1,11 +1,13 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import WsProcessor from "@/components/ws/WsProcessor";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default function WsBatchDetailPage() {
   const { batchId } = useParams<{ batchId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const batchTitle = searchParams.get("title") || undefined;
 
   if (!batchId) {
     return <div className="p-6">Lote não encontrado</div>;
@@ -22,6 +24,7 @@ export default function WsBatchDetailPage() {
 
       <WsProcessor
         batchId={batchId}
+        batchTitle={batchTitle}
         onReset={() => navigate("/ws")}
       />
     </div>
