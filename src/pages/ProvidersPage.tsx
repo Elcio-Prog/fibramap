@@ -214,6 +214,14 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
   const [telefoneGerente, setTelefoneGerente] = useState(provider.telefone_gerente || "");
   const [hasCrossNtt, setHasCrossNtt] = useState(provider.has_cross_ntt ?? false);
   const [useSaturatedTa, setUseSaturatedTa] = useState((provider as any).use_saturated_ta ?? false);
+  const [razaoSocial, setRazaoSocial] = useState((provider as any).razao_social || "");
+  const [contatoComEmail, setContatoComEmail] = useState((provider as any).contato_comercial_email || "");
+  const [nocNome, setNocNome] = useState((provider as any).contato_noc_nome || "");
+  const [nocFone, setNocFone] = useState((provider as any).contato_noc_fone || "");
+  const [nocEmail, setNocEmail] = useState((provider as any).contato_noc_email || "");
+  const [cidadeSede, setCidadeSede] = useState((provider as any).cidade_sede || "");
+  const [estadoSede, setEstadoSede] = useState((provider as any).estado_sede || "");
+  const [observacoes, setObservacoes] = useState((provider as any).observacoes || "");
 
   // Rules state
   const [regrasUsarPorta, setRegrasUsarPorta] = useState((provider as any).regras_usar_porta_disponivel ?? true);
