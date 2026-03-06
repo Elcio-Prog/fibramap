@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function PreProvidersPage() {
   const { data: preProviders, isLoading } = usePreProviders();
+  const { isAdmin } = useUserRole();
   const createPreProvider = useCreatePreProvider();
   const deletePreProvider = useDeletePreProvider();
   const promotePreProvider = usePromotePreProvider();
