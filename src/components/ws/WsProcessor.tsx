@@ -11,8 +11,9 @@ import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements } from "@/hooks/useGeoElements";
 import { useLpuItems } from "@/hooks/useLpuItems";
 import { useComprasLM } from "@/hooks/useComprasLM";
+import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { supabase } from "@/integrations/supabase/client";
-import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress } from "@/lib/ws-feasibility-engine";
+import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
