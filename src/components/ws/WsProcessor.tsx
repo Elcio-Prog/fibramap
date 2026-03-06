@@ -272,6 +272,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
           setProcessedCount(accumulated.length);
         },
         startIndex,
+        preProvidersWithCities,
       );
 
       const allResults = [...previousResults, ...batchResults];
