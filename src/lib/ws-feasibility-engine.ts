@@ -128,6 +128,13 @@ interface CompraLM {
   status: string;
 }
 
+export interface PreProviderWithCities {
+  id: string;
+  nome_fantasia: string;
+  has_cross_ntt: boolean;
+  cities: { cidade: string; estado: string | null }[];
+}
+
 export interface ProcessingProgress {
   current: number;
   total: number;
@@ -194,6 +201,7 @@ async function processItem(
   elementsByProvider: Record<string, GeoElement[]>,
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<{ best: Omit<WsResult, "item" | "geo_lat" | "geo_lng" | "geo_source" | "all_options">; all_options: ViableOption[] }> {
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
@@ -408,15 +416,40 @@ async function processItem(
     }
   }
 
+  // === Etapa 4: Pré-Cadastro (por cidade) ===
+  if (item.cidade_a && preProviders.length > 0) {
+    const cidadeNorm = item.cidade_a.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const pp of preProviders) {
+      const match = pp.cities.some(c => {
+        const cNorm = c.cidade.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return cNorm === cidadeNorm;
+      });
+      if (match) {
+        allOptions.push({
+          stage: "Pré-Cadastro",
+          provider_name: pp.nome_fantasia,
+          provider_id: `pre_${pp.id}`,
+          provider_color: "#8b5cf6",
+          distance_m: 0,
+          lpu_value: null,
+          final_value: null,
+          notes: `Pré-Cadastro - ${pp.nome_fantasia} atende ${item.cidade_a}${pp.has_cross_ntt ? " (Cross NTT)" : ""}`,
+          has_cross_ntt: pp.has_cross_ntt,
+        });
+      }
+    }
+  }
+
   // === Selecionar melhor opção ===
   if (allOptions.length > 0) {
-    // Prioridade: Rede Própria > Cross NTT > Dentro Cobertura > LPU Viável > LM Histórico
+    // Prioridade: Rede Própria > Cross NTT > Dentro Cobertura > LPU Viável > LM Histórico > Pré-Cadastro
     const stageOrder: Record<string, number> = {
       "Rede Própria": 0,
       "Cross NTT": 1,
       "Dentro Cobertura": 2,
       "LPU Viável": 3,
       "LM Histórico": 4,
+      "Pré-Cadastro": 5,
     };
     const sorted = [...allOptions].sort((a, b) => {
       // Blocked options go last
@@ -499,6 +532,7 @@ export async function processWsBatch(
   onProgress?: (progress: ProcessingProgress) => void,
   onItemResult?: (result: WsResult, index: number) => void,
   startIndex: number = 0,
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult[]> {
   const elementsByProvider: Record<string, GeoElement[]> = {};
   for (const el of geoElements) {
@@ -524,7 +558,7 @@ export async function processWsBatch(
     });
 
     const coordPromises = withCoords.map(async ({ item, idx }) => {
-      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM);
+      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
       await saveItemResult(result);
       return { result, idx };
     });
@@ -532,7 +566,7 @@ export async function processWsBatch(
     const geoResultsArr: { result: WsResult; idx: number }[] = [];
     for (const { item, idx } of needGeo) {
       const geo = await resolveGeo(item);
-      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
+      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
       await saveItemResult(result);
       geoResultsArr.push({ result, idx });
       if (geo.source === "endereco") {
@@ -566,6 +600,7 @@ export async function processWsSingleItem(
   geoElements: GeoElement[],
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult> {
   const elementsByProvider: Record<string, GeoElement[]> = {};
   for (const el of geoElements) {
@@ -573,7 +608,7 @@ export async function processWsSingleItem(
     elementsByProvider[el.provider_id].push(el);
   }
 
-  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
+  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
 }
 
 /** Helper to process a single item with resolved geo */
@@ -584,6 +619,7 @@ async function processSingleItem(
   elementsByProvider: Record<string, GeoElement[]>,
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult> {
   if (geo.lat == null || geo.lng == null) {
     return {
@@ -602,7 +638,7 @@ async function processSingleItem(
     };
   }
 
-  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
   return {
     item,
     geo_lat: geo.lat,

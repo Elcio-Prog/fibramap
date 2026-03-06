@@ -6,6 +6,7 @@ import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements } from "@/hooks/useGeoElements";
 import { useLpuItems } from "@/hooks/useLpuItems";
 import { useComprasLM, CompraLM } from "@/hooks/useComprasLM";
+import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -13,7 +14,7 @@ import {
   haversineDistance,
   closedLineToPolygon,
 } from "@/lib/geo-utils";
-import { processWsSingleItem, type WsItemInput, type ViableOption } from "@/lib/ws-feasibility-engine";
+import { processWsSingleItem, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,20 @@ export default function WsSingleSearch() {
   const { data: allGeoElements } = useGeoElements();
   const { data: allLpuItems } = useLpuItems();
   const { data: comprasLM } = useComprasLM();
+  const { data: preProviders } = usePreProviders();
+  const { data: preProviderCities } = useAllPreProviderCities();
+
+  const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
+    .filter(pp => pp.status === "pre_cadastro")
+    .map(pp => ({
+      id: pp.id,
+      nome_fantasia: pp.nome_fantasia,
+      has_cross_ntt: pp.has_cross_ntt,
+      cities: (preProviderCities || [])
+        .filter(c => c.pre_provider_id === pp.id)
+        .map(c => ({ cidade: c.cidade, estado: c.estado })),
+    }))
+    .filter(pp => pp.cities.length > 0);
 
   // Input fields
   const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">("address");
@@ -194,7 +209,8 @@ export default function WsSingleSearch() {
         providers as any,
         allGeoElements as any,
         (allLpuItems || []) as any,
-        (comprasLM || []) as any
+        (comprasLM || []) as any,
+        preProvidersWithCities,
       );
 
       setOptions(wsResult.all_options as SingleSearchOption[]);

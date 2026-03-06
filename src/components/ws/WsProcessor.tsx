@@ -11,8 +11,9 @@ import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements } from "@/hooks/useGeoElements";
 import { useLpuItems } from "@/hooks/useLpuItems";
 import { useComprasLM } from "@/hooks/useComprasLM";
+import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { supabase } from "@/integrations/supabase/client";
-import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress } from "@/lib/ws-feasibility-engine";
+import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -51,8 +52,23 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const { data: geoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: lpuItems, isLoading: loadingLpu } = useLpuItems();
   const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
+  const { data: preProviders, isLoading: loadingPreProv } = usePreProviders();
+  const { data: preProviderCities, isLoading: loadingPreCities } = useAllPreProviderCities();
 
-  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM;
+  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities;
+
+  // Build pre-providers with cities for engine
+  const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
+    .filter(pp => pp.status === "pre_cadastro")
+    .map(pp => ({
+      id: pp.id,
+      nome_fantasia: pp.nome_fantasia,
+      has_cross_ntt: pp.has_cross_ntt,
+      cities: (preProviderCities || [])
+        .filter(c => c.pre_provider_id === pp.id)
+        .map(c => ({ cidade: c.cidade, estado: c.estado })),
+    }))
+    .filter(pp => pp.cities.length > 0);
 
   useEffect(() => {
     loadBatchState();
@@ -256,6 +272,7 @@ export default function WsProcessor({ batchId, onReset }: Props) {
           setProcessedCount(accumulated.length);
         },
         startIndex,
+        preProvidersWithCities,
       );
 
       const allResults = [...previousResults, ...batchResults];

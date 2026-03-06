@@ -239,6 +239,109 @@ export type Database = {
           },
         ]
       }
+      pre_provider_cities: {
+        Row: {
+          cidade: string
+          created_at: string
+          estado: string | null
+          id: string
+          pre_provider_id: string
+        }
+        Insert: {
+          cidade: string
+          created_at?: string
+          estado?: string | null
+          id?: string
+          pre_provider_id: string
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          estado?: string | null
+          id?: string
+          pre_provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_provider_cities_pre_provider_id_fkey"
+            columns: ["pre_provider_id"]
+            isOneToOne: false
+            referencedRelation: "pre_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pre_providers: {
+        Row: {
+          cidade_sede: string | null
+          contato_comercial_email: string | null
+          contato_comercial_fone: string | null
+          contato_comercial_nome: string | null
+          contato_noc_email: string | null
+          contato_noc_fone: string | null
+          contato_noc_nome: string | null
+          created_at: string
+          estado_sede: string | null
+          has_cross_ntt: boolean
+          id: string
+          nome_fantasia: string
+          observacoes: string | null
+          oferece_mancha: string | null
+          promoted_provider_id: string | null
+          razao_social: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cidade_sede?: string | null
+          contato_comercial_email?: string | null
+          contato_comercial_fone?: string | null
+          contato_comercial_nome?: string | null
+          contato_noc_email?: string | null
+          contato_noc_fone?: string | null
+          contato_noc_nome?: string | null
+          created_at?: string
+          estado_sede?: string | null
+          has_cross_ntt?: boolean
+          id?: string
+          nome_fantasia: string
+          observacoes?: string | null
+          oferece_mancha?: string | null
+          promoted_provider_id?: string | null
+          razao_social?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cidade_sede?: string | null
+          contato_comercial_email?: string | null
+          contato_comercial_fone?: string | null
+          contato_comercial_nome?: string | null
+          contato_noc_email?: string | null
+          contato_noc_fone?: string | null
+          contato_noc_nome?: string | null
+          created_at?: string
+          estado_sede?: string | null
+          has_cross_ntt?: boolean
+          id?: string
+          nome_fantasia?: string
+          observacoes?: string | null
+          oferece_mancha?: string | null
+          promoted_provider_id?: string | null
+          razao_social?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_providers_promoted_provider_id_fkey"
+            columns: ["promoted_provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -262,14 +365,22 @@ export type Database = {
       }
       providers: {
         Row: {
+          cidade_sede: string | null
           color: string
+          contato_comercial_email: string | null
+          contato_noc_email: string | null
+          contato_noc_fone: string | null
+          contato_noc_nome: string | null
           created_at: string
+          estado_sede: string | null
           gerente_comercial: string | null
           has_cross_ntt: boolean
           id: string
           max_lpu_distance_m: number
           multiplier: number
           name: string
+          observacoes: string | null
+          razao_social: string | null
           regras_bloquear_atendimento_nao_sim: boolean
           regras_bloquear_cruzamento_rodovia: boolean
           regras_bloquear_portas_livres_zero: boolean
@@ -284,14 +395,22 @@ export type Database = {
           use_saturated_ta: boolean
         }
         Insert: {
+          cidade_sede?: string | null
           color?: string
+          contato_comercial_email?: string | null
+          contato_noc_email?: string | null
+          contato_noc_fone?: string | null
+          contato_noc_nome?: string | null
           created_at?: string
+          estado_sede?: string | null
           gerente_comercial?: string | null
           has_cross_ntt?: boolean
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number
           name: string
+          observacoes?: string | null
+          razao_social?: string | null
           regras_bloquear_atendimento_nao_sim?: boolean
           regras_bloquear_cruzamento_rodovia?: boolean
           regras_bloquear_portas_livres_zero?: boolean
@@ -306,14 +425,22 @@ export type Database = {
           use_saturated_ta?: boolean
         }
         Update: {
+          cidade_sede?: string | null
           color?: string
+          contato_comercial_email?: string | null
+          contato_noc_email?: string | null
+          contato_noc_fone?: string | null
+          contato_noc_nome?: string | null
           created_at?: string
+          estado_sede?: string | null
           gerente_comercial?: string | null
           has_cross_ntt?: boolean
           id?: string
           max_lpu_distance_m?: number
           multiplier?: number
           name?: string
+          observacoes?: string | null
+          razao_social?: string | null
           regras_bloquear_atendimento_nao_sim?: boolean
           regras_bloquear_cruzamento_rodovia?: boolean
           regras_bloquear_portas_livres_zero?: boolean
