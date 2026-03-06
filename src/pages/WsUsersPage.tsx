@@ -242,10 +242,20 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
                   <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs">
                     {u.is_active ? "Ativo" : "Inativo"}
                   </Badge>
-                  <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
-                    {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                    {u.is_active ? "Desativar" : "Ativar"}
-                  </Button>
+                   <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
+                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                     {u.is_active ? "Desativar" : "Ativar"}
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     className="gap-1 text-xs h-7"
+                     onClick={() => changeRole.mutate({ user_id: u.id })}
+                     disabled={changeRole.isPending}
+                   >
+                     <ArrowLeftRight className="h-3 w-3" />
+                     {role === "ws_user" ? "→ Admin" : "→ WS"}
+                   </Button>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Senha</Button>
