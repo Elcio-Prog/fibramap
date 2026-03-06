@@ -214,6 +214,49 @@ serve(async (req) => {
       });
     }
 
+    if (action === "change_role") {
+      const { user_id, from_role, to_role } = params;
+      if (!user_id || !from_role || !to_role) {
+        return new Response(JSON.stringify({ error: "user_id, from_role e to_role obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Remove old role
+      const { error: delErr } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("role", from_role);
+      if (delErr) throw delErr;
+
+      // Check if target role already exists
+      const { data: existingTarget } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("role", to_role)
+        .single();
+
+      if (existingTarget) {
+        // Reactivate if exists
+        await supabaseAdmin
+          .from("user_roles")
+          .update({ is_active: true })
+          .eq("user_id", user_id)
+          .eq("role", to_role);
+      } else {
+        const { error: insErr } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id, role: to_role });
+        if (insErr) throw insErr;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "reset_password") {
       const { user_id, new_password } = params;
       const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
