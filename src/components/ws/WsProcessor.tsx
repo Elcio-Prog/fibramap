@@ -445,6 +445,70 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const canResume = (batchStatus === "processing" || batchStatus === "paused" || batchStatus === "uploaded") && processedCount < totalItems;
   const isComplete = batchStatus === "processed";
 
+  // Selection helpers
+  const selectableIds = useMemo(() => {
+    if (!filteredResults) return [];
+    return filteredResults
+      .filter(r => !isInCart(r.item.id) && !isSent(r.item.id))
+      .map(r => r.item.id);
+  }, [filteredResults, isInCart, isSent]);
+
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.has(id));
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableIds));
+    }
+  };
+
+  const buildCartItems = (): CartItem[] => {
+    if (!filteredResults) return [];
+    return filteredResults
+      .filter(r => selectedIds.has(r.item.id))
+      .map(r => {
+        const dbRow = dbRows[r.item.id];
+        return {
+          id: r.item.id,
+          batchId,
+          batchTitle: batchTitle || dbRow?.batch_id || batchId.slice(0, 8),
+          designacao: r.item.designacao || "",
+          cliente: r.item.cliente || "",
+          cnpj_cliente: dbRow?.cnpj_cliente || "",
+          endereco: r.item.endereco_a || "",
+          cidade: r.item.cidade_a || "",
+          uf: r.item.uf_a || "",
+          lat: r.geo_lat,
+          lng: r.geo_lng,
+          is_viable: r.is_viable,
+          stage: r.stage || "",
+          provider_name: r.provider_name || "",
+          velocidade_mbps: r.item.velocidade_mbps,
+          velocidade_original: dbRow?.velocidade_original || "",
+          distance_m: r.distance_m,
+          final_value: r.final_value,
+          vigencia: dbRow?.vigencia || "",
+          taxa_instalacao: dbRow?.taxa_instalacao,
+          bloco_ip: dbRow?.bloco_ip || "",
+          tipo_solicitacao: dbRow?.tipo_solicitacao || "",
+          valor_a_ser_vendido: dbRow?.valor_a_ser_vendido,
+          codigo_smark: dbRow?.codigo_smark || "",
+          observacoes_user: editingObs[r.item.id] || "",
+          observacoes_system: dbRow?.observacoes_system || r.notes || "",
+          created_at: dbRow?.created_at || new Date().toISOString(),
+        };
+      });
+  };
+
   if (loading) {
     return (
       <Card>
