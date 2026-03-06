@@ -184,6 +184,23 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
     },
   });
 
+  const changeRole = useMutation({
+    mutationFn: async ({ user_id }: { user_id: string }) => {
+      const toRole = role === "ws_user" ? "admin" : "ws_user";
+      const { data, error } = await invokeManageUsers("change_role", { user_id, from_role: role, to_role: toRole });
+      if (error) throw error;
+      if ((data as any).error) throw new Error((data as any).error);
+    },
+    onSuccess: () => {
+      const toLabel = role === "ws_user" ? "Admin" : "WS";
+      toast({ title: `Usuário alterado para ${toLabel}!` });
+      queryClient.invalidateQueries({ queryKey: ["managed-users"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
