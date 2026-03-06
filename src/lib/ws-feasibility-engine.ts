@@ -532,6 +532,7 @@ export async function processWsBatch(
   onProgress?: (progress: ProcessingProgress) => void,
   onItemResult?: (result: WsResult, index: number) => void,
   startIndex: number = 0,
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult[]> {
   const elementsByProvider: Record<string, GeoElement[]> = {};
   for (const el of geoElements) {
@@ -557,7 +558,7 @@ export async function processWsBatch(
     });
 
     const coordPromises = withCoords.map(async ({ item, idx }) => {
-      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM);
+      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
       await saveItemResult(result);
       return { result, idx };
     });
@@ -565,7 +566,7 @@ export async function processWsBatch(
     const geoResultsArr: { result: WsResult; idx: number }[] = [];
     for (const { item, idx } of needGeo) {
       const geo = await resolveGeo(item);
-      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
+      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
       await saveItemResult(result);
       geoResultsArr.push({ result, idx });
       if (geo.source === "endereco") {
@@ -599,6 +600,7 @@ export async function processWsSingleItem(
   geoElements: GeoElement[],
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult> {
   const elementsByProvider: Record<string, GeoElement[]> = {};
   for (const el of geoElements) {
@@ -606,7 +608,7 @@ export async function processWsSingleItem(
     elementsByProvider[el.provider_id].push(el);
   }
 
-  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM);
+  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
 }
 
 /** Helper to process a single item with resolved geo */
@@ -617,6 +619,7 @@ async function processSingleItem(
   elementsByProvider: Record<string, GeoElement[]>,
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
+  preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult> {
   if (geo.lat == null || geo.lng == null) {
     return {
@@ -635,7 +638,7 @@ async function processSingleItem(
     };
   }
 
-  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM);
+  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
   return {
     item,
     geo_lat: geo.lat,
