@@ -50,8 +50,9 @@ export default function WsSearchesPage() {
     enabled: !!user?.id,
   });
 
-  const openBatch = (batchId: string) => {
-    navigate(`/ws/batch/${batchId}`);
+  const openBatch = (batchId: string, title?: string) => {
+    const params = title ? `?title=${encodeURIComponent(title)}` : "";
+    navigate(`/ws/batch/${batchId}${params}`);
   };
 
   const refazerBusca = async (batchId: string) => {
