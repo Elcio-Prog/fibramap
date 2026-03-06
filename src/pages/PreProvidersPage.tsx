@@ -19,7 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 
 export default function PreProvidersPage() {
