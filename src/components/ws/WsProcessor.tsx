@@ -748,6 +748,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           </div>
         )}
 
+        {/* Floating Action Bar for selection */}
+        {!processing && isComplete && (
+          <FloatingActionBar
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onToggleAll={toggleAll}
+            allSelected={allSelected}
+            buildCartItems={buildCartItems}
+          />
+        )}
+
         {/* Completed batch - load results */}
         {isComplete && !results && !processing && (
           <div className="space-y-3">
