@@ -20,6 +20,7 @@ import WsSearchesPage from "@/pages/WsSearchesPage";
 import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
 import PreProvidersPage from "@/pages/PreProvidersPage";
+import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ function WsRoutes() {
         <Route path="/batch/:batchId" element={<WsBatchDetailPage />} />
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
+        <Route path="/ntt-update" element={<NttNetworkUpdatePage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
