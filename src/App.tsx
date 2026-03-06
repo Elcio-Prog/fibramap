@@ -46,6 +46,7 @@ function ProtectedRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/" element={<MapPage />} />
+        <Route path="/ntt-update" element={isAdmin ? <NttNetworkUpdatePage /> : <Navigate to="/" replace />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/feasibility" element={<FeasibilityPage />} />

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList } from "lucide-react";
+import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const baseLinks = [
@@ -23,6 +23,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const links = [
     ...baseLinks,
     ...(isAdmin ? [
+      { to: "/ntt-update", label: "Atualizar Rede NTT", icon: Network },
       { to: "/ws-upload", label: "Upload WS", icon: Upload },
       { to: "/ws-single", label: "Busca Unitária WS", icon: Search },
       { to: "/ws-users", label: "Usuários WS", icon: Users },
