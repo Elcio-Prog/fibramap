@@ -3,12 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search } from "lucide-react";
+import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const baseLinks = [
   { to: "/", label: "Mapa", icon: Map },
   { to: "/providers", label: "Provedores", icon: Building2 },
+  { to: "/pre-providers", label: "Pré-Cadastro", icon: ClipboardList },
   { to: "/feasibility", label: "Viabilidade", icon: Calculator },
   { to: "/base-lm", label: "Base LM", icon: Database },
   { to: "/history", label: "Histórico", icon: FileText },

@@ -19,6 +19,7 @@ import WsUploadPage from "@/pages/WsUploadPage";
 import WsSearchesPage from "@/pages/WsSearchesPage";
 import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
+import PreProvidersPage from "@/pages/PreProvidersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/" element={<MapPage />} />
         <Route path="/providers" element={<ProvidersPage />} />
+        <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/feasibility" element={<FeasibilityPage />} />
         <Route path="/base-lm" element={<BaseLMPage />} />
         <Route path="/history" element={<HistoryPage />} />
@@ -81,6 +83,7 @@ function WsRoutes() {
         <Route path="/searches" element={<WsSearchesPage />} />
         <Route path="/batch/:batchId" element={<WsBatchDetailPage />} />
         <Route path="/single" element={<WsSingleSearch />} />
+        <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
