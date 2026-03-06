@@ -175,9 +175,11 @@ export default function PreProvidersPage() {
                       <Button variant="ghost" size="icon" onClick={() => setCitiesProviderId(pp.id)} title="Cidades">
                         <MapPin className="h-4 w-4" />
                       </Button>
-                      <Button variant="default" size="icon" onClick={() => handlePromote(pp)} title="Promover para Cadastro Principal" className="bg-green-600 hover:bg-green-700">
-                        <ArrowUpRight className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button variant="default" size="icon" onClick={() => handlePromote(pp)} title="Promover para Cadastro Principal" className="bg-green-600 hover:bg-green-700">
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={async () => {
                         if (confirm("Excluir este pré-cadastro?")) {
                           await deletePreProvider.mutateAsync(pp.id);
