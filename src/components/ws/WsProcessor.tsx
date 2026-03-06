@@ -34,7 +34,7 @@ function useDebounce(fn: (...args: any[]) => void, ms: number) {
   }, [fn, ms]);
 }
 
-export default function WsProcessor({ batchId, onReset }: Props) {
+export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress | null>(null);
   const [results, setResults] = useState<WsResult[] | null>(null);
@@ -46,9 +46,12 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const cancelRef = useRef(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Raw DB rows for observações tracking
   const [dbRows, setDbRows] = useState<Record<string, any>>({});
+
+  const { isInCart, isSent, loadSentIds } = useCart();
 
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
