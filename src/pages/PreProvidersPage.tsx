@@ -396,6 +396,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
   const deleteCity = useDeletePreProviderCity();
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
+  const [importing, setImporting] = useState(false);
   const { toast } = useToast();
 
   const handleAdd = async () => {
@@ -404,6 +405,65 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
     setCidade("");
     setEstado("");
     toast({ title: "Cidade adicionada" });
+  };
+
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+      if (rows.length === 0) {
+        toast({ title: "Planilha vazia", variant: "destructive" });
+        return;
+      }
+
+      // Try to find cidade/uf columns (flexible matching)
+      const headers = Object.keys(rows[0]);
+      const cidadeCol = headers.find(h => /cidade/i.test(h)) || headers[0];
+      const ufCol = headers.find(h => /uf|estado|sigla/i.test(h));
+
+      const existingSet = new Set(
+        (cities || []).map(c => `${c.cidade.trim().toUpperCase()}|${(c.estado || "").trim().toUpperCase()}`)
+      );
+
+      let added = 0;
+      let skipped = 0;
+
+      for (const row of rows) {
+        const cidadeVal = String(row[cidadeCol] || "").trim();
+        if (!cidadeVal) continue;
+        const estadoVal = ufCol ? String(row[ufCol] || "").trim() : "";
+        const key = `${cidadeVal.toUpperCase()}|${estadoVal.toUpperCase()}`;
+
+        if (existingSet.has(key)) {
+          skipped++;
+          continue;
+        }
+
+        await addCity.mutateAsync({
+          pre_provider_id: preProviderId,
+          cidade: cidadeVal,
+          estado: estadoVal || undefined,
+        });
+        existingSet.add(key);
+        added++;
+      }
+
+      toast({
+        title: "Importação concluída",
+        description: `${added} cidade(s) adicionada(s)${skipped > 0 ? `, ${skipped} já existente(s)` : ""}`,
+      });
+    } catch (err: any) {
+      toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -417,6 +477,26 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
             <Input placeholder="Cidade" value={cidade} onChange={e => setCidade(e.target.value)} className="flex-1" />
             <Input placeholder="UF" value={estado} onChange={e => setEstado(e.target.value)} className="w-16" maxLength={2} />
             <Button onClick={handleAdd} size="sm"><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              disabled={importing}
+              onClick={() => document.getElementById(`city-excel-${preProviderId}`)?.click()}
+            >
+              <Upload className="h-4 w-4" />
+              {importing ? "Importando..." : "Importar Excel"}
+            </Button>
+            <input
+              id={`city-excel-${preProviderId}`}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleExcelImport}
+            />
+            <span className="text-xs text-muted-foreground">Colunas: Cidade, UF (opcional)</span>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             <Table>
