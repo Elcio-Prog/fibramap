@@ -21,6 +21,7 @@ import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/Selectio
 
 interface Props {
   batchId: string;
+  batchTitle?: string;
   onReset?: () => void;
 }
 
