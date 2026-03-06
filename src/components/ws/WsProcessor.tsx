@@ -52,8 +52,23 @@ export default function WsProcessor({ batchId, onReset }: Props) {
   const { data: geoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: lpuItems, isLoading: loadingLpu } = useLpuItems();
   const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
+  const { data: preProviders, isLoading: loadingPreProv } = usePreProviders();
+  const { data: preProviderCities, isLoading: loadingPreCities } = useAllPreProviderCities();
 
-  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM;
+  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities;
+
+  // Build pre-providers with cities for engine
+  const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
+    .filter(pp => pp.status === "pre_cadastro")
+    .map(pp => ({
+      id: pp.id,
+      nome_fantasia: pp.nome_fantasia,
+      has_cross_ntt: pp.has_cross_ntt,
+      cities: (preProviderCities || [])
+        .filter(c => c.pre_provider_id === pp.id)
+        .map(c => ({ cidade: c.cidade, estado: c.estado })),
+    }))
+    .filter(pp => pp.cities.length > 0);
 
   useEffect(() => {
     loadBatchState();
