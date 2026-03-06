@@ -279,8 +279,12 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Nome</Label>
+            <Label>Nome (Fantasia)</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label>Razão Social</Label>
+            <Input value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} placeholder="Razão social" />
           </div>
           <div>
             <Label>Cor</Label>
@@ -290,6 +294,14 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
             </div>
           </div>
           <div>
+            <Label>Cidade Sede</Label>
+            <Input value={cidadeSede} onChange={(e) => setCidadeSede(e.target.value)} />
+          </div>
+          <div>
+            <Label>UF Sede</Label>
+            <Input value={estadoSede} onChange={(e) => setEstadoSede(e.target.value)} maxLength={2} />
+          </div>
+          <div>
             <Label>Distância máx. LPU (m)</Label>
             <Input type="number" value={maxDist} onChange={(e) => setMaxDist(e.target.value)} />
           </div>
@@ -297,14 +309,46 @@ function EditProviderDialog({ provider, onClose }: { provider: Provider; onClose
             <Label>Multiplicador</Label>
             <Input type="number" step="0.01" value={multiplier} onChange={(e) => setMultiplier(e.target.value)} />
           </div>
+        </div>
+
+        <p className="text-xs font-semibold text-muted-foreground mt-4">Contato Comercial</p>
+        <div className="grid grid-cols-3 gap-3">
           <div>
-            <Label>Gerente Comercial</Label>
+            <Label>Nome</Label>
             <Input value={gerenteComercial} onChange={(e) => setGerenteComercial(e.target.value)} placeholder="Nome do gerente" />
           </div>
           <div>
-            <Label>Telefone do Gerente</Label>
+            <Label>Telefone</Label>
             <Input value={telefoneGerente} onChange={(e) => setTelefoneGerente(e.target.value)} placeholder="(00) 00000-0000" />
-           </div>
+          </div>
+          <div>
+            <Label>E-mail</Label>
+            <Input value={contatoComEmail} onChange={(e) => setContatoComEmail(e.target.value)} placeholder="email@provedor.com" />
+          </div>
+        </div>
+
+        <p className="text-xs font-semibold text-muted-foreground mt-4">Contato NOC</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label>Nome</Label>
+            <Input value={nocNome} onChange={(e) => setNocNome(e.target.value)} />
+          </div>
+          <div>
+            <Label>Telefone</Label>
+            <Input value={nocFone} onChange={(e) => setNocFone(e.target.value)} />
+          </div>
+          <div>
+            <Label>E-mail</Label>
+            <Input value={nocEmail} onChange={(e) => setNocEmail(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="mt-2">
+          <Label>Observações</Label>
+          <Input value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mt-2">
            <div className="flex items-center gap-3 col-span-2">
              <Label>Tem Cross com NTT?</Label>
              <div className="flex gap-4">
