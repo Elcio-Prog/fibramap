@@ -629,6 +629,15 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               <table className="text-xs w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
+                    {!processing && isComplete && (
+                      <th className="px-2 py-1.5 text-center w-8">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={toggleAll}
+                          className="h-3.5 w-3.5"
+                        />
+                      </th>
+                    )}
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Designação</th>
                     <th className="px-2 py-1.5 text-left">Cliente</th>
@@ -656,6 +665,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     const dbRow = dbRows[r.item.id];
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
+                        {!processing && isComplete && (
+                          <td className="px-2 py-1 text-center">
+                            <SelectionCheckbox
+                              id={r.item.id}
+                              checked={selectedIds.has(r.item.id)}
+                              onToggle={toggleSelect}
+                              inCart={isInCart(r.item.id)}
+                              sent={isSent(r.item.id)}
+                            />
+                          </td>
+                        )}
                         <td className="px-2 py-1">{r.item.row_number}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
