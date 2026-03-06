@@ -89,6 +89,30 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracoes: {
+        Row: {
+          chave: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          valor: Json
+        }
+        Insert: {
+          chave: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json
+        }
+        Update: {
+          chave?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json
+        }
+        Relationships: []
+      }
       feasibility_queries: {
         Row: {
           calculated_distance_m: number | null
@@ -204,6 +228,42 @@ export type Database = {
           key_field?: string
           name?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      logs_envio_sharepoint: {
+        Row: {
+          data_envio: string
+          id: string
+          id_lote: string
+          mensagem_erro: string | null
+          quantidade_itens: number
+          response_code: number | null
+          status: string
+          user_id: string
+          usuario_email: string
+        }
+        Insert: {
+          data_envio?: string
+          id?: string
+          id_lote: string
+          mensagem_erro?: string | null
+          quantidade_itens?: number
+          response_code?: number | null
+          status?: string
+          user_id: string
+          usuario_email: string
+        }
+        Update: {
+          data_envio?: string
+          id?: string
+          id_lote?: string
+          mensagem_erro?: string | null
+          quantidade_itens?: number
+          response_code?: number | null
+          status?: string
+          user_id?: string
+          usuario_email?: string
         }
         Relationships: []
       }
@@ -549,9 +609,11 @@ export type Database = {
           cnpj_cliente: string | null
           codigo_smark: string | null
           created_at: string
+          data_envio: string | null
           designacao: string | null
           endereco_a: string | null
           endereco_b: string | null
+          enviado_para_sharepoint: boolean
           error_message: string | null
           id: string
           is_l2l: boolean
@@ -598,9 +660,11 @@ export type Database = {
           cnpj_cliente?: string | null
           codigo_smark?: string | null
           created_at?: string
+          data_envio?: string | null
           designacao?: string | null
           endereco_a?: string | null
           endereco_b?: string | null
+          enviado_para_sharepoint?: boolean
           error_message?: string | null
           id?: string
           is_l2l?: boolean
@@ -647,9 +711,11 @@ export type Database = {
           cnpj_cliente?: string | null
           codigo_smark?: string | null
           created_at?: string
+          data_envio?: string | null
           designacao?: string | null
           endereco_a?: string | null
           endereco_b?: string | null
+          enviado_para_sharepoint?: boolean
           error_message?: string | null
           id?: string
           is_l2l?: boolean
