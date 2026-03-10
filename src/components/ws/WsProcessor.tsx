@@ -201,6 +201,23 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     debouncedSave(itemId, text);
   };
 
+  const updateInlineField = useCallback(async (itemId: string, field: string, value: any) => {
+    setEditingFields(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || {}), [field]: value }
+    }));
+    // Update dbRows locally
+    setDbRows(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || {}), [field]: value }
+    }));
+    try {
+      await supabase.from("ws_feasibility_items").update({ [field]: value } as any).eq("id", itemId);
+    } catch {
+      // silent
+    }
+  }, []);
+
   const startProcessing = async (resume = false) => {
     if (!providers?.length) {
       toast({ title: "Cadastre ao menos um provedor antes de processar", variant: "destructive" });
