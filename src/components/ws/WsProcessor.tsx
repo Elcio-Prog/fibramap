@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Select as UISelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useProviders } from "@/hooks/useProviders";
@@ -17,10 +17,16 @@ import { useComprasLM } from "@/hooks/useComprasLM";
 import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
-import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
-import { Select, SelectContent as SC, SelectItem as SI, SelectTrigger as ST, SelectValue as SV } from "@/components/ui/select";
+import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil } from "lucide-react";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
+
+const PRODUTO_OPTIONS = [
+  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
+  "NT LINK IP TRANSITO", "NT EVENTO", "NT PTT", "NT L2L", "NT DARK FIBER",
+];
+const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
+const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
 interface Props {
   batchId: string;
