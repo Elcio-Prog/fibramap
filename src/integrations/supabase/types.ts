@@ -631,6 +631,7 @@ export type Database = {
           observacoes_user_updated_at: string | null
           prazo_ativacao: string | null
           processing_status: string
+          produto: string | null
           raw_data: Json
           result_distance_m: number | null
           result_notes: string | null
@@ -639,6 +640,8 @@ export type Database = {
           result_value: number | null
           row_number: number
           taxa_instalacao: number | null
+          tecnologia: string | null
+          tecnologia_meio_fisico: string | null
           tipo_link: string | null
           tipo_solicitacao: string | null
           uf_a: string | null
@@ -682,6 +685,7 @@ export type Database = {
           observacoes_user_updated_at?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
+          produto?: string | null
           raw_data?: Json
           result_distance_m?: number | null
           result_notes?: string | null
@@ -690,6 +694,8 @@ export type Database = {
           result_value?: number | null
           row_number: number
           taxa_instalacao?: number | null
+          tecnologia?: string | null
+          tecnologia_meio_fisico?: string | null
           tipo_link?: string | null
           tipo_solicitacao?: string | null
           uf_a?: string | null
@@ -733,6 +739,7 @@ export type Database = {
           observacoes_user_updated_at?: string | null
           prazo_ativacao?: string | null
           processing_status?: string
+          produto?: string | null
           raw_data?: Json
           result_distance_m?: number | null
           result_notes?: string | null
@@ -741,6 +748,8 @@ export type Database = {
           result_value?: number | null
           row_number?: number
           taxa_instalacao?: number | null
+          tecnologia?: string | null
+          tecnologia_meio_fisico?: string | null
           tipo_link?: string | null
           tipo_solicitacao?: string | null
           uf_a?: string | null
