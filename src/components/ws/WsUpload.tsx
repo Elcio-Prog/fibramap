@@ -316,6 +316,9 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           tipo_solicitacao: item.tipo_solicitacao || null,
           valor_a_ser_vendido: item.valor_a_ser_vendido ?? null,
           codigo_smark: item.codigo_smark || null,
+          produto: item.produto || 'NT LINK DEDICADO FULL',
+          tecnologia: item.tecnologia || 'GPON',
+          tecnologia_meio_fisico: item.tecnologia_meio_fisico || 'Fibra',
           raw_data: item.raw_data,
         }));
 
