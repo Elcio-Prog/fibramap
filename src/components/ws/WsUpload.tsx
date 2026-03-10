@@ -255,6 +255,10 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         tipo_solicitacao: getValue("tipo_solicitacao"),
         valor_a_ser_vendido: getNumber("valor_a_ser_vendido"),
         codigo_smark: getValue("codigo_smark"),
+        produto: getValue("produto"),
+        tecnologia: getValue("tecnologia"),
+        tecnologia_meio_fisico: getValue("tecnologia_meio_fisico"),
+        coordenadas: getValue("coordenadas"),
         raw_data: raw,
       });
     }
