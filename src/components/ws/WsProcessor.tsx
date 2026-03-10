@@ -28,6 +28,40 @@ const PRODUTO_OPTIONS = [
 const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
 const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
+/** Inline editable cell for the results table */
+function InlineEdit({ value, type = "text", onSave, width = "w-[80px]" }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [local, setLocal] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => { setEditing(false); if (local !== value) onSave(local); };
+  const cancel = () => { setLocal(value); setEditing(false); };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        className={`h-6 text-[10px] px-1 ${width}`}
+        type={type}
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
+      />
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-0.5 cursor-pointer group ${width} min-h-[24px] px-1 rounded border border-transparent hover:border-dashed hover:border-muted-foreground/40`} onClick={() => setEditing(true)}>
+      <span className="truncate text-[10px]">{value || "—"}</span>
+      <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+    </div>
+  );
+}
+
 interface Props {
   batchId: string;
   batchTitle?: string;
