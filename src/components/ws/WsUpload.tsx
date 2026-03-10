@@ -40,6 +40,10 @@ const TARGET_FIELDS = [
   { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
   { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
   { key: "codigo_smark", label: "Código Smark" },
+  { key: "produto", label: "Produto" },
+  { key: "tecnologia", label: "Tecnologia" },
+  { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
+  { key: "coordenadas", label: "Coordenadas" },
 ] as const;
 
 type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
