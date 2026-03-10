@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig } from "@/hooks/useConfig";
-import { useBulkExport } from "@/hooks/useBulkExport";
+import { useBulkExport, REQUIRED_CART_FIELDS, getIncompleteItems } from "@/hooks/useBulkExport";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search } from "lucide-react";
+import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle } from "lucide-react";
 import * as XLSX from "xlsx";
+import CartEditableCell from "./CartEditableCell";
+import BulkFillModal from "./BulkFillModal";
 
 interface Props {
   open: boolean;
@@ -22,8 +26,15 @@ interface Props {
 
 type SortField = "cliente" | "stage" | "batchTitle" | "created_at";
 
+const PRODUTO_OPTIONS = [
+  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
+  "NT LINK IP TRANSITO", "NT EVENTO", "NT PTT", "NT L2L", "NT DARK FIBER",
+];
+const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
+const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
+
 export default function CartDrawer({ open, onOpenChange }: Props) {
-  const { items, removeItem, clearCart } = useCart();
+  const { items, removeItem, clearCart, updateItem } = useCart();
   const { webhook, fieldMapping } = useConfig();
   const { send, sending, progress, error, setError, buildPayloadItem } = useBulkExport();
   const { toast } = useToast();
@@ -33,6 +44,8 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [sortField, setSortField] = useState<SortField>("cliente");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkFillOpen, setBulkFillOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
@@ -62,6 +75,15 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
     else { setSortField(field); setSortDir("asc"); }
   };
 
+  const incompleteItems = useMemo(() => getIncompleteItems(items), [items]);
+  const completeCount = items.length - incompleteItems.length;
+  const hasIncomplete = incompleteItems.length > 0;
+
+  const isFieldMissing = (item: CartItem, key: keyof CartItem) => {
+    const v = item[key];
+    return v == null || v === "" || v === 0;
+  };
+
   const exportCart = (format: "xlsx" | "csv") => {
     const rows = items.map((item) => buildPayloadItem(item));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -86,11 +108,43 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   };
 
   const webhookConfigured = !!webhook.url;
+  const canSend = webhookConfigured && !hasIncomplete && !sending;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(i => selectedIds.has(i.id));
+  const toggleAllFiltered = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filtered.forEach(i => next.delete(i.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filtered.forEach(i => next.add(i.id));
+        return next;
+      });
+    }
+  };
+
+  const sendDisabledReason = !webhookConfigured
+    ? "Configure o Webhook em Configurações antes de enviar"
+    : hasIncomplete
+    ? "Existem registros com campos obrigatórios não preenchidos."
+    : "";
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-2xl flex flex-col p-0">
+        <SheetContent className="w-full sm:max-w-4xl flex flex-col p-0">
           <SheetHeader className="p-4 border-b">
             <SheetTitle className="flex items-center gap-2">
               Carrinho de Pré-Viabilidades
@@ -101,8 +155,21 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
             </SheetDescription>
           </SheetHeader>
 
+          {/* Summary panel */}
+          {items.length > 0 && (
+            <div className="flex flex-wrap gap-3 p-3 border-b bg-muted/30 text-xs">
+              <span>Total: <strong>{items.length}</strong></span>
+              <span className="text-primary">Completos: <strong>{completeCount}</strong></span>
+              {hasIncomplete && (
+                <span className="text-destructive flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> Pendentes: <strong>{incompleteItems.length}</strong>
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Filters */}
-          <div className="flex flex-wrap gap-2 p-4 border-b">
+          <div className="flex flex-wrap gap-2 p-3 border-b">
             <div className="relative flex-1 min-w-[150px]">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -132,44 +199,198 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 {items.length === 0 ? "Carrinho vazio" : "Nenhum resultado encontrado"}
               </div>
             ) : (
-              <table className="text-xs w-full">
-                <thead className="sticky top-0 bg-muted z-10">
-                  <tr>
-                    <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("cliente")}>
-                      <span className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="px-2 py-1.5 text-left">Designação</th>
-                    <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("stage")}>
-                      <span className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("batchTitle")}>
-                      <span className="flex items-center gap-1">Origem <ArrowUpDown className="h-3 w-3" /></span>
-                    </th>
-                    <th className="px-2 py-1.5 text-center w-8"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((item) => (
-                    <tr key={item.id} className="border-t hover:bg-muted/30">
-                      <td className="px-2 py-1 max-w-[120px] truncate">{item.cliente || "—"}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{item.designacao || "—"}</td>
-                      <td className="px-2 py-1">
-                        <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
-                          {item.is_viable ? "Viável" : "Inviável"}
-                        </Badge>
-                      </td>
-                      <td className="px-2 py-1 max-w-[120px] truncate">{item.batchTitle}</td>
-                      <td className="px-2 py-1 text-center">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(item.id)}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="text-xs w-max min-w-full">
+                  <thead className="sticky top-0 bg-muted z-10">
+                    <tr>
+                      <th className="px-2 py-1.5 text-center w-8 sticky left-0 bg-muted z-20">
+                        <Checkbox
+                          checked={allFilteredSelected}
+                          onCheckedChange={toggleAllFiltered}
+                          className="h-3.5 w-3.5"
+                        />
+                      </th>
+                      <th className="px-2 py-1.5 text-left sticky left-8 bg-muted z-20 min-w-[100px]">Designação</th>
+                      <th className="px-2 py-1.5 text-left sticky left-[132px] bg-muted z-20 min-w-[100px] cursor-pointer" onClick={() => toggleSort("cliente")}>
+                        <span className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="px-2 py-1.5 text-left">Coordenadas</th>
+                      <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("stage")}>
+                        <span className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="px-2 py-1.5 text-left">Produto *</th>
+                      <th className="px-2 py-1.5 text-left">Tecnologia *</th>
+                      <th className="px-2 py-1.5 text-left">Meio Físico</th>
+                      <th className="px-2 py-1.5 text-left">Vel. *</th>
+                      <th className="px-2 py-1.5 text-left">Vigência *</th>
+                      <th className="px-2 py-1.5 text-left">Taxa Inst. *</th>
+                      <th className="px-2 py-1.5 text-left">Vlr Venda *</th>
+                      <th className="px-2 py-1.5 text-left">CNPJ</th>
+                      <th className="px-2 py-1.5 text-left">Bloco IP</th>
+                      <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
+                      <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+                      <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("batchTitle")}>
+                        <span className="flex items-center gap-1">Origem <ArrowUpDown className="h-3 w-3" /></span>
+                      </th>
+                      <th className="px-2 py-1.5 text-center w-8"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filtered.map((item) => (
+                      <tr key={item.id} className="border-t hover:bg-muted/30">
+                        <td className="px-2 py-1 text-center sticky left-0 bg-background z-10">
+                          <Checkbox
+                            checked={selectedIds.has(item.id)}
+                            onCheckedChange={() => toggleSelect(item.id)}
+                            className="h-3.5 w-3.5"
+                          />
+                        </td>
+                        <td className="px-2 py-1 max-w-[100px] truncate sticky left-8 bg-background z-10 font-medium">
+                          {item.designacao || "—"}
+                        </td>
+                        <td className="px-2 py-1 max-w-[100px] truncate sticky left-[132px] bg-background z-10">
+                          {item.cliente || "—"}
+                        </td>
+                        <td className="px-2 py-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="max-w-[80px] truncate block">{item.coordenadas || "—"}</span>
+                            </TooltipTrigger>
+                            {item.coordenadas && <TooltipContent>{item.coordenadas}</TooltipContent>}
+                          </Tooltip>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
+                            {item.is_viable ? "Viável" : "Inviável"}
+                          </Badge>
+                        </td>
+                        {/* Produto */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "produto") ? "bg-destructive/10" : ""}`}>
+                          <Select value={item.produto || ""} onValueChange={(v) => updateItem(item.id, { produto: v })}>
+                            <SelectTrigger className="h-7 text-[10px] w-[140px] border-dashed">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PRODUTO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Tecnologia */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "tecnologia") ? "bg-destructive/10" : ""}`}>
+                          <Select value={item.tecnologia || ""} onValueChange={(v) => updateItem(item.id, { tecnologia: v })}>
+                            <SelectTrigger className="h-7 text-[10px] w-[90px] border-dashed">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TECNOLOGIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Meio Físico */}
+                        <td className="px-1 py-0.5">
+                          <Select value={item.tecnologia_meio_fisico || ""} onValueChange={(v) => updateItem(item.id, { tecnologia_meio_fisico: v })}>
+                            <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MEIO_FISICO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Velocidade */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "velocidade_mbps") ? "bg-destructive/10" : ""}`}>
+                          <CartEditableCell
+                            value={item.velocidade_mbps != null ? String(item.velocidade_mbps) : ""}
+                            type="number"
+                            onSave={(v) => updateItem(item.id, { velocidade_mbps: v ? parseFloat(v) : null })}
+                            width="w-[70px]"
+                          />
+                        </td>
+                        {/* Vigência */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "vigencia") ? "bg-destructive/10" : ""}`}>
+                          <CartEditableCell
+                            value={item.vigencia}
+                            onSave={(v) => updateItem(item.id, { vigencia: v })}
+                            width="w-[80px]"
+                          />
+                        </td>
+                        {/* Taxa Instalação */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "taxa_instalacao") ? "bg-destructive/10" : ""}`}>
+                          <CartEditableCell
+                            value={item.taxa_instalacao != null ? String(item.taxa_instalacao) : ""}
+                            type="number"
+                            onSave={(v) => updateItem(item.id, { taxa_instalacao: v ? parseFloat(v) : null })}
+                            width="w-[80px]"
+                          />
+                        </td>
+                        {/* Valor Vendido */}
+                        <td className={`px-1 py-0.5 ${isFieldMissing(item, "valor_a_ser_vendido") ? "bg-destructive/10" : ""}`}>
+                          <CartEditableCell
+                            value={item.valor_a_ser_vendido != null ? String(item.valor_a_ser_vendido) : ""}
+                            type="number"
+                            onSave={(v) => updateItem(item.id, { valor_a_ser_vendido: v ? parseFloat(v) : null })}
+                            width="w-[80px]"
+                          />
+                        </td>
+                        {/* CNPJ */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.cnpj_cliente}
+                            onSave={(v) => updateItem(item.id, { cnpj_cliente: v })}
+                            width="w-[130px]"
+                            mask="cnpj"
+                          />
+                        </td>
+                        {/* Bloco IP */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.bloco_ip}
+                            onSave={(v) => updateItem(item.id, { bloco_ip: v })}
+                            width="w-[90px]"
+                          />
+                        </td>
+                        {/* Tipo Solicitação */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.tipo_solicitacao}
+                            onSave={(v) => updateItem(item.id, { tipo_solicitacao: v })}
+                            width="w-[90px]"
+                          />
+                        </td>
+                        {/* Cód. Smark */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.codigo_smark}
+                            onSave={(v) => updateItem(item.id, { codigo_smark: v })}
+                            width="w-[90px]"
+                          />
+                        </td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{item.batchTitle}</td>
+                        <td className="px-2 py-1 text-center">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(item.id)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
+
+          {/* Bulk selection bar */}
+          {selectedIds.size > 0 && (
+            <div className="border-t p-2 bg-muted/50 flex items-center gap-3 text-xs">
+              <span className="font-medium">{selectedIds.size} selecionados</span>
+              <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => setBulkFillOpen(true)}>
+                <Pencil className="h-3 w-3" /> Preencher selecionados
+              </Button>
+              <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => setSelectedIds(new Set())}>
+                Limpar seleção
+              </Button>
+            </div>
+          )}
 
           {/* Footer */}
           {items.length > 0 && (
@@ -196,7 +417,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                     <span>
                       <Button
                         className="gap-2 flex-1"
-                        disabled={!webhookConfigured || sending}
+                        disabled={!canSend}
                         onClick={() => setConfirmOpen(true)}
                       >
                         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -204,8 +425,8 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {!webhookConfigured && (
-                    <TooltipContent>Configure o Webhook em Configurações antes de enviar</TooltipContent>
+                  {sendDisabledReason && (
+                    <TooltipContent>{sendDisabledReason}</TooltipContent>
                   )}
                 </Tooltip>
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
@@ -242,7 +463,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       <tr>
                         <th className="text-left px-1">Protocolo</th>
                         <th className="text-left px-1">Cliente</th>
-                        <th className="text-left px-1">Endereço</th>
+                        <th className="text-left px-1">Produto</th>
                         <th className="text-left px-1">Status</th>
                         <th className="text-left px-1">Origem</th>
                       </tr>
@@ -252,7 +473,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         <tr key={i.id} className="border-t">
                           <td className="px-1 py-0.5 truncate max-w-[80px]">{i.designacao || "—"}</td>
                           <td className="px-1 py-0.5 truncate max-w-[80px]">{i.cliente || "—"}</td>
-                          <td className="px-1 py-0.5 truncate max-w-[100px]">{i.endereco || "—"}</td>
+                          <td className="px-1 py-0.5 truncate max-w-[100px]">{i.produto || "—"}</td>
                           <td className="px-1 py-0.5">{i.is_viable ? "Viável" : "Inviável"}</td>
                           <td className="px-1 py-0.5 truncate max-w-[80px]">{i.batchTitle}</td>
                         </tr>
@@ -271,6 +492,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Fill Modal */}
+      <BulkFillModal
+        open={bulkFillOpen}
+        onOpenChange={setBulkFillOpen}
+        selectedIds={selectedIds}
+      />
     </>
   );
 }

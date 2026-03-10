@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements } from "@/hooks/useGeoElements";
@@ -14,10 +17,50 @@ import { useComprasLM } from "@/hooks/useComprasLM";
 import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
-import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil } from "lucide-react";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
+
+const PRODUTO_OPTIONS = [
+  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
+  "NT LINK IP TRANSITO", "NT EVENTO", "NT PTT", "NT L2L", "NT DARK FIBER",
+];
+const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
+const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
+
+/** Inline editable cell for the results table */
+function InlineEdit({ value, type = "text", onSave, width = "w-[80px]" }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [local, setLocal] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const commit = () => { setEditing(false); if (local !== value) onSave(local); };
+  const cancel = () => { setLocal(value); setEditing(false); };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        className={`h-6 text-[10px] px-1 ${width}`}
+        type={type}
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
+      />
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-0.5 cursor-pointer group ${width} min-h-[24px] px-1 rounded border border-transparent hover:border-dashed hover:border-muted-foreground/40`} onClick={() => setEditing(true)}>
+      <span className="truncate text-[10px]">{value || "—"}</span>
+      <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+    </div>
+  );
+}
 
 interface Props {
   batchId: string;
@@ -45,6 +88,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [filter, setFilter] = useState<"all" | "viable" | "not_viable" | "pending" | "failed">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
+  const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -190,6 +234,23 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     setEditingObs(prev => ({ ...prev, [itemId]: text }));
     debouncedSave(itemId, text);
   };
+
+  const updateInlineField = useCallback(async (itemId: string, field: string, value: any) => {
+    setEditingFields(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || {}), [field]: value }
+    }));
+    // Update dbRows locally
+    setDbRows(prev => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || {}), [field]: value }
+    }));
+    try {
+      await supabase.from("ws_feasibility_items").update({ [field]: value } as any).eq("id", itemId);
+    } catch {
+      // silent
+    }
+  }, []);
 
   const startProcessing = async (resume = false) => {
     if (!providers?.length) {
@@ -477,6 +538,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       .filter(r => selectedIds.has(r.item.id))
       .map(r => {
         const dbRow = dbRows[r.item.id];
+        const coordenadas = r.geo_lat != null && r.geo_lng != null ? `${r.geo_lat}, ${r.geo_lng}` : "";
         return {
           id: r.item.id,
           batchId,
@@ -505,6 +567,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           observacoes_user: editingObs[r.item.id] || "",
           observacoes_system: dbRow?.observacoes_system || r.notes || "",
           created_at: dbRow?.created_at || new Date().toISOString(),
+          produto: dbRow?.produto || "NT LINK DEDICADO FULL",
+          tecnologia: dbRow?.tecnologia || "GPON",
+          tecnologia_meio_fisico: dbRow?.tecnologia_meio_fisico || "Fibra",
+          coordenadas,
         };
       });
   };
@@ -626,7 +692,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
             {/* Results table */}
             <div className="overflow-x-auto max-h-[600px] border rounded-md">
-              <table className="text-xs w-full">
+              <table className="text-xs w-max min-w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
                     {!processing && isComplete && (
@@ -644,25 +710,30 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">CNPJ</th>
                     <th className="px-2 py-1.5 text-left">Vel.</th>
                     <th className="px-2 py-1.5 text-left">Endereço</th>
+                    <th className="px-2 py-1.5 text-left">Coordenadas</th>
                     <th className="px-2 py-1.5 text-left">Geo</th>
                     <th className="px-2 py-1.5 text-left">Viável</th>
                     <th className="px-2 py-1.5 text-left">Melhor Etapa</th>
-                     <th className="px-2 py-1.5 text-left">Provedor</th>
-                     <th className="px-2 py-1.5 text-left min-w-[200px]">Obs. Usuário</th>
-                     <th className="px-2 py-1.5 text-left">Distância</th>
-                     <th className="px-2 py-1.5 text-left">Valor</th>
+                    <th className="px-2 py-1.5 text-left">Provedor</th>
+                    <th className="px-2 py-1.5 text-left">Produto</th>
+                    <th className="px-2 py-1.5 text-left">Tecnologia</th>
+                    <th className="px-2 py-1.5 text-left">Meio Físico</th>
+                    <th className="px-2 py-1.5 text-left min-w-[200px]">Obs. Usuário</th>
+                    <th className="px-2 py-1.5 text-left">Distância</th>
+                    <th className="px-2 py-1.5 text-left">Valor</th>
                     <th className="px-2 py-1.5 text-left">Vigência</th>
                     <th className="px-2 py-1.5 text-left">Taxa Inst.</th>
                     <th className="px-2 py-1.5 text-left">Bloco IP</th>
                     <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
                     <th className="px-2 py-1.5 text-left">Vlr Venda</th>
                     <th className="px-2 py-1.5 text-left">Cód. Smark</th>
-                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
+                    <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredResults.map((r, i) => {
                     const dbRow = dbRows[r.item.id];
+                    const coords = r.geo_lat != null && r.geo_lng != null ? `${r.geo_lat}, ${r.geo_lng}` : "";
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
@@ -679,9 +750,21 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-2 py-1">{r.item.row_number}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
-                        <td className="px-2 py-1 max-w-[100px] truncate">{dbRow?.cnpj_cliente || "—"}</td>
+                        {/* CNPJ - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.cnpj_cliente || ""} onSave={(v) => updateInlineField(r.item.id, "cnpj_cliente", v)} width="w-[120px]" />
+                        </td>
                         <td className="px-2 py-1">{r.item.velocidade_mbps ?? "—"}</td>
                         <td className="px-2 py-1 max-w-[160px] truncate">{r.item.endereco_a || "—"}</td>
+                        {/* Coordenadas */}
+                        <td className="px-2 py-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="max-w-[90px] truncate block text-[10px]">{coords || "—"}</span>
+                            </TooltipTrigger>
+                            {coords && <TooltipContent className="text-xs">{coords}</TooltipContent>}
+                          </Tooltip>
+                        </td>
                         <td className="px-2 py-1">
                           {r.geo_source === "coordenada" ? "📍" : r.geo_source === "endereco" ? "🔍" : "❌"}
                         </td>
@@ -693,33 +776,87 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                           )}
                         </td>
                         <td className="px-2 py-1 whitespace-nowrap">{r.stage || "—"}</td>
-                         <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
-                         <td className="px-2 py-1 min-w-[200px]">
-                           <div className="relative">
-                             <Textarea
-                               className="text-[10px] min-h-[40px] h-10 resize-y"
-                               value={editingObs[r.item.id] ?? ""}
-                               onChange={(e) => handleObsChange(r.item.id, e.target.value)}
-                               placeholder="Observação do usuário..."
-                             />
-                             {savingObs[r.item.id] && (
-                               <Save className="absolute top-1 right-1 h-3 w-3 text-muted-foreground animate-pulse" />
-                             )}
-                           </div>
-                         </td>
-                         <td className="px-2 py-1 whitespace-nowrap">
-                           {r.stage === "Rede Própria" && r.distance_m != null ? `${r.distance_m}m` : "—"}
-                         </td>
-                         <td className="px-2 py-1">{r.final_value != null ? `R$${r.final_value}` : "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.vigencia || "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.taxa_instalacao != null ? `R$${dbRow.taxa_instalacao}` : "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.bloco_ip || "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.tipo_solicitacao || "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.valor_a_ser_vendido != null ? `R$${dbRow.valor_a_ser_vendido}` : "—"}</td>
-                        <td className="px-2 py-1">{dbRow?.codigo_smark || "—"}</td>
-                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
-                           {dbRow?.observacoes_system || r.notes || "—"}
-                         </td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.provider_name || "—"}</td>
+                        {/* Produto - dropdown */}
+                        <td className="px-1 py-0.5">
+                          <Select value={dbRow?.produto || "NT LINK DEDICADO FULL"} onValueChange={(v) => updateInlineField(r.item.id, "produto", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[130px] border-dashed">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PRODUTO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Tecnologia - dropdown */}
+                        <td className="px-1 py-0.5">
+                          <Select value={dbRow?.tecnologia || "GPON"} onValueChange={(v) => updateInlineField(r.item.id, "tecnologia", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[80px] border-dashed">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TECNOLOGIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Meio Físico - dropdown */}
+                        <td className="px-1 py-0.5">
+                          <Select value={dbRow?.tecnologia_meio_fisico || "Fibra"} onValueChange={(v) => updateInlineField(r.item.id, "tecnologia_meio_fisico", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[70px] border-dashed">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MEIO_FISICO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1 min-w-[200px]">
+                          <div className="relative">
+                            <Textarea
+                              className="text-[10px] min-h-[40px] h-10 resize-y"
+                              value={editingObs[r.item.id] ?? ""}
+                              onChange={(e) => handleObsChange(r.item.id, e.target.value)}
+                              placeholder="Observação do usuário..."
+                            />
+                            {savingObs[r.item.id] && (
+                              <Save className="absolute top-1 right-1 h-3 w-3 text-muted-foreground animate-pulse" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1 whitespace-nowrap">
+                          {r.stage === "Rede Própria" && r.distance_m != null ? `${r.distance_m}m` : "—"}
+                        </td>
+                        {/* Valor - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={r.final_value != null ? String(r.final_value) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "result_value", v ? parseFloat(v) : null)} width="w-[70px]" />
+                        </td>
+                        {/* Vigência - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.vigencia || ""} onSave={(v) => updateInlineField(r.item.id, "vigencia", v)} width="w-[80px]" />
+                        </td>
+                        {/* Taxa Inst. - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v ? parseFloat(v) : null)} width="w-[70px]" />
+                        </td>
+                        {/* Bloco IP - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[80px]" />
+                        </td>
+                        {/* Tipo Sol. - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[80px]" />
+                        </td>
+                        {/* Vlr Venda - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.valor_a_ser_vendido != null ? String(dbRow.valor_a_ser_vendido) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "valor_a_ser_vendido", v ? parseFloat(v) : null)} width="w-[80px]" />
+                        </td>
+                        {/* Cód. Smark - editable */}
+                        <td className="px-1 py-0.5">
+                          <InlineEdit value={dbRow?.codigo_smark || ""} onSave={(v) => updateInlineField(r.item.id, "codigo_smark", v)} width="w-[80px]" />
+                        </td>
+                        <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
+                          {dbRow?.observacoes_system || r.notes || "—"}
+                        </td>
                       </tr>
                     );
                   })}

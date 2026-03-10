@@ -40,6 +40,10 @@ const TARGET_FIELDS = [
   { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
   { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
   { key: "codigo_smark", label: "Código Smark" },
+  { key: "produto", label: "Produto" },
+  { key: "tecnologia", label: "Tecnologia" },
+  { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
+  { key: "coordenadas", label: "Coordenadas" },
 ] as const;
 
 type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
@@ -78,6 +82,10 @@ interface ParsedItem {
   tipo_solicitacao?: string;
   valor_a_ser_vendido?: number;
   codigo_smark?: string;
+  produto?: string;
+  tecnologia?: string;
+  tecnologia_meio_fisico?: string;
+  coordenadas?: string;
   raw_data: Record<string, any>;
 }
 
@@ -247,6 +255,10 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         tipo_solicitacao: getValue("tipo_solicitacao"),
         valor_a_ser_vendido: getNumber("valor_a_ser_vendido"),
         codigo_smark: getValue("codigo_smark"),
+        produto: getValue("produto"),
+        tecnologia: getValue("tecnologia"),
+        tecnologia_meio_fisico: getValue("tecnologia_meio_fisico"),
+        coordenadas: getValue("coordenadas"),
         raw_data: raw,
       });
     }
@@ -304,6 +316,9 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           tipo_solicitacao: item.tipo_solicitacao || null,
           valor_a_ser_vendido: item.valor_a_ser_vendido ?? null,
           codigo_smark: item.codigo_smark || null,
+          produto: item.produto || 'NT LINK DEDICADO FULL',
+          tecnologia: item.tecnologia || 'GPON',
+          tecnologia_meio_fisico: item.tecnologia_meio_fisico || 'Fibra',
           raw_data: item.raw_data,
         }));
 
