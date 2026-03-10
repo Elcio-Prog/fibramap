@@ -54,6 +54,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [filter, setFilter] = useState<"all" | "viable" | "not_viable" | "pending" | "failed">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
+  const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
