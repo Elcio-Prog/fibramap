@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 export interface CartItem {
-  id: string; // ws_feasibility_items.id
+  id: string;
   batchId: string;
-  batchTitle: string; // origin label
+  batchTitle: string;
   designacao: string;
   cliente: string;
   cnpj_cliente: string;
@@ -28,6 +28,11 @@ export interface CartItem {
   observacoes_user: string;
   observacoes_system: string;
   created_at: string;
+  // New fields
+  produto: string;
+  tecnologia: string;
+  tecnologia_meio_fisico: string;
+  coordenadas: string;
 }
 
 interface CartCtx {
@@ -40,6 +45,8 @@ interface CartCtx {
   isInCart: (id: string) => boolean;
   isSent: (id: string) => boolean;
   loadSentIds: (ids: string[]) => void;
+  updateItem: (id: string, updates: Partial<CartItem>) => void;
+  updateItems: (ids: string[], updates: Partial<CartItem>) => void;
 }
 
 const CartContext = createContext<CartCtx>({
@@ -52,6 +59,8 @@ const CartContext = createContext<CartCtx>({
   isInCart: () => false,
   isSent: () => false,
   loadSentIds: () => {},
+  updateItem: () => {},
+  updateItems: () => {},
 });
 
 export const useCart = () => useContext(CartContext);
@@ -92,8 +101,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setSentIds(new Set(ids));
   }, []);
 
+  const updateItem = useCallback((id: string, updates: Partial<CartItem>) => {
+    setItems((prev) => prev.map((i) => i.id === id ? { ...i, ...updates } : i));
+  }, []);
+
+  const updateItems = useCallback((ids: string[], updates: Partial<CartItem>) => {
+    setItems((prev) => prev.map((i) => ids.includes(i.id) ? { ...i, ...updates } : i));
+  }, []);
+
   return (
-    <CartContext.Provider value={{ items, sentIds, addItems, removeItem, clearCart, markAsSent, isInCart, isSent, loadSentIds }}>
+    <CartContext.Provider value={{ items, sentIds, addItems, removeItem, clearCart, markAsSent, isInCart, isSent, loadSentIds, updateItem, updateItems }}>
       {children}
     </CartContext.Provider>
   );

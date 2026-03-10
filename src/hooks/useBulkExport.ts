@@ -27,7 +27,7 @@ function mapItemToColumnValue(item: CartItem, colunaApp: string): any {
     "CNPJ": item.cnpj_cliente,
     "Endereço": item.endereco,
     "Cidade": item.cidade,
-    "Geo": item.lat != null && item.lng != null ? `${item.lat},${item.lng}` : "",
+    "Geo": item.coordenadas || (item.lat != null && item.lng != null ? `${item.lat},${item.lng}` : ""),
     "Viável": item.is_viable ? "VIÁVEL" : "INVIÁVEL",
     "Melhor Etapa": item.stage,
     "Provedor": item.provider_name,
@@ -41,6 +41,10 @@ function mapItemToColumnValue(item: CartItem, colunaApp: string): any {
     "Cód. Smark": item.codigo_smark,
     "Obs. Usuário": item.observacoes_user,
     "Obs. Sistema": item.observacoes_system,
+    "Produto": item.produto,
+    "Tecnologia": item.tecnologia,
+    "Tecnologia (Meio Físico)": item.tecnologia_meio_fisico,
+    "Coordenadas": item.coordenadas || (item.lat != null && item.lng != null ? `${item.lat},${item.lng}` : ""),
   };
   return map[colunaApp] ?? null;
 }
@@ -56,6 +60,25 @@ function buildPayloadItem(item: CartItem, mapping: FieldMappingEntry[]): Record<
   return obj;
 }
 
+/** Required fields that must be filled before sending */
+export const REQUIRED_CART_FIELDS: { key: keyof CartItem; label: string }[] = [
+  { key: "produto", label: "Produto" },
+  { key: "vigencia", label: "Vigência" },
+  { key: "taxa_instalacao", label: "Taxa de Instalação" },
+  { key: "velocidade_mbps", label: "Velocidade" },
+  { key: "tecnologia", label: "Tecnologia" },
+  { key: "valor_a_ser_vendido", label: "Valor Vendido" },
+];
+
+export function getIncompleteItems(items: CartItem[]): CartItem[] {
+  return items.filter((item) =>
+    REQUIRED_CART_FIELDS.some((f) => {
+      const v = item[f.key];
+      return v == null || v === "" || v === 0;
+    })
+  );
+}
+
 export function useBulkExport() {
   const { user } = useAuth();
   const { items, markAsSent } = useCart();
@@ -68,8 +91,8 @@ export function useBulkExport() {
     if (!webhook.url) return "Configure o Webhook em Configurações antes de enviar";
     if (!user?.email) return "Usuário sem email";
     if (items.length === 0) return "Carrinho vazio";
-    const missing = items.filter((i) => !i.designacao && !i.cliente);
-    if (missing.length > 0) return `${missing.length} itens sem protocolo ou cliente`;
+    const incomplete = getIncompleteItems(items);
+    if (incomplete.length > 0) return `${incomplete.length} registros com campos obrigatórios não preenchidos`;
     return null;
   };
 
@@ -142,7 +165,6 @@ export function useBulkExport() {
       } as any);
 
       if (allSuccess) {
-        // Mark items as sent in DB
         const ids = items.map((i) => i.id);
         for (let i = 0; i < ids.length; i += 500) {
           const chunk = ids.slice(i, i + 500);
