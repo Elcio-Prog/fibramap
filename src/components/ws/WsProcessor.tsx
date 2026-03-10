@@ -477,6 +477,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       .filter(r => selectedIds.has(r.item.id))
       .map(r => {
         const dbRow = dbRows[r.item.id];
+        const coordenadas = r.geo_lat != null && r.geo_lng != null ? `${r.geo_lat}, ${r.geo_lng}` : "";
         return {
           id: r.item.id,
           batchId,
@@ -505,6 +506,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           observacoes_user: editingObs[r.item.id] || "",
           observacoes_system: dbRow?.observacoes_system || r.notes || "",
           created_at: dbRow?.created_at || new Date().toISOString(),
+          produto: dbRow?.produto || "NT LINK DEDICADO FULL",
+          tecnologia: dbRow?.tecnologia || "GPON",
+          tecnologia_meio_fisico: dbRow?.tecnologia_meio_fisico || "Fibra",
+          coordenadas,
         };
       });
   };
