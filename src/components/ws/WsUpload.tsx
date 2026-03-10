@@ -82,6 +82,10 @@ interface ParsedItem {
   tipo_solicitacao?: string;
   valor_a_ser_vendido?: number;
   codigo_smark?: string;
+  produto?: string;
+  tecnologia?: string;
+  tecnologia_meio_fisico?: string;
+  coordenadas?: string;
   raw_data: Record<string, any>;
 }
 
