@@ -180,6 +180,29 @@ export default function WsSingleSearch() {
         return;
       }
 
+      // Resolve cidade/uf from available data
+      let cidadeResolved: string | null = null;
+      let ufResolved: string | null = null;
+      if (inputMode === "cep" && cepData) {
+        cidadeResolved = cepData.localidade;
+        ufResolved = cepData.uf;
+      } else {
+        // Try to extract city from display_name (Nominatim format: "..., Cidade, Estado, ...")
+        // Also try reverse geocoding to get city
+        try {
+          const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+          const revData = await revRes.json();
+          if (revData?.address) {
+            cidadeResolved = revData.address.city || revData.address.town || revData.address.municipality || null;
+            ufResolved = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
+            // Get proper 2-letter UF code from ISO
+            if (revData.address["ISO3166-2-lvl4"]) {
+              ufResolved = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
+            }
+          }
+        } catch {}
+      }
+
       const wsItem: WsItemInput = {
         id: `single-${Date.now()}`,
         designacao: designacao || null,
@@ -187,8 +210,8 @@ export default function WsSingleSearch() {
         tipo_link: tipoLink || null,
         velocidade_mbps: velocidade ? Number(velocidade) : null,
         endereco_a: geo.display,
-        cidade_a: null,
-        uf_a: null,
+        cidade_a: cidadeResolved,
+        uf_a: ufResolved,
         lat_a: geo.lat,
         lng_a: geo.lng,
         endereco_b: null,
