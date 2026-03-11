@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, Layers, Eye, EyeOff, Database, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
+import { useUserRole } from "@/hooks/useUserRole";
+import MapSearchBar from "@/components/map/MapSearchBar";
 import {
   AlertDialog,
   AlertDialogAction,
