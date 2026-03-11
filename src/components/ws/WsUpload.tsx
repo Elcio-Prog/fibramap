@@ -507,14 +507,52 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </table>
             </div>
 
+            {/* Coordinate format selector */}
+            <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+              <p className="text-sm font-medium">Formato de Coordenadas:</p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="coordFormat" checked={coordFormat === "coords"} onChange={() => setCoordFormat("coords")} className="accent-primary" />
+                  Coordenadas (Ponto A / Ponto B)
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="coordFormat" checked={coordFormat === "latlong"} onChange={() => setCoordFormat("latlong")} className="accent-primary" />
+                  Lat/Long separadas
+                </label>
+              </div>
+            </div>
+
             {/* Column mapping */}
             <div className="space-y-2">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
-              {TARGET_FIELDS.map((field) => (
+              {BASE_TARGET_FIELDS.map((field) => (
                 <div key={field.key} className="flex items-center gap-2">
                   <span className="text-sm w-48 shrink-0">{field.label}</span>
                   <Select
                     value={mapping[field.key] || "__ignore__"}
+                    onValueChange={(v) =>
+                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-sm h-8">
+                      <SelectValue placeholder="Ignorar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+
+              {/* Coordinate-specific fields */}
+              {(coordFormat === "coords" ? COORD_FIELDS : LATLONG_FIELDS).map((field) => (
+                <div key={field.key} className="flex items-center gap-2">
+                  <span className="text-sm w-48 shrink-0">{field.label}</span>
+                  <Select
+                    value={mapping[field.key as TargetKey] || "__ignore__"}
                     onValueChange={(v) =>
                       setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
                     }
