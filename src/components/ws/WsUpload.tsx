@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /** Campos-alvo que o usuário pode mapear */
-const TARGET_FIELDS = [
+const BASE_TARGET_FIELDS = [
   { key: "designacao", label: "Designação" },
   { key: "cliente", label: "Cliente" },
   { key: "tipo_link", label: "Tipo de Link" },
@@ -23,15 +23,11 @@ const TARGET_FIELDS = [
   { key: "uf_a", label: "UF (Ponta A)" },
   { key: "cep_a", label: "CEP (Ponta A)" },
   { key: "numero_a", label: "Número (Ponta A)" },
-  { key: "lat_a", label: "Latitude (Ponta A)" },
-  { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
   { key: "cidade_b", label: "Cidade (Ponta B)" },
   { key: "uf_b", label: "UF (Ponta B)" },
   { key: "cep_b", label: "CEP (Ponta B)" },
   { key: "numero_b", label: "Número (Ponta B)" },
-  { key: "lat_b", label: "Latitude (Ponta B)" },
-  { key: "lng_b", label: "Longitude (Ponta B)" },
   { key: "prazo_ativacao", label: "Prazo de Ativação" },
   { key: "vigencia", label: "Vigência" },
   { key: "taxa_instalacao", label: "Taxa de Instalação" },
@@ -43,10 +39,25 @@ const TARGET_FIELDS = [
   { key: "produto", label: "Produto" },
   { key: "tecnologia", label: "Tecnologia" },
   { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
-  { key: "coordenadas", label: "Coordenadas" },
 ] as const;
 
-type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
+// Coordinate fields for "Coordenadas" mode
+const COORD_FIELDS = [
+  { key: "coordenadas_a", label: "Coordenadas (Ponta A)" },
+  { key: "coordenadas_b", label: "Coordenadas (Ponta B)" },
+] as const;
+
+// Coordinate fields for "Lat/Long" mode
+const LATLONG_FIELDS = [
+  { key: "lat_a", label: "Latitude (Ponta A)" },
+  { key: "lng_a", label: "Longitude (Ponta A)" },
+  { key: "lat_b", label: "Latitude (Ponta B)" },
+  { key: "lng_b", label: "Longitude (Ponta B)" },
+] as const;
+
+type CoordFormat = "coords" | "latlong";
+
+type TargetKey = (typeof BASE_TARGET_FIELDS)[number]["key"] | (typeof COORD_FIELDS)[number]["key"] | (typeof LATLONG_FIELDS)[number]["key"];
 
 type Step = "upload" | "mapping" | "preview" | "done";
 
