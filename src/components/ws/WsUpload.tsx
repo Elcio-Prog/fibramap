@@ -57,28 +57,28 @@ const FIELD_GROUPS: FieldGroup[] = [
       { key: "bloco_ip", label: "Bloco IP" },
     ],
   },
-] as const;
+];
 
 // Flat list of all base fields for parsing
 const BASE_TARGET_FIELDS = FIELD_GROUPS.flatMap((g) => g.fields);
 
 // Coordinate fields for "Coordenadas" mode
-const COORD_FIELDS = [
+const COORD_FIELDS: FieldDef[] = [
   { key: "coordenadas_a", label: "Coordenadas (Ponta A)" },
   { key: "coordenadas_b", label: "Coordenadas (Ponta B)" },
-] as const;
+];
 
 // Coordinate fields for "Lat/Long" mode
-const LATLONG_FIELDS = [
+const LATLONG_FIELDS: FieldDef[] = [
   { key: "lat_a", label: "Latitude (Ponta A)" },
   { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "lat_b", label: "Latitude (Ponta B)" },
   { key: "lng_b", label: "Longitude (Ponta B)" },
-] as const;
+];
 
 type CoordFormat = "coords" | "latlong";
 
-type TargetKey = (typeof BASE_TARGET_FIELDS)[number]["key"] | (typeof COORD_FIELDS)[number]["key"] | (typeof LATLONG_FIELDS)[number]["key"];
+type TargetKey = string;
 
 type Step = "upload" | "mapping" | "preview" | "done";
 
