@@ -31,6 +31,7 @@ const FIELD_GROUPS: FieldGroup[] = [
     fields: [
       { key: "cliente", label: "Cliente" },
       { key: "cnpj_cliente", label: "CNPJ Cliente" },
+    ],
   },
   {
     label: "Ponta A",
