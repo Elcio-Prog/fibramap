@@ -32,7 +32,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MapPage() {
-  const { role } = useUserRole();
+  const { isAdmin } = useUserRole();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
