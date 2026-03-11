@@ -65,9 +65,32 @@ const CartContext = createContext<CartCtx>({
 
 export const useCart = () => useContext(CartContext);
 
+const CART_STORAGE_KEY = "cart_items";
+const SENT_STORAGE_KEY = "cart_sent_ids";
+
+function loadFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState<CartItem[]>(() => loadFromStorage(CART_STORAGE_KEY, []));
+  const [sentIds, setSentIds] = useState<Set<string>>(() => new Set(loadFromStorage<string[]>(SENT_STORAGE_KEY, [])));
+
+  // Persist items to localStorage
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
+
+  // Persist sentIds to localStorage
+  useEffect(() => {
+    localStorage.setItem(SENT_STORAGE_KEY, JSON.stringify(Array.from(sentIds)));
+  }, [sentIds]);
 
   const addItems = useCallback((newItems: CartItem[]) => {
     setItems((prev) => {
@@ -83,6 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => {
     setItems([]);
+    localStorage.removeItem(CART_STORAGE_KEY);
   }, []);
 
   const markAsSent = useCallback((ids: string[]) => {
