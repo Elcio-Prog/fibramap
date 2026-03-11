@@ -202,6 +202,32 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     reader.readAsArrayBuffer(file);
   };
 
+  // ---- Coordinate normalization helpers ----
+  /** Clean and normalize a coordinate string: remove brackets, extra spaces, special chars */
+  const normalizeCoordValue = (raw: string | undefined): number | undefined => {
+    if (!raw) return undefined;
+    const cleaned = raw.replace(/[^\d.,-]/g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? undefined : n;
+  };
+
+  /** Parse a combined coordinate string like "-23.5505, -46.6333" into lat/lng */
+  const parseCoordString = (raw: string | undefined): { lat: number | undefined; lng: number | undefined } => {
+    if (!raw) return { lat: undefined, lng: undefined };
+    // Clean: remove brackets, parens, extra spaces
+    const cleaned = raw.replace(/[[\](){}]/g, "").trim();
+    // Try comma-separated
+    const parts = cleaned.split(/[,;\s]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const lat = parseFloat(parts[0].replace(",", "."));
+      const lng = parseFloat(parts[1].replace(",", "."));
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
+    return { lat: undefined, lng: undefined };
+  };
+
   // ---- Step 2: Parse with mapping ----
   const parseData = () => {
     const items: ParsedItem[] = [];
@@ -235,6 +261,31 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         if (row[hi] !== "" && row[hi] !== null && row[hi] !== undefined) raw[h] = row[hi];
       });
 
+      // Resolve coordinates based on format
+      let lat_a: number | undefined;
+      let lng_a: number | undefined;
+      let lat_b: number | undefined;
+      let lng_b: number | undefined;
+      let coordenadas: string | undefined;
+
+      if (coordFormat === "coords") {
+        const coordsA = getValue("coordenadas_a");
+        const coordsB = getValue("coordenadas_b");
+        const parsedA = parseCoordString(coordsA);
+        const parsedB = parseCoordString(coordsB);
+        lat_a = parsedA.lat;
+        lng_a = parsedA.lng;
+        lat_b = parsedB.lat;
+        lng_b = parsedB.lng;
+        if (lat_a != null && lng_a != null) coordenadas = `${lat_a}, ${lng_a}`;
+      } else {
+        lat_a = normalizeCoordValue(getValue("lat_a"));
+        lng_a = normalizeCoordValue(getValue("lng_a"));
+        lat_b = normalizeCoordValue(getValue("lat_b"));
+        lng_b = normalizeCoordValue(getValue("lng_b"));
+        if (lat_a != null && lng_a != null) coordenadas = `${lat_a}, ${lng_a}`;
+      }
+
       items.push({
         row: i + 2,
         designacao: desig,
@@ -250,15 +301,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         uf_a: getValue("uf_a"),
         cep_a: getValue("cep_a"),
         numero_a: getValue("numero_a"),
-        lat_a: getNumber("lat_a"),
-        lng_a: getNumber("lng_a"),
+        lat_a,
+        lng_a,
         endereco_b: getValue("endereco_b"),
         cidade_b: getValue("cidade_b"),
         uf_b: getValue("uf_b"),
         cep_b: getValue("cep_b"),
         numero_b: getValue("numero_b"),
-        lat_b: getNumber("lat_b"),
-        lng_b: getNumber("lng_b"),
+        lat_b,
+        lng_b,
         prazo_ativacao: getValue("prazo_ativacao"),
         vigencia: getValue("vigencia"),
         taxa_instalacao: getNumber("taxa_instalacao"),
@@ -270,9 +321,10 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         produto: getValue("produto"),
         tecnologia: getValue("tecnologia"),
         tecnologia_meio_fisico: getValue("tecnologia_meio_fisico"),
-        coordenadas: getValue("coordenadas"),
+        coordenadas,
         raw_data: raw,
       });
+    }
     }
     setParsedItems(items);
     setStep("preview");
