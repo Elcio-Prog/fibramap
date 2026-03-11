@@ -824,7 +824,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                           </div>
                         </td>
                         <td className="px-2 py-1 whitespace-nowrap">
-                          {r.stage === "Rede Própria" && r.distance_m != null ? `${r.distance_m}m` : "—"}
+                          {r.stage === "Rede Própria" && r.distance_m != null ? r.distance_m : "—"}
                         </td>
                         {/* Valor - editable */}
                         <td className="px-1 py-0.5">
