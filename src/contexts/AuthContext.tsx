@@ -30,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    localStorage.removeItem("cart_items");
+    localStorage.removeItem("cart_sent_ids");
     await supabase.auth.signOut();
   };
 
