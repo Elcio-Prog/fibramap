@@ -12,34 +12,66 @@ import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Tr
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-/** Campos-alvo que o usuário pode mapear */
-const BASE_TARGET_FIELDS = [
-  { key: "designacao", label: "Designação" },
-  { key: "cliente", label: "Cliente" },
-  { key: "tipo_link", label: "Tipo de Link" },
-  { key: "velocidade", label: "Velocidade" },
-  { key: "endereco_a", label: "Endereço (Ponta A)" },
-  { key: "cidade_a", label: "Cidade (Ponta A)" },
-  { key: "uf_a", label: "UF (Ponta A)" },
-  { key: "cep_a", label: "CEP (Ponta A)" },
-  { key: "numero_a", label: "Número (Ponta A)" },
-  { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
-  { key: "cidade_b", label: "Cidade (Ponta B)" },
-  { key: "uf_b", label: "UF (Ponta B)" },
-  { key: "cep_b", label: "CEP (Ponta B)" },
-  { key: "numero_b", label: "Número (Ponta B)" },
-  { key: "prazo_ativacao", label: "Prazo de Ativação" },
-  { key: "vigencia", label: "Vigência" },
-  { key: "taxa_instalacao", label: "Taxa de Instalação" },
-  { key: "bloco_ip", label: "Bloco IP" },
-  { key: "cnpj_cliente", label: "CNPJ Cliente" },
-  { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
-  { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
-  { key: "codigo_smark", label: "Código Smark" },
-  { key: "produto", label: "Produto" },
-  { key: "tecnologia", label: "Tecnologia" },
-  { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
+/** Grouped target fields for mapping UI */
+const FIELD_GROUPS = [
+  {
+    label: "Identificação",
+    fields: [
+      { key: "designacao", label: "Designação" },
+      { key: "codigo_smark", label: "Código Smark" },
+      { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
+      { key: "tipo_link", label: "Produto" },
+    ],
+  },
+  {
+    label: "Informações do Cliente",
+    fields: [
+      { key: "cliente", label: "Cliente" },
+      { key: "cnpj_cliente", label: "CNPJ Cliente" },
+    ],
+  },
+  {
+    label: "Ponta A",
+    fields: [
+      { key: "endereco_a", label: "Endereço (Ponta A)" },
+      { key: "numero_a", label: "Número (Ponta A)" },
+      { key: "cidade_a", label: "Cidade (Ponta A)" },
+      { key: "uf_a", label: "UF (Ponta A)" },
+      { key: "cep_a", label: "CEP (Ponta A)" },
+    ],
+  },
+  {
+    label: "Ponta B",
+    fields: [
+      { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
+      { key: "numero_b", label: "Número (Ponta B)" },
+      { key: "cidade_b", label: "Cidade (Ponta B)" },
+      { key: "uf_b", label: "UF (Ponta B)" },
+      { key: "cep_b", label: "CEP (Ponta B)" },
+    ],
+  },
+  {
+    label: "Comercial",
+    fields: [
+      { key: "velocidade", label: "Velocidade" },
+      { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
+      { key: "vigencia", label: "Vigência" },
+      { key: "taxa_instalacao", label: "Taxa de Instalação" },
+      { key: "prazo_ativacao", label: "Prazo de Ativação" },
+    ],
+  },
+  {
+    label: "Técnico",
+    fields: [
+      { key: "tecnologia", label: "Tecnologia" },
+      { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
+      { key: "bloco_ip", label: "Bloco IP" },
+    ],
+  },
 ] as const;
+
+// Flat list of all base fields for parsing
+const BASE_TARGET_FIELDS = FIELD_GROUPS.flatMap((g) => g.fields);
 
 // Coordinate fields for "Coordenadas" mode
 const COORD_FIELDS = [
