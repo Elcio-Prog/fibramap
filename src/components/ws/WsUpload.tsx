@@ -325,7 +325,6 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         raw_data: raw,
       });
     }
-    }
     setParsedItems(items);
     setStep("preview");
   };
