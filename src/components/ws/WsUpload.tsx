@@ -556,48 +556,77 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             </div>
 
-            {/* Column mapping */}
-            <div className="space-y-2">
+            {/* Column mapping - grouped */}
+            <div className="space-y-4">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
-              {BASE_TARGET_FIELDS.map((field) => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <span className="text-sm w-48 shrink-0">{field.label}</span>
-                  <Select
-                    value={mapping[field.key] || "__ignore__"}
-                    onValueChange={(v) =>
-                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-sm h-8">
-                      <SelectValue placeholder="Ignorar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
-                      {headers.map((h) => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {(() => {
+                // Compute used columns for exclusion
+                const usedColumns = new Set(
+                  Object.values(mapping).filter((v) => v && v !== "__ignore__")
+                );
 
-              {/* Coordinate-specific fields */}
-              {(coordFormat === "coords" ? COORD_FIELDS : LATLONG_FIELDS).map((field) => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <span className="text-sm w-48 shrink-0">{field.label}</span>
-                  <Select
-                    value={mapping[field.key as TargetKey] || "__ignore__"}
-                    onValueChange={(v) =>
-                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-sm h-8">
-                      <SelectValue placeholder="Ignorar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
-                      {headers.map((h) => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                const renderField = (field: FieldDef) => {
+                  const currentVal = mapping[field.key] || "";
+                  const isMapped = !!currentVal;
+                  return (
+                    <div key={field.key} className="flex items-center gap-2">
+                      <span className={`text-sm w-48 shrink-0 flex items-center gap-1.5 ${isMapped ? "text-primary font-medium" : ""}`}>
+                        {isMapped && <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />}
+                        {field.label}
+                      </span>
+                      <Select
+                        value={currentVal || "__ignore__"}
+                        onValueChange={(v) =>
+                          setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
+                        }
+                      >
+                        <SelectTrigger className="text-sm h-8">
+                          <SelectValue placeholder="Ignorar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__ignore__">— Ignorar —</SelectItem>
+                          {headers.map((h) => {
+                            // Show if: it's the current value for this field, or it's not used elsewhere
+                            if (usedColumns.has(h) && currentVal !== h) return null;
+                            return <SelectItem key={h} value={h}>{h}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                };
+
+                // Determine coordinate group
+                const coordGroup: FieldGroup = coordFormat === "coords"
+                  ? { label: "Coordenadas", fields: COORD_FIELDS }
+                  : { label: "Coordenadas (Lat/Long)", fields: LATLONG_FIELDS };
+
+                const allGroups = [
+                  ...FIELD_GROUPS.slice(0, 2), // Identificação, Cliente
+                  { ...FIELD_GROUPS[2], fields: [...FIELD_GROUPS[2].fields] }, // Ponta A
+                  { ...FIELD_GROUPS[3], fields: [...FIELD_GROUPS[3].fields] }, // Ponta B
+                  ...FIELD_GROUPS.slice(4), // Comercial, Técnico
+                ];
+
+                // Insert coord fields into Ponta A / Ponta B
+                if (coordFormat === "coords") {
+                  allGroups[2].fields.push(COORD_FIELDS[0]); // Coordenadas Ponta A
+                  allGroups[3].fields.push(COORD_FIELDS[1]); // Coordenadas Ponta B
+                } else {
+                  allGroups[2].fields.push(LATLONG_FIELDS[0], LATLONG_FIELDS[1]); // Lat/Lng A
+                  allGroups[3].fields.push(LATLONG_FIELDS[2], LATLONG_FIELDS[3]); // Lat/Lng B
+                }
+
+                return allGroups.map((group) => (
+                  <div key={group.label} className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t">
+                      {group.label}
+                    </p>
+                    {group.fields.map(renderField)}
+                  </div>
+                ));
+              })()}
+            </div>
                       ))}
                     </SelectContent>
                   </Select>
