@@ -627,12 +627,6 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 ));
               })()}
             </div>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
 
             {/* Save profile */}
             <div className="flex gap-2">
