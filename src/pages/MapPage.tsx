@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, Layers, Eye, EyeOff, Database, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
+import { useUserRole } from "@/hooks/useUserRole";
+import MapSearchBar from "@/components/map/MapSearchBar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +32,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MapPage() {
+  const { isAdmin } = useUserRole();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
@@ -288,6 +291,9 @@ export default function MapPage() {
     <div className="relative flex h-full">
       {/* Map */}
       <div ref={mapRef} className="flex-1" />
+
+      {/* Search bar - admin only */}
+      {isAdmin && <MapSearchBar map={mapInstance.current} />}
 
       {/* Side panel */}
       <div className="absolute right-3 top-3 z-[1000] flex w-72 flex-col gap-3 rounded-xl bg-card/95 p-4 shadow-lg backdrop-blur-sm border">

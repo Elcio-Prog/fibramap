@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /** Campos-alvo que o usuário pode mapear */
-const TARGET_FIELDS = [
+const BASE_TARGET_FIELDS = [
   { key: "designacao", label: "Designação" },
   { key: "cliente", label: "Cliente" },
   { key: "tipo_link", label: "Tipo de Link" },
@@ -23,15 +23,11 @@ const TARGET_FIELDS = [
   { key: "uf_a", label: "UF (Ponta A)" },
   { key: "cep_a", label: "CEP (Ponta A)" },
   { key: "numero_a", label: "Número (Ponta A)" },
-  { key: "lat_a", label: "Latitude (Ponta A)" },
-  { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
   { key: "cidade_b", label: "Cidade (Ponta B)" },
   { key: "uf_b", label: "UF (Ponta B)" },
   { key: "cep_b", label: "CEP (Ponta B)" },
   { key: "numero_b", label: "Número (Ponta B)" },
-  { key: "lat_b", label: "Latitude (Ponta B)" },
-  { key: "lng_b", label: "Longitude (Ponta B)" },
   { key: "prazo_ativacao", label: "Prazo de Ativação" },
   { key: "vigencia", label: "Vigência" },
   { key: "taxa_instalacao", label: "Taxa de Instalação" },
@@ -43,10 +39,25 @@ const TARGET_FIELDS = [
   { key: "produto", label: "Produto" },
   { key: "tecnologia", label: "Tecnologia" },
   { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
-  { key: "coordenadas", label: "Coordenadas" },
 ] as const;
 
-type TargetKey = (typeof TARGET_FIELDS)[number]["key"];
+// Coordinate fields for "Coordenadas" mode
+const COORD_FIELDS = [
+  { key: "coordenadas_a", label: "Coordenadas (Ponta A)" },
+  { key: "coordenadas_b", label: "Coordenadas (Ponta B)" },
+] as const;
+
+// Coordinate fields for "Lat/Long" mode
+const LATLONG_FIELDS = [
+  { key: "lat_a", label: "Latitude (Ponta A)" },
+  { key: "lng_a", label: "Longitude (Ponta A)" },
+  { key: "lat_b", label: "Latitude (Ponta B)" },
+  { key: "lng_b", label: "Longitude (Ponta B)" },
+] as const;
+
+type CoordFormat = "coords" | "latlong";
+
+type TargetKey = (typeof BASE_TARGET_FIELDS)[number]["key"] | (typeof COORD_FIELDS)[number]["key"] | (typeof LATLONG_FIELDS)[number]["key"];
 
 type Step = "upload" | "mapping" | "preview" | "done";
 
@@ -117,6 +128,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [profileName, setProfileName] = useState("");
+  const [coordFormat, setCoordFormat] = useState<CoordFormat>("latlong");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
@@ -190,6 +202,32 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     reader.readAsArrayBuffer(file);
   };
 
+  // ---- Coordinate normalization helpers ----
+  /** Clean and normalize a coordinate string: remove brackets, extra spaces, special chars */
+  const normalizeCoordValue = (raw: string | undefined): number | undefined => {
+    if (!raw) return undefined;
+    const cleaned = raw.replace(/[^\d.,-]/g, "").replace(",", ".");
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? undefined : n;
+  };
+
+  /** Parse a combined coordinate string like "-23.5505, -46.6333" into lat/lng */
+  const parseCoordString = (raw: string | undefined): { lat: number | undefined; lng: number | undefined } => {
+    if (!raw) return { lat: undefined, lng: undefined };
+    // Clean: remove brackets, parens, extra spaces
+    const cleaned = raw.replace(/[[\](){}]/g, "").trim();
+    // Try comma-separated
+    const parts = cleaned.split(/[,;\s]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const lat = parseFloat(parts[0].replace(",", "."));
+      const lng = parseFloat(parts[1].replace(",", "."));
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
+    return { lat: undefined, lng: undefined };
+  };
+
   // ---- Step 2: Parse with mapping ----
   const parseData = () => {
     const items: ParsedItem[] = [];
@@ -223,6 +261,31 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         if (row[hi] !== "" && row[hi] !== null && row[hi] !== undefined) raw[h] = row[hi];
       });
 
+      // Resolve coordinates based on format
+      let lat_a: number | undefined;
+      let lng_a: number | undefined;
+      let lat_b: number | undefined;
+      let lng_b: number | undefined;
+      let coordenadas: string | undefined;
+
+      if (coordFormat === "coords") {
+        const coordsA = getValue("coordenadas_a");
+        const coordsB = getValue("coordenadas_b");
+        const parsedA = parseCoordString(coordsA);
+        const parsedB = parseCoordString(coordsB);
+        lat_a = parsedA.lat;
+        lng_a = parsedA.lng;
+        lat_b = parsedB.lat;
+        lng_b = parsedB.lng;
+        if (lat_a != null && lng_a != null) coordenadas = `${lat_a}, ${lng_a}`;
+      } else {
+        lat_a = normalizeCoordValue(getValue("lat_a"));
+        lng_a = normalizeCoordValue(getValue("lng_a"));
+        lat_b = normalizeCoordValue(getValue("lat_b"));
+        lng_b = normalizeCoordValue(getValue("lng_b"));
+        if (lat_a != null && lng_a != null) coordenadas = `${lat_a}, ${lng_a}`;
+      }
+
       items.push({
         row: i + 2,
         designacao: desig,
@@ -238,15 +301,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         uf_a: getValue("uf_a"),
         cep_a: getValue("cep_a"),
         numero_a: getValue("numero_a"),
-        lat_a: getNumber("lat_a"),
-        lng_a: getNumber("lng_a"),
+        lat_a,
+        lng_a,
         endereco_b: getValue("endereco_b"),
         cidade_b: getValue("cidade_b"),
         uf_b: getValue("uf_b"),
         cep_b: getValue("cep_b"),
         numero_b: getValue("numero_b"),
-        lat_b: getNumber("lat_b"),
-        lng_b: getNumber("lng_b"),
+        lat_b,
+        lng_b,
         prazo_ativacao: getValue("prazo_ativacao"),
         vigencia: getValue("vigencia"),
         taxa_instalacao: getNumber("taxa_instalacao"),
@@ -258,7 +321,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
         produto: getValue("produto"),
         tecnologia: getValue("tecnologia"),
         tecnologia_meio_fisico: getValue("tecnologia_meio_fisico"),
-        coordenadas: getValue("coordenadas"),
+        coordenadas,
         raw_data: raw,
       });
     }
@@ -443,14 +506,52 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </table>
             </div>
 
+            {/* Coordinate format selector */}
+            <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+              <p className="text-sm font-medium">Formato de Coordenadas:</p>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="coordFormat" checked={coordFormat === "coords"} onChange={() => setCoordFormat("coords")} className="accent-primary" />
+                  Coordenadas (Ponto A / Ponto B)
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="coordFormat" checked={coordFormat === "latlong"} onChange={() => setCoordFormat("latlong")} className="accent-primary" />
+                  Lat/Long separadas
+                </label>
+              </div>
+            </div>
+
             {/* Column mapping */}
             <div className="space-y-2">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
-              {TARGET_FIELDS.map((field) => (
+              {BASE_TARGET_FIELDS.map((field) => (
                 <div key={field.key} className="flex items-center gap-2">
                   <span className="text-sm w-48 shrink-0">{field.label}</span>
                   <Select
                     value={mapping[field.key] || "__ignore__"}
+                    onValueChange={(v) =>
+                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-sm h-8">
+                      <SelectValue placeholder="Ignorar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
+                      {headers.map((h) => (
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+
+              {/* Coordinate-specific fields */}
+              {(coordFormat === "coords" ? COORD_FIELDS : LATLONG_FIELDS).map((field) => (
+                <div key={field.key} className="flex items-center gap-2">
+                  <span className="text-sm w-48 shrink-0">{field.label}</span>
+                  <Select
+                    value={mapping[field.key as TargetKey] || "__ignore__"}
                     onValueChange={(v) =>
                       setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
                     }
