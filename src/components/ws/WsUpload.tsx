@@ -12,22 +12,11 @@ import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Tr
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+interface FieldDef { key: string; label: string; }
+interface FieldGroup { label: string; fields: FieldDef[]; }
+
 /** Grouped target fields for mapping UI */
-const FIELD_GROUPS = [
-  {
-    label: "Identificação",
-    fields: [
-      { key: "designacao", label: "Designação" },
-      { key: "codigo_smark", label: "Código Smark" },
-      { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
-      { key: "tipo_link", label: "Produto" },
-    ],
-  },
-  {
-    label: "Informações do Cliente",
-    fields: [
-      { key: "cliente", label: "Cliente" },
-      { key: "cnpj_cliente", label: "CNPJ Cliente" },
+const FIELD_GROUPS: FieldGroup[] = [
     ],
   },
   {
