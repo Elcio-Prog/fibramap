@@ -12,52 +12,87 @@ import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Tr
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-/** Campos-alvo que o usuário pode mapear */
-const BASE_TARGET_FIELDS = [
-  { key: "designacao", label: "Designação" },
-  { key: "cliente", label: "Cliente" },
-  { key: "tipo_link", label: "Tipo de Link" },
-  { key: "velocidade", label: "Velocidade" },
-  { key: "endereco_a", label: "Endereço (Ponta A)" },
-  { key: "cidade_a", label: "Cidade (Ponta A)" },
-  { key: "uf_a", label: "UF (Ponta A)" },
-  { key: "cep_a", label: "CEP (Ponta A)" },
-  { key: "numero_a", label: "Número (Ponta A)" },
-  { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
-  { key: "cidade_b", label: "Cidade (Ponta B)" },
-  { key: "uf_b", label: "UF (Ponta B)" },
-  { key: "cep_b", label: "CEP (Ponta B)" },
-  { key: "numero_b", label: "Número (Ponta B)" },
-  { key: "prazo_ativacao", label: "Prazo de Ativação" },
-  { key: "vigencia", label: "Vigência" },
-  { key: "taxa_instalacao", label: "Taxa de Instalação" },
-  { key: "bloco_ip", label: "Bloco IP" },
-  { key: "cnpj_cliente", label: "CNPJ Cliente" },
-  { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
-  { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
-  { key: "codigo_smark", label: "Código Smark" },
-  { key: "produto", label: "Produto" },
-  { key: "tecnologia", label: "Tecnologia" },
-  { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
-] as const;
+interface FieldDef { key: string; label: string; }
+interface FieldGroup { label: string; fields: FieldDef[]; }
+
+/** Grouped target fields for mapping UI */
+const FIELD_GROUPS: FieldGroup[] = [
+  {
+    label: "Identificação",
+    fields: [
+      { key: "designacao", label: "Designação" },
+      { key: "codigo_smark", label: "Código Smark" },
+      { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
+      { key: "tipo_link", label: "Produto" },
+    ],
+  },
+  {
+    label: "Informações do Cliente",
+    fields: [
+      { key: "cliente", label: "Cliente" },
+      { key: "cnpj_cliente", label: "CNPJ Cliente" },
+    ],
+  },
+  {
+    label: "Ponta A",
+    fields: [
+      { key: "endereco_a", label: "Endereço (Ponta A)" },
+      { key: "numero_a", label: "Número (Ponta A)" },
+      { key: "cidade_a", label: "Cidade (Ponta A)" },
+      { key: "uf_a", label: "UF (Ponta A)" },
+      { key: "cep_a", label: "CEP (Ponta A)" },
+    ],
+  },
+  {
+    label: "Ponta B",
+    fields: [
+      { key: "endereco_b", label: "Endereço (Ponta B / L2L)" },
+      { key: "numero_b", label: "Número (Ponta B)" },
+      { key: "cidade_b", label: "Cidade (Ponta B)" },
+      { key: "uf_b", label: "UF (Ponta B)" },
+      { key: "cep_b", label: "CEP (Ponta B)" },
+    ],
+  },
+  {
+    label: "Comercial",
+    fields: [
+      { key: "velocidade", label: "Velocidade" },
+      { key: "valor_a_ser_vendido", label: "Valor a ser Vendido" },
+      { key: "vigencia", label: "Vigência" },
+      { key: "taxa_instalacao", label: "Taxa de Instalação" },
+      { key: "prazo_ativacao", label: "Prazo de Ativação" },
+    ],
+  },
+  {
+    label: "Técnico",
+    fields: [
+      { key: "tecnologia", label: "Tecnologia" },
+      { key: "tecnologia_meio_fisico", label: "Tecnologia (Meio Físico)" },
+      { key: "bloco_ip", label: "Bloco IP" },
+    ],
+  },
+];
+
+// Flat list of all base fields for parsing
+const BASE_TARGET_FIELDS = FIELD_GROUPS.flatMap((g) => g.fields);
 
 // Coordinate fields for "Coordenadas" mode
-const COORD_FIELDS = [
+const COORD_FIELDS: FieldDef[] = [
   { key: "coordenadas_a", label: "Coordenadas (Ponta A)" },
   { key: "coordenadas_b", label: "Coordenadas (Ponta B)" },
-] as const;
+];
 
 // Coordinate fields for "Lat/Long" mode
-const LATLONG_FIELDS = [
+const LATLONG_FIELDS: FieldDef[] = [
   { key: "lat_a", label: "Latitude (Ponta A)" },
   { key: "lng_a", label: "Longitude (Ponta A)" },
   { key: "lat_b", label: "Latitude (Ponta B)" },
   { key: "lng_b", label: "Longitude (Ponta B)" },
-] as const;
+];
 
 type CoordFormat = "coords" | "latlong";
 
-type TargetKey = (typeof BASE_TARGET_FIELDS)[number]["key"] | (typeof COORD_FIELDS)[number]["key"] | (typeof LATLONG_FIELDS)[number]["key"];
+type TargetKey = string;
 
 type Step = "upload" | "mapping" | "preview" | "done";
 
@@ -521,53 +556,76 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             </div>
 
-            {/* Column mapping */}
-            <div className="space-y-2">
+            {/* Column mapping - grouped */}
+            <div className="space-y-4">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
-              {BASE_TARGET_FIELDS.map((field) => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <span className="text-sm w-48 shrink-0">{field.label}</span>
-                  <Select
-                    value={mapping[field.key] || "__ignore__"}
-                    onValueChange={(v) =>
-                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-sm h-8">
-                      <SelectValue placeholder="Ignorar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
-                      {headers.map((h) => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {(() => {
+                // Compute used columns for exclusion
+                const usedColumns = new Set(
+                  Object.values(mapping).filter((v) => v && v !== "__ignore__")
+                );
 
-              {/* Coordinate-specific fields */}
-              {(coordFormat === "coords" ? COORD_FIELDS : LATLONG_FIELDS).map((field) => (
-                <div key={field.key} className="flex items-center gap-2">
-                  <span className="text-sm w-48 shrink-0">{field.label}</span>
-                  <Select
-                    value={mapping[field.key as TargetKey] || "__ignore__"}
-                    onValueChange={(v) =>
-                      setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-sm h-8">
-                      <SelectValue placeholder="Ignorar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__ignore__">— Ignorar —</SelectItem>
-                      {headers.map((h) => (
-                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+                const renderField = (field: FieldDef) => {
+                  const currentVal = mapping[field.key] || "";
+                  const isMapped = !!currentVal;
+                  return (
+                    <div key={field.key} className="flex items-center gap-2">
+                      <span className={`text-sm w-48 shrink-0 flex items-center gap-1.5 ${isMapped ? "text-primary font-medium" : ""}`}>
+                        {isMapped && <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />}
+                        {field.label}
+                      </span>
+                      <Select
+                        value={currentVal || "__ignore__"}
+                        onValueChange={(v) =>
+                          setMapping((prev) => ({ ...prev, [field.key]: v === "__ignore__" ? "" : v }))
+                        }
+                      >
+                        <SelectTrigger className="text-sm h-8">
+                          <SelectValue placeholder="Ignorar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__ignore__">— Ignorar —</SelectItem>
+                          {headers.map((h) => {
+                            // Show if: it's the current value for this field, or it's not used elsewhere
+                            if (usedColumns.has(h) && currentVal !== h) return null;
+                            return <SelectItem key={h} value={h}>{h}</SelectItem>;
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                };
+
+                // Determine coordinate group
+                const coordGroup: FieldGroup = coordFormat === "coords"
+                  ? { label: "Coordenadas", fields: COORD_FIELDS }
+                  : { label: "Coordenadas (Lat/Long)", fields: LATLONG_FIELDS };
+
+                const allGroups = [
+                  ...FIELD_GROUPS.slice(0, 2), // Identificação, Cliente
+                  { ...FIELD_GROUPS[2], fields: [...FIELD_GROUPS[2].fields] }, // Ponta A
+                  { ...FIELD_GROUPS[3], fields: [...FIELD_GROUPS[3].fields] }, // Ponta B
+                  ...FIELD_GROUPS.slice(4), // Comercial, Técnico
+                ];
+
+                // Insert coord fields into Ponta A / Ponta B
+                if (coordFormat === "coords") {
+                  allGroups[2].fields.push(COORD_FIELDS[0]); // Coordenadas Ponta A
+                  allGroups[3].fields.push(COORD_FIELDS[1]); // Coordenadas Ponta B
+                } else {
+                  allGroups[2].fields.push(LATLONG_FIELDS[0], LATLONG_FIELDS[1]); // Lat/Lng A
+                  allGroups[3].fields.push(LATLONG_FIELDS[2], LATLONG_FIELDS[3]); // Lat/Lng B
+                }
+
+                return allGroups.map((group) => (
+                  <div key={group.label} className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2 border-t">
+                      {group.label}
+                    </p>
+                    {group.fields.map(renderField)}
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Save profile */}
