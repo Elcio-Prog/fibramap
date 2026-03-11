@@ -17,7 +17,20 @@ interface FieldGroup { label: string; fields: FieldDef[]; }
 
 /** Grouped target fields for mapping UI */
 const FIELD_GROUPS: FieldGroup[] = [
+  {
+    label: "Identificação",
+    fields: [
+      { key: "designacao", label: "Designação" },
+      { key: "codigo_smark", label: "Código Smark" },
+      { key: "tipo_solicitacao", label: "Tipo de Solicitação" },
+      { key: "tipo_link", label: "Produto" },
     ],
+  },
+  {
+    label: "Informações do Cliente",
+    fields: [
+      { key: "cliente", label: "Cliente" },
+      { key: "cnpj_cliente", label: "CNPJ Cliente" },
   },
   {
     label: "Ponta A",
