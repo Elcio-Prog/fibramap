@@ -13,6 +13,7 @@ export interface CartItem {
   lat: number | null;
   lng: number | null;
   is_viable: boolean;
+  is_check_om?: boolean;
   stage: string;
   provider_name: string;
   velocidade_mbps: number | null;
