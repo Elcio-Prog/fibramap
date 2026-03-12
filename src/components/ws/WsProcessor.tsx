@@ -708,7 +708,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
                     {!processing && isComplete && (
-                      <th className="px-2 py-1.5 text-center w-8 sticky left-0 bg-muted z-20">
+                      <th className="px-2 py-1.5 text-center w-8">
                         <Checkbox
                           checked={allSelected}
                           onCheckedChange={toggleAll}
@@ -716,9 +716,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         />
                       </th>
                     )}
-                    <th className={`px-2 py-1.5 text-left sticky ${!processing && isComplete ? "left-8" : "left-0"} bg-muted z-20`}>#</th>
-                    <th className={`px-2 py-1.5 text-left sticky ${!processing && isComplete ? "left-[52px]" : "left-[36px]"} bg-muted z-20 min-w-[100px]`}>Designação</th>
-                    <th className={`px-2 py-1.5 text-left sticky ${!processing && isComplete ? "left-[152px]" : "left-[136px]"} bg-muted z-20 min-w-[100px]`}>Cliente</th>
+                    <th className="px-2 py-1.5 text-left">#</th>
+                    <th className="px-2 py-1.5 text-left">Designação</th>
+                    <th className="px-2 py-1.5 text-left">Cliente</th>
                     <th className="px-2 py-1.5 text-left">CNPJ</th>
                     <th className="px-2 py-1.5 text-left">Vel.</th>
                     <th className="px-2 py-1.5 text-left">Endereço</th>
