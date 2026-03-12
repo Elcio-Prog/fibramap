@@ -246,7 +246,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             className="h-3.5 w-3.5"
                           />
                         </td>
-                        <td className="px-2 py-1 max-w-[100px] truncate font-medium sticky left-[32px] z-10 bg-inherit">
+                        <td className="px-2 py-1 max-w-[100px] truncate font-medium sticky left-[32px] z-10 bg-background">
                           {item.designacao || "—"}
                         </td>
                         <td className="px-2 py-1 max-w-[100px] truncate">

@@ -759,7 +759,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                             />
                           </td>
                         )}
-                        <td className={`px-2 py-1 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-10 bg-inherit`}>{r.item.row_number}</td>
+                        <td className={`px-2 py-1 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-10 ${r.is_viable ? "bg-background" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>{r.item.row_number}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
                         {/* CNPJ - editable */}
