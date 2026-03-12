@@ -958,6 +958,18 @@ function ResultCard({
                     <span className="text-muted-foreground ml-2">(máx: {r.maxDistance}m)</span>
                   </p>
                 </>
+              ) : r.isOwnNetwork && r.status === "check_om" ? (
+                <>
+                  <p className="col-span-2 text-sm font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 p-3 rounded border border-yellow-300 dark:border-yellow-700">
+                    ⚠️ Caixa próxima ao cliente, porém indisponível. Checar com O&amp;M a disponibilidade da mesma.
+                  </p>
+                  {r.checkOmBoxName && (
+                    <p className="col-span-2 text-sm">
+                      <span className="text-muted-foreground">Caixa referência:</span>{" "}
+                      <strong>{r.checkOmBoxName}</strong>
+                    </p>
+                  )}
+                </>
               ) : r.isOwnNetwork && r.status === "outside_not_viable" ? (
                 <>
                   <p className="col-span-2">
