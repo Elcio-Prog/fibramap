@@ -200,7 +200,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 {items.length === 0 ? "Carrinho vazio" : "Nenhum resultado encontrado"}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <ScrollableTable totalScrollableColumns={15}>
                 <table className="text-xs w-max min-w-full">
                   <thead className="sticky top-0 bg-muted z-10">
                     <tr>
