@@ -487,14 +487,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const filteredResults = results?.filter(r => {
     if (filter === "all") return true;
     if (filter === "viable") return r.is_viable;
-    if (filter === "not_viable") return !r.is_viable;
+    if (filter === "check_om") return r.is_check_om;
+    if (filter === "not_viable") return !r.is_viable && !r.is_check_om;
     if (filter === "pending") return r.geo_source === "nao_encontrado";
-    if (filter === "failed") return !r.is_viable && r.geo_source !== "nao_encontrado";
+    if (filter === "failed") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
     return true;
   });
 
   const viableCount = results?.filter((r) => r.is_viable).length ?? 0;
-  const notViableCount = results?.filter((r) => !r.is_viable).length ?? 0;
+  const checkOmCount = results?.filter((r) => r.is_check_om).length ?? 0;
+  const notViableCount = results?.filter((r) => !r.is_viable && !r.is_check_om).length ?? 0;
   const geoFailCount = results?.filter((r) => r.geo_source === "nao_encontrado").length ?? 0;
 
   const stageGroups: Record<string, number> = {};
