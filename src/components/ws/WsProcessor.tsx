@@ -556,6 +556,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           lat: r.geo_lat,
           lng: r.geo_lng,
           is_viable: r.is_viable,
+          is_check_om: r.is_check_om,
           stage: r.stage || "",
           provider_name: r.provider_name || "",
           velocidade_mbps: r.item.velocidade_mbps,
