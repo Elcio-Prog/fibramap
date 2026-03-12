@@ -100,7 +100,7 @@ export function getIncompleteItems(items: CartItem[]): CartItem[] {
   return items.filter((item) =>
     REQUIRED_CART_FIELDS.some((f) => {
       const v = item[f.key];
-      return v == null || v === "" || v === 0;
+      return v == null || v === "";
     })
   );
 }
