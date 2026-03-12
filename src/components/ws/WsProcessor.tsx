@@ -30,16 +30,31 @@ const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
 const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
 /** Inline editable cell for the results table */
-function InlineEdit({ value, type = "text", onSave, width = "w-[80px]" }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string }) {
+function InlineEdit({ value, type = "text", onSave, width = "w-[80px]", options }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string; options?: string[] }) {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setLocal(value); }, [value]);
-  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+  useEffect(() => { if (editing && !options) inputRef.current?.focus(); }, [editing, options]);
 
   const commit = () => { setEditing(false); if (local !== value) onSave(local); };
   const cancel = () => { setLocal(value); setEditing(false); };
+
+  if (editing && options) {
+    return (
+      <select
+        className={`h-6 text-[10px] px-0.5 ${width} rounded border border-input bg-background`}
+        value={local}
+        autoFocus
+        onChange={e => { const v = e.target.value; setLocal(v); setEditing(false); if (v !== value) onSave(v); }}
+        onBlur={() => { setEditing(false); }}
+      >
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
 
   if (editing) {
     return (
