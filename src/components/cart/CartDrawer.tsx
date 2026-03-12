@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle } from "lucide-react";
+import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
 import BulkFillModal from "./BulkFillModal";
