@@ -708,7 +708,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
                     {!processing && isComplete && (
-                      <th className="px-2 py-1.5 text-center w-8">
+                      <th className="px-2 py-1.5 text-center w-8 sticky left-0 z-20 bg-muted">
                         <Checkbox
                           checked={allSelected}
                           onCheckedChange={toggleAll}
@@ -716,7 +716,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         />
                       </th>
                     )}
-                    <th className="px-2 py-1.5 text-left">#</th>
+                    <th className={`px-2 py-1.5 text-left sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-20 bg-muted`}>#</th>
                     <th className="px-2 py-1.5 text-left">Designação</th>
                     <th className="px-2 py-1.5 text-left">Cliente</th>
                     <th className="px-2 py-1.5 text-left">CNPJ</th>
@@ -749,7 +749,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
-                      <td className="px-2 py-1 text-center">
+                      <td className="px-2 py-1 text-center sticky left-0 z-10 bg-inherit">
                             <SelectionCheckbox
                               id={r.item.id}
                               checked={selectedIds.has(r.item.id)}
@@ -759,7 +759,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                             />
                           </td>
                         )}
-                        <td className="px-2 py-1">{r.item.row_number}</td>
+                        <td className={`px-2 py-1 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-10 bg-inherit`}>{r.item.row_number}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
                         {/* CNPJ - editable */}
