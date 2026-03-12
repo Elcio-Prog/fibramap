@@ -84,6 +84,7 @@ export interface WsResult {
   lpu_value: number | null;
   final_value: number | null;
   is_viable: boolean;
+  is_check_om?: boolean;
   notes: string;
   ta_info?: string;
   // ALL viable options found
