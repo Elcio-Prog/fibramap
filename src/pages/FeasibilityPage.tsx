@@ -447,7 +447,7 @@ export default function FeasibilityPage() {
       setResults(newResults.sort((a, b) => {
         if (a.isOwnNetwork && !b.isOwnNetwork) return -1;
         if (!a.isOwnNetwork && b.isOwnNetwork) return 1;
-        const statusOrder: Record<ResultStatus, number> = { inside: 0, outside_viable: 1, outside_not_viable: 2, too_far: 3 };
+        const statusOrder: Record<ResultStatus, number> = { inside: 0, outside_viable: 1, check_om: 2, outside_not_viable: 3, too_far: 4 };
         const statusDiff = statusOrder[a.status] - statusOrder[b.status];
         if (statusDiff !== 0) return statusDiff;
         if (a.hasCrossNtt && !b.hasCrossNtt) return -1;
