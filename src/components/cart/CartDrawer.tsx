@@ -239,7 +239,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                   <tbody>
                     {filtered.map((item) => (
                       <tr key={item.id} className="border-t hover:bg-muted/30">
-                        <td className="px-2 py-1 text-center sticky left-0 z-10 bg-inherit">
+                        <td className="px-2 py-1 text-center sticky left-0 z-10 bg-background">
                           <Checkbox
                             checked={selectedIds.has(item.id)}
                             onCheckedChange={() => toggleSelect(item.id)}
