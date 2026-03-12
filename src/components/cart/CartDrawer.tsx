@@ -376,7 +376,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollableTable>
             )}
           </div>
 
