@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle } from "lucide-react";
+import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
 import BulkFillModal from "./BulkFillModal";
@@ -199,7 +200,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 {items.length === 0 ? "Carrinho vazio" : "Nenhum resultado encontrado"}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <ScrollableTable totalScrollableColumns={15}>
                 <table className="text-xs w-max min-w-full">
                   <thead className="sticky top-0 bg-muted z-10">
                     <tr>
@@ -375,7 +376,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollableTable>
             )}
           </div>
 
