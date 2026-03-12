@@ -452,7 +452,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         const o = r.all_options[i];
         const prefix = `Opção ${i + 1}`;
         if (o) {
-          row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.stage;
+          row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.is_check_om ? `${o.stage} (Checar O&M)` : o.stage;
           row[`${prefix} - Provedor`] = o.provider_name;
           row[`${prefix} - Distância (m)`] = o.distance_m;
           row[`${prefix} - Valor LPU`] = o.lpu_value ?? "";
