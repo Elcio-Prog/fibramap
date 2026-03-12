@@ -309,6 +309,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               lpu_value: null,
               final_value: allItems[i].result_value,
               is_viable: allItems[i].is_viable ?? false,
+              is_check_om: allItems[i].processing_status === "check_om",
               notes: allItems[i].result_notes || "",
               all_options: [],
             });
