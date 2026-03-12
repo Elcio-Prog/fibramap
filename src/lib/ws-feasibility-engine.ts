@@ -68,6 +68,8 @@ export interface ViableOption {
   has_cross_ntt?: boolean;
   /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
   is_blocked?: boolean;
+  /** True when NTT box is nearby but unavailable — needs O&M check */
+  is_check_om?: boolean;
 }
 
 export interface WsResult {
