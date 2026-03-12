@@ -239,17 +239,17 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                   <tbody>
                     {filtered.map((item) => (
                       <tr key={item.id} className="border-t hover:bg-muted/30">
-                        <td className="px-2 py-1 text-center sticky left-0 bg-background z-10">
+                        <td className="px-2 py-1 text-center">
                           <Checkbox
                             checked={selectedIds.has(item.id)}
                             onCheckedChange={() => toggleSelect(item.id)}
                             className="h-3.5 w-3.5"
                           />
                         </td>
-                        <td className="px-2 py-1 max-w-[100px] truncate sticky left-8 bg-background z-10 font-medium">
+                        <td className="px-2 py-1 max-w-[100px] truncate font-medium">
                           {item.designacao || "—"}
                         </td>
-                        <td className="px-2 py-1 max-w-[100px] truncate sticky left-[132px] bg-background z-10">
+                        <td className="px-2 py-1 max-w-[100px] truncate">
                           {item.cliente || "—"}
                         </td>
                         <td className="px-2 py-1">

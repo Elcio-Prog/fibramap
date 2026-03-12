@@ -749,7 +749,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
-                      <td className="px-2 py-1 text-center sticky left-0 bg-inherit z-10">
+                      <td className="px-2 py-1 text-center">
                             <SelectionCheckbox
                               id={r.item.id}
                               checked={selectedIds.has(r.item.id)}
@@ -759,9 +759,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                             />
                           </td>
                         )}
-                        <td className={`px-2 py-1 sticky ${!processing && isComplete ? "left-8" : "left-0"} bg-inherit z-10`}>{r.item.row_number}</td>
-                        <td className={`px-2 py-1 max-w-[100px] truncate sticky ${!processing && isComplete ? "left-[52px]" : "left-[36px]"} bg-inherit z-10 font-medium`}>{r.item.designacao || "—"}</td>
-                        <td className={`px-2 py-1 max-w-[100px] truncate sticky ${!processing && isComplete ? "left-[152px]" : "left-[136px]"} bg-inherit z-10`}>{r.item.cliente || "—"}</td>
+                        <td className="px-2 py-1">{r.item.row_number}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.item.designacao || "—"}</td>
+                        <td className="px-2 py-1 max-w-[100px] truncate">{r.item.cliente || "—"}</td>
                         {/* CNPJ - editable */}
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.cnpj_cliente || ""} onSave={(v) => updateInlineField(r.item.id, "cnpj_cliente", v)} width="w-[120px]" />
