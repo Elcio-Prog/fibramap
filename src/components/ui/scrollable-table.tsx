@@ -53,12 +53,27 @@ export default function ScrollableTable({ children, className = "", totalScrolla
     };
   }, [checkScroll]);
 
-  const scroll = (direction: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const step = el.clientWidth * 0.6;
-    el.scrollBy({ left: direction === "right" ? step : -step, behavior: "smooth" });
+  const animRef = useRef<number | null>(null);
+  const SPEED = 4; // px per frame
+
+  const startScroll = (direction: "left" | "right") => {
+    stopScroll();
+    const step = direction === "right" ? SPEED : -SPEED;
+    const tick = () => {
+      scrollRef.current?.scrollBy({ left: step });
+      animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
   };
+
+  const stopScroll = () => {
+    if (animRef.current != null) {
+      cancelAnimationFrame(animRef.current);
+      animRef.current = null;
+    }
+  };
+
+  useEffect(() => () => stopScroll(), []);
 
   return (
     <div className={className}>
@@ -74,7 +89,9 @@ export default function ScrollableTable({ children, className = "", totalScrolla
           size="icon"
           className="h-6 w-6"
           disabled={!canScrollLeft}
-          onClick={() => scroll("left")}
+          onMouseDown={() => startScroll("left")}
+          onMouseUp={stopScroll}
+          onMouseLeave={stopScroll}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
@@ -83,7 +100,9 @@ export default function ScrollableTable({ children, className = "", totalScrolla
           size="icon"
           className="h-6 w-6"
           disabled={!canScrollRight}
-          onClick={() => scroll("right")}
+          onMouseDown={() => startScroll("right")}
+          onMouseUp={stopScroll}
+          onMouseLeave={stopScroll}
         >
           <ChevronRight className="h-3.5 w-3.5" />
         </Button>
