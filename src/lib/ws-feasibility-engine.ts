@@ -476,20 +476,25 @@ async function processItem(
       "Pré-Cadastro": 5,
     };
     const sorted = [...allOptions].sort((a, b) => {
-      // Blocked options go last
+      // Blocked options go last, then check_om, then normal
       if (a.is_blocked && !b.is_blocked) return 1;
       if (!a.is_blocked && b.is_blocked) return -1;
+      if (a.is_check_om && !b.is_check_om) return 1;
+      if (!a.is_check_om && b.is_check_om) return -1;
       return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m;
     });
     
-    // Best is first non-blocked option
-    const bestNonBlocked = sorted.find(o => !o.is_blocked);
-    const best = bestNonBlocked || sorted[0];
+    // Best is first non-blocked, non-check_om option
+    const bestNonBlocked = sorted.find(o => !o.is_blocked && !o.is_check_om);
+    // If no fully viable option, prefer check_om over blocked
+    const bestCheckOm = !bestNonBlocked ? sorted.find(o => o.is_check_om) : null;
+    const best = bestNonBlocked || bestCheckOm || sorted[0];
     const isViable = !!bestNonBlocked;
+    const isCheckOm = !isViable && !!bestCheckOm;
 
     // Build notes with all options summary
     const optionsSummary = allOptions.length > 1
-      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : ""}`).join(", ")}]`
+      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : o.is_check_om ? " (checar O&M)" : ""}`).join(", ")}]`
       : "";
 
     return {
@@ -500,7 +505,8 @@ async function processItem(
         lpu_value: best.lpu_value,
         final_value: best.final_value,
         is_viable: isViable,
-        notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.notes) + optionsSummary,
+        is_check_om: isCheckOm,
+        notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.is_check_om ? best.notes : best.notes) + optionsSummary,
         ta_info: best.ta_info,
       },
       all_options: sorted,
