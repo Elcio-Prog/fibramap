@@ -140,38 +140,21 @@ export function useBulkExport() {
         setProgress({ current: b + 1, total: totalBatches });
         const chunk = allPayloadItems.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
 
-        const payload = {
-          solicitante: user!.email,
-          dataEnvio: now,
-          metadata: { idLote, clientSideTimestamp: now, batch: b + 1, totalBatches },
-          itens: chunk,
-        };
-
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (webhook.token) headers["Authorization"] = `Bearer ${webhook.token}`;
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        // Power Automate expects a simple array of objects
+        const payload = chunk;
 
         try {
-          const resp = await fetch(webhook.url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          lastCode = resp.status;
-          if (resp.status !== 200 && resp.status !== 202) {
+          const result = await callWebhookProxy(webhook.url, payload);
+          lastCode = result.status;
+          if (result.status !== 200 && result.status !== 202) {
             allSuccess = false;
-            lastError = `HTTP ${resp.status}`;
+            lastError = `HTTP ${result.status}`;
             break;
           }
         } catch (e: any) {
-          clearTimeout(timeout);
           allSuccess = false;
           lastCode = 0;
-          lastError = e.name === "AbortError" ? "Timeout (15s)" : e.message;
+          lastError = e.message;
           break;
         }
       }
