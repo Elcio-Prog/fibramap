@@ -57,7 +57,7 @@ function mapItemToColumnValue(item: CartItem, colunaApp: string): any {
     "Viável": item.is_viable ? "VIÁVEL" : item.is_check_om ? "Checar O&M disponibilidade" : "INVIÁVEL",
     "Melhor Etapa": item.stage,
     "Provedor": item.provider_name,
-    "Vel.": item.velocidade_original || (item.velocidade_mbps != null ? `${item.velocidade_mbps} Mbps` : ""),
+    "Vel.": item.velocidade_mbps,
     "Distância": item.distance_m,
     "Vigência": item.vigencia,
     "Taxa Inst.": item.taxa_instalacao,
