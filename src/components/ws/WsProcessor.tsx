@@ -654,6 +654,11 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Viáveis: {viableCount}
               </Badge>
+              {checkOmCount > 0 && (
+                <Badge variant="outline" className="border-yellow-400 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">
+                  ⚠️ Checar O&M: {checkOmCount}
+                </Badge>
+              )}
               <Badge variant="outline" className="text-destructive border-destructive/30">
                 <XCircle className="h-3 w-3 mr-1" /> Inviáveis: {notViableCount}
               </Badge>
