@@ -4,6 +4,29 @@ import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
 
+async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ status: number; body: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sessão expirada");
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const resp = await fetch(
+    `https://${projectId}.supabase.co/functions/v1/webhook-proxy`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ webhookUrl, payload }),
+    }
+  );
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Proxy error: ${resp.status} - ${text}`);
+  }
+  return resp.json();
+}
+
 const BATCH_SIZE = 200;
 
 function sanitizeString(v: any): string {
@@ -117,38 +140,21 @@ export function useBulkExport() {
         setProgress({ current: b + 1, total: totalBatches });
         const chunk = allPayloadItems.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
 
-        const payload = {
-          solicitante: user!.email,
-          dataEnvio: now,
-          metadata: { idLote, clientSideTimestamp: now, batch: b + 1, totalBatches },
-          itens: chunk,
-        };
-
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (webhook.token) headers["Authorization"] = `Bearer ${webhook.token}`;
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
+        // Power Automate expects a simple array of objects
+        const payload = chunk;
 
         try {
-          const resp = await fetch(webhook.url, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          lastCode = resp.status;
-          if (resp.status !== 200 && resp.status !== 202) {
+          const result = await callWebhookProxy(webhook.url, payload);
+          lastCode = result.status;
+          if (result.status !== 200 && result.status !== 202) {
             allSuccess = false;
-            lastError = `HTTP ${resp.status}`;
+            lastError = `HTTP ${result.status}`;
             break;
           }
         } catch (e: any) {
-          clearTimeout(timeout);
           allSuccess = false;
           lastCode = 0;
-          lastError = e.name === "AbortError" ? "Timeout (15s)" : e.message;
+          lastError = e.message;
           break;
         }
       }
@@ -190,8 +196,6 @@ export function useBulkExport() {
 
   const testWebhook = async (): Promise<{ ok: boolean; code: number; error?: string }> => {
     if (!webhook.url) return { ok: false, code: 0, error: "URL não configurada" };
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (webhook.token) headers["Authorization"] = `Bearer ${webhook.token}`;
 
     const now = new Date().toISOString();
     const sampleItem: Record<string, any> = {};
@@ -201,24 +205,12 @@ export function useBulkExport() {
     sampleItem.dataAnalise = now;
     sampleItem.origemLista = "Teste de Conexão";
 
-    const testPayload = {
-      solicitante: user?.email || "teste@teste.com",
-      dataEnvio: now,
-      metadata: { idLote: crypto.randomUUID(), clientSideTimestamp: now, batch: 1, totalBatches: 1, isTest: true },
-      itens: [sampleItem],
-    };
+    // Send as simple array, same format as real send
+    const testPayload = [sampleItem];
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const resp = await fetch(webhook.url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(testPayload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      return { ok: resp.status === 200 || resp.status === 202, code: resp.status };
+      const result = await callWebhookProxy(webhook.url, testPayload);
+      return { ok: result.status === 200 || result.status === 202, code: result.status };
     } catch (e: any) {
       return { ok: false, code: 0, error: e.message };
     }
