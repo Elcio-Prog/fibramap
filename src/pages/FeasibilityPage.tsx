@@ -40,7 +40,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash, Wifi, Building2 } from "lucide-react";
+import { Search, MapPin, Share2, CheckCircle, XCircle, Loader2, Ban, Navigation, Hash, Wifi, Building2, AlertTriangle } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import html2canvas from "html2canvas";
