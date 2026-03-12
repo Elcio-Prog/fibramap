@@ -689,6 +689,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="viable">Viáveis</SelectItem>
+                    <SelectItem value="check_om">Checar O&M</SelectItem>
                     <SelectItem value="not_viable">Inviáveis</SelectItem>
                     <SelectItem value="pending">Geo falhou</SelectItem>
                     <SelectItem value="failed">Falhas</SelectItem>
