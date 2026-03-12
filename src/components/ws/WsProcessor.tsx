@@ -867,13 +867,13 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
-                        {/* Bloco IP - editable */}
+                        {/* Bloco IP - editable dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[80px]" />
+                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[110px]" options={BLOCO_IP_OPTIONS} />
                         </td>
-                        {/* Tipo Sol. - editable */}
+                        {/* Tipo Sol. - editable dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[80px]" />
+                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[120px]" options={TIPO_SOLICITACAO_OPTIONS} />
                         </td>
                         {/* Vlr Venda - editable */}
                         <td className="px-1 py-0.5">

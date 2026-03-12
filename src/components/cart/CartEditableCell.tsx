@@ -53,6 +53,21 @@ export default function CartEditableCell({ value, type = "text", onSave, width =
     }
   };
 
+  if (editing && options) {
+    return (
+      <select
+        className={`h-6 text-[10px] px-0.5 ${width} rounded border border-input bg-background`}
+        value={localValue}
+        autoFocus
+        onChange={e => { const v = e.target.value; setLocalValue(v); setEditing(false); if (v !== value) onSave(v); }}
+        onBlur={() => setEditing(false)}
+      >
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+
   if (editing) {
     return (
       <Input
