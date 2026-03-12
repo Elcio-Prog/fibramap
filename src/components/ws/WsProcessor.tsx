@@ -746,7 +746,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     const dbRow = dbRows[r.item.id];
                     const coords = r.geo_lat != null && r.geo_lng != null ? `${r.geo_lat}, ${r.geo_lng}` : "";
                     return (
-                      <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
+                      <tr key={i} className={`border-t ${r.is_viable ? "" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
                           <td className="px-2 py-1 text-center">
                             <SelectionCheckbox
