@@ -443,8 +443,9 @@ export default function WsSingleSearch() {
     }
 
     // Viability summary
-    const nonBlocked = options.filter(o => !o.is_blocked);
-    row["Viável"] = nonBlocked.length > 0 ? "SIM" : "NÃO";
+    const nonBlocked = options.filter(o => !o.is_blocked && !o.is_check_om);
+    const checkOm = options.filter(o => o.is_check_om);
+    row["Viável"] = nonBlocked.length > 0 ? "SIM" : checkOm.length > 0 ? "Checar O&M disponibilidade" : "NÃO";
 
     // Add LM radius results as columns on the same row
     if (radiusResults && radiusResults.length > 0) {
