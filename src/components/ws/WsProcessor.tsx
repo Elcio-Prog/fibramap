@@ -782,6 +782,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-2 py-1">
                           {r.is_viable ? (
                             <Badge className="text-[10px] px-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">SIM</Badge>
+                          ) : r.is_check_om ? (
+                            <Badge variant="outline" className="text-[10px] px-1 border-yellow-400 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 whitespace-nowrap">Checar O&M</Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px] px-1 text-destructive">NÃO</Badge>
                           )}
