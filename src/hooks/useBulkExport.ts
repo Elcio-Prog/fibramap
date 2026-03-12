@@ -196,8 +196,6 @@ export function useBulkExport() {
 
   const testWebhook = async (): Promise<{ ok: boolean; code: number; error?: string }> => {
     if (!webhook.url) return { ok: false, code: 0, error: "URL não configurada" };
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (webhook.token) headers["Authorization"] = `Bearer ${webhook.token}`;
 
     const now = new Date().toISOString();
     const sampleItem: Record<string, any> = {};
@@ -207,24 +205,12 @@ export function useBulkExport() {
     sampleItem.dataAnalise = now;
     sampleItem.origemLista = "Teste de Conexão";
 
-    const testPayload = {
-      solicitante: user?.email || "teste@teste.com",
-      dataEnvio: now,
-      metadata: { idLote: crypto.randomUUID(), clientSideTimestamp: now, batch: 1, totalBatches: 1, isTest: true },
-      itens: [sampleItem],
-    };
+    // Send as simple array, same format as real send
+    const testPayload = [sampleItem];
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const resp = await fetch(webhook.url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(testPayload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      return { ok: resp.status === 200 || resp.status === 202, code: resp.status };
+      const result = await callWebhookProxy(webhook.url, testPayload);
+      return { ok: result.status === 200 || result.status === 202, code: result.status };
     } catch (e: any) {
       return { ok: false, code: 0, error: e.message };
     }
