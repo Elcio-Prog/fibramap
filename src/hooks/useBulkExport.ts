@@ -193,13 +193,28 @@ export function useBulkExport() {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (webhook.token) headers["Authorization"] = `Bearer ${webhook.token}`;
 
+    const now = new Date().toISOString();
+    const sampleItem: Record<string, any> = {};
+    for (const m of fieldMapping) {
+      sampleItem[m.campoJson] = m.tipo === "number" ? 0 : "TESTE";
+    }
+    sampleItem.dataAnalise = now;
+    sampleItem.origemLista = "Teste de Conexão";
+
+    const testPayload = {
+      solicitante: user?.email || "teste@teste.com",
+      dataEnvio: now,
+      metadata: { idLote: crypto.randomUUID(), clientSideTimestamp: now, batch: 1, totalBatches: 1, isTest: true },
+      itens: [sampleItem],
+    };
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const resp = await fetch(webhook.url, {
         method: "POST",
         headers,
-        body: JSON.stringify({ test: true, timestamp: new Date().toISOString() }),
+        body: JSON.stringify(testPayload),
         signal: controller.signal,
       });
       clearTimeout(timeout);
