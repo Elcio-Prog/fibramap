@@ -18,6 +18,7 @@ import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProvider
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil } from "lucide-react";
+import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
