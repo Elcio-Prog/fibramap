@@ -174,15 +174,30 @@ export function useBulkExport() {
       } as any);
 
       if (allSuccess) {
-        const ids = items.map((i) => i.id);
-        for (let i = 0; i < ids.length; i += 500) {
-          const chunk = ids.slice(i, i + 500);
+        // Persist cart edits + send metadata back to db
+        for (const item of items) {
           await supabase
             .from("ws_feasibility_items")
-            .update({ enviado_para_sharepoint: true, data_envio: now, id_lote: idLote } as any)
-            .in("id", chunk);
+            .update({
+              enviado_para_sharepoint: true,
+              data_envio: now,
+              id_lote: idLote,
+              produto: item.produto || null,
+              tecnologia: item.tecnologia || null,
+              tecnologia_meio_fisico: item.tecnologia_meio_fisico || null,
+              velocidade_mbps: item.velocidade_mbps,
+              vigencia: item.vigencia || null,
+              taxa_instalacao: item.taxa_instalacao,
+              valor_a_ser_vendido: item.valor_a_ser_vendido,
+              cnpj_cliente: item.cnpj_cliente || null,
+              bloco_ip: item.bloco_ip || null,
+              tipo_solicitacao: item.tipo_solicitacao || null,
+              codigo_smark: item.codigo_smark || null,
+              observacoes_user: item.observacoes_user || null,
+            } as any)
+            .eq("id", item.id);
         }
-        markAsSent(ids);
+        markAsSent(items.map((i) => i.id));
       }
 
       setProgress(null);
