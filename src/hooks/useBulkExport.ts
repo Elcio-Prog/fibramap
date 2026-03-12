@@ -4,7 +4,7 @@ import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
 
-async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ status: number; body: string }> {
+async function callWebhookProxy(webhookUrl: string, items: any[], solicitante: string): Promise<{ status: number; body: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Sessão expirada");
 
@@ -17,7 +17,10 @@ async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ sta
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ webhookUrl, payload }),
+      body: JSON.stringify({
+        webhookUrl,
+        finalBody: { payload: items, solicitante },
+      }),
     }
   );
   if (!resp.ok) {
@@ -144,7 +147,7 @@ export function useBulkExport() {
         const payload = chunk;
 
         try {
-          const result = await callWebhookProxy(webhook.url, payload);
+          const result = await callWebhookProxy(webhook.url, payload, user?.email || "");
           lastCode = result.status;
           if (result.status !== 200 && result.status !== 202) {
             allSuccess = false;
@@ -209,7 +212,7 @@ export function useBulkExport() {
     const testPayload = [sampleItem];
 
     try {
-      const result = await callWebhookProxy(webhook.url, testPayload);
+      const result = await callWebhookProxy(webhook.url, testPayload, user?.email || "teste@teste.com");
       return { ok: result.status === 200 || result.status === 202, code: result.status };
     } catch (e: any) {
       return { ok: false, code: 0, error: e.message };

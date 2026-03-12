@@ -35,10 +35,10 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { webhookUrl, payload } = body;
+    const { webhookUrl, finalBody } = body;
 
-    if (!webhookUrl || !payload) {
-      return new Response(JSON.stringify({ error: "Missing webhookUrl or payload" }), {
+    if (!webhookUrl || !finalBody) {
+      return new Response(JSON.stringify({ error: "Missing webhookUrl or finalBody" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const resp = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalBody),
       signal: controller.signal,
     });
     clearTimeout(timeout);
