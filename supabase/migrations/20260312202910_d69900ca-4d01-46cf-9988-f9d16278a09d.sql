@@ -1,0 +1,1 @@
+ALTER TABLE public.ws_feasibility_items ADD COLUMN id_lote uuid;
