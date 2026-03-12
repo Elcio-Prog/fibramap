@@ -749,7 +749,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     return (
                       <tr key={i} className={`border-t ${r.is_viable ? "" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
-                      <td className={`px-2 py-1 text-center sticky left-0 z-10 ${r.is_viable ? "bg-background" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
+                      <td className={`px-2 py-1 text-center sticky left-0 z-10 ${r.is_viable ? "bg-background" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-red-50 dark:bg-red-950"}`}>
                             <SelectionCheckbox
                               id={r.item.id}
                               checked={selectedIds.has(r.item.id)}
