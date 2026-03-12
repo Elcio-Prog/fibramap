@@ -4,6 +4,29 @@ import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
 
+async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ status: number; body: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Sessão expirada");
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const resp = await fetch(
+    `https://${projectId}.supabase.co/functions/v1/webhook-proxy`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ webhookUrl, payload }),
+    }
+  );
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Proxy error: ${resp.status} - ${text}`);
+  }
+  return resp.json();
+}
+
 const BATCH_SIZE = 200;
 
 function sanitizeString(v: any): string {
