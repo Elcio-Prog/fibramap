@@ -147,7 +147,7 @@ export function useBulkExport() {
         const payload = chunk;
 
         try {
-          const result = await callWebhookProxy(webhook.url, payload);
+          const result = await callWebhookProxy(webhook.url, payload, user?.email || "");
           lastCode = result.status;
           if (result.status !== 200 && result.status !== 202) {
             allSuccess = false;
