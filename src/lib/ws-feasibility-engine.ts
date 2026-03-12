@@ -313,6 +313,27 @@ async function processItem(
               is_own_network: true,
               is_blocked: true,
             });
+          } else {
+            // Cenário 2: Não encontrou caixa apta — checar se existe caixa próxima indisponível
+            const nearestAnyBox = findNearestConnectionPointAny(
+              lat, lng, elMapped, netTurboProvider.max_lpu_distance_m
+            );
+            if (nearestAnyBox) {
+              allOptions.push({
+                stage: "Rede Própria",
+                provider_name: netTurboProvider.name,
+                provider_id: netTurboProvider.id,
+                provider_color: netTurboProvider.color,
+                distance_m: Math.round(nearestAnyBox.distance),
+                lpu_value: null,
+                final_value: null,
+                notes: `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma.`,
+                ta_info: `${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                nearest_point: nearestAnyBox.point,
+                is_own_network: true,
+                is_check_om: true,
+              });
+            }
           }
         } catch (err) {
           console.warn("NTT route check failed:", err);
