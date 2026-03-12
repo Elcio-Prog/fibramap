@@ -343,7 +343,30 @@ export default function FeasibilityPage() {
               }
             } else {
               const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
-              if (!nearest) return null;
+              if (!nearest) {
+                // Check for nearby unavailable box before giving up
+                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elMapped, maxDist);
+                if (nearestAnyBox) {
+                  const result: FeasibilityResult = {
+                    address: geo.display, lat: geo.lat, lng: geo.lng,
+                    providerName: provider.name, providerColor: provider.color,
+                    distance: Math.round(nearestAnyBox.distance), maxDistance: maxDist,
+                    lpuValue: 0, lpuType: "Rede Própria", multiplier: 1, finalValue: 0,
+                    status: "check_om", providerId: provider.id,
+                    nearestPoint: nearestAnyBox.point, isOwnNetwork: true,
+                    checkOmBoxName: `${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                  };
+                  const save = {
+                    user_id: user?.id, customer_address: address || geo.display,
+                    customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
+                    calculated_distance_m: Math.round(nearestAnyBox.distance), lpu_value: 0, multiplier: 1, final_value: 0,
+                    is_viable: false,
+                    notes: `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma. ${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                  };
+                  return { result, save };
+                }
+                return null;
+              }
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
@@ -354,6 +377,29 @@ export default function FeasibilityPage() {
               if (providerRules.regras_bloquear_cruzamento_rodovia && routeGeometry) {
                 const hwCheck = checkRouteHighwayRailwayWithCache(routeGeometry, cachedWays, nttCables, overpassFailed);
                 if (hwCheck.blocked) { highwayBlocked = true; highwayMessage = hwCheck.message; }
+              }
+              if (!highwayBlocked && distance > maxDist) {
+                // Distance exceeds limit — check for nearby unavailable box
+                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elMapped, maxDist);
+                if (nearestAnyBox) {
+                  const result: FeasibilityResult = {
+                    address: geo.display, lat: geo.lat, lng: geo.lng,
+                    providerName: provider.name, providerColor: provider.color,
+                    distance: Math.round(nearestAnyBox.distance), maxDistance: maxDist,
+                    lpuValue: 0, lpuType: "Rede Própria", multiplier: 1, finalValue: 0,
+                    status: "check_om", providerId: provider.id,
+                    nearestPoint: nearestAnyBox.point, isOwnNetwork: true,
+                    checkOmBoxName: `${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                  };
+                  const save = {
+                    user_id: user?.id, customer_address: address || geo.display,
+                    customer_lat: geo.lat, customer_lng: geo.lng, provider_id: provider.id,
+                    calculated_distance_m: Math.round(nearestAnyBox.distance), lpu_value: 0, multiplier: 1, final_value: 0,
+                    is_viable: false,
+                    notes: `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma. ${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                  };
+                  return { result, save };
+                }
               }
               isViableNT = !highwayBlocked && distance <= maxDist;
             }
