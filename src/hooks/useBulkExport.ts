@@ -19,7 +19,7 @@ async function callWebhookProxy(webhookUrl: string, items: any[], solicitante: s
       },
       body: JSON.stringify({
         webhookUrl,
-        finalBody: { payload: items, solicitante },
+        finalBody: { payload: items, solicitante, dataEnvio: new Date().toISOString() },
       }),
     }
   );
