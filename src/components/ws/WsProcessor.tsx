@@ -869,13 +869,27 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
-                        {/* Bloco IP - editable dropdown */}
+                        {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[110px]" options={BLOCO_IP_OPTIONS} />
+                          <Select value={dbRow?.bloco_ip || ""} onValueChange={(v) => updateInlineField(r.item.id, "bloco_ip", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[110px] border-dashed">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
-                        {/* Tipo Sol. - editable dropdown */}
+                        {/* Tipo Sol. - dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[120px]" options={TIPO_SOLICITACAO_OPTIONS} />
+                          <Select value={dbRow?.tipo_solicitacao || ""} onValueChange={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[130px] border-dashed">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIPO_SOLICITACAO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Vlr Venda - editable */}
                         <td className="px-1 py-0.5">
