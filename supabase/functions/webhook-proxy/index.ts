@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     const resp = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalBody),
       signal: controller.signal,
     });
     clearTimeout(timeout);
