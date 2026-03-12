@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
@@ -342,20 +343,22 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             mask="cnpj"
                           />
                         </td>
-                        {/* Bloco IP */}
+                        {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">
                           <CartEditableCell
                             value={item.bloco_ip}
                             onSave={(v) => updateItem(item.id, { bloco_ip: v })}
-                            width="w-[90px]"
+                            width="w-[110px]"
+                            options={BLOCO_IP_OPTIONS}
                           />
                         </td>
-                        {/* Tipo Solicitação */}
+                        {/* Tipo Solicitação - dropdown */}
                         <td className="px-1 py-0.5">
                           <CartEditableCell
                             value={item.tipo_solicitacao}
                             onSave={(v) => updateItem(item.id, { tipo_solicitacao: v })}
-                            width="w-[90px]"
+                            width="w-[120px]"
+                            options={TIPO_SOLICITACAO_OPTIONS}
                           />
                         </td>
                         {/* Cód. Smark */}

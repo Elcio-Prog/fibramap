@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
 
 const PRODUTO_OPTIONS = [
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
@@ -153,7 +154,14 @@ export default function BulkFillModal({ open, onOpenChange, selectedIds }: Props
 
           <div className="space-y-1">
             <Label className="text-xs">Tipo de Solicitação</Label>
-            <Input className="h-8 text-xs" placeholder="Não alterar" value={tipoSolicitacao} onChange={e => setTipoSolicitacao(e.target.value)} />
+            <Select value={tipoSolicitacao} onValueChange={setTipoSolicitacao}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Não alterar" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPO_SOLICITACAO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
@@ -163,7 +171,14 @@ export default function BulkFillModal({ open, onOpenChange, selectedIds }: Props
 
           <div className="space-y-1">
             <Label className="text-xs">Bloco IP</Label>
-            <Input className="h-8 text-xs" placeholder="Não alterar" value={blocoIp} onChange={e => setBlocoIp(e.target.value)} />
+            <Select value={blocoIp} onValueChange={setBlocoIp}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Não alterar" />
+              </SelectTrigger>
+              <SelectContent>
+                {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Numéricos */}

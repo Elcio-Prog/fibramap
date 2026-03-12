@@ -22,6 +22,8 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
+
 const PRODUTO_OPTIONS = [
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
   "NT LINK IP TRANSITO", "NT EVENTO", "NT PTT", "NT L2L", "NT DARK FIBER",
@@ -30,16 +32,31 @@ const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
 const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
 /** Inline editable cell for the results table */
-function InlineEdit({ value, type = "text", onSave, width = "w-[80px]" }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string }) {
+function InlineEdit({ value, type = "text", onSave, width = "w-[80px]", options }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string; options?: string[] }) {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setLocal(value); }, [value]);
-  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+  useEffect(() => { if (editing && !options) inputRef.current?.focus(); }, [editing, options]);
 
   const commit = () => { setEditing(false); if (local !== value) onSave(local); };
   const cancel = () => { setLocal(value); setEditing(false); };
+
+  if (editing && options) {
+    return (
+      <select
+        className={`h-6 text-[10px] px-0.5 ${width} rounded border border-input bg-background`}
+        value={local}
+        autoFocus
+        onChange={e => { const v = e.target.value; setLocal(v); setEditing(false); if (v !== value) onSave(v); }}
+        onBlur={() => { setEditing(false); }}
+      >
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
 
   if (editing) {
     return (
@@ -852,13 +869,13 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
-                        {/* Bloco IP - editable */}
+                        {/* Bloco IP - editable dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[80px]" />
+                          <InlineEdit value={dbRow?.bloco_ip || ""} onSave={(v) => updateInlineField(r.item.id, "bloco_ip", v)} width="w-[110px]" options={BLOCO_IP_OPTIONS} />
                         </td>
-                        {/* Tipo Sol. - editable */}
+                        {/* Tipo Sol. - editable dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[80px]" />
+                          <InlineEdit value={dbRow?.tipo_solicitacao || ""} onSave={(v) => updateInlineField(r.item.id, "tipo_solicitacao", v)} width="w-[120px]" options={TIPO_SOLICITACAO_OPTIONS} />
                         </td>
                         {/* Vlr Venda - editable */}
                         <td className="px-1 py-0.5">

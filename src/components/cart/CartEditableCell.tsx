@@ -17,9 +17,10 @@ interface Props {
   onSave: (value: string) => void;
   width?: string;
   mask?: "cnpj";
+  options?: string[];
 }
 
-export default function CartEditableCell({ value, type = "text", onSave, width = "w-[80px]", mask }: Props) {
+export default function CartEditableCell({ value, type = "text", onSave, width = "w-[80px]", mask, options }: Props) {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +52,21 @@ export default function CartEditableCell({ value, type = "text", onSave, width =
       setLocalValue(e.target.value);
     }
   };
+
+  if (editing && options) {
+    return (
+      <select
+        className={`h-6 text-[10px] px-0.5 ${width} rounded border border-input bg-background`}
+        value={localValue}
+        autoFocus
+        onChange={e => { const v = e.target.value; setLocalValue(v); setEditing(false); if (v !== value) onSave(v); }}
+        onBlur={() => setEditing(false)}
+      >
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
 
   if (editing) {
     return (
