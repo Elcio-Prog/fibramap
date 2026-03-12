@@ -17,9 +17,10 @@ interface Props {
   onSave: (value: string) => void;
   width?: string;
   mask?: "cnpj";
+  options?: string[];
 }
 
-export default function CartEditableCell({ value, type = "text", onSave, width = "w-[80px]", mask }: Props) {
+export default function CartEditableCell({ value, type = "text", onSave, width = "w-[80px]", mask, options }: Props) {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
