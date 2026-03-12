@@ -433,7 +433,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         "Valor a ser Vendido": dbRow?.valor_a_ser_vendido ?? "",
         "Código Smark": dbRow?.codigo_smark || "",
         "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "cep" ? "CEP" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
-        "Viável": r.is_viable ? "SIM" : "NÃO",
+        "Viável": r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M disponibilidade" : "NÃO",
         "Qtd Opções": r.all_options.filter(o => !o.is_blocked).length,
         "Melhor Etapa": r.stage || "—",
         "Melhor Provedor": r.provider_name || "—",
