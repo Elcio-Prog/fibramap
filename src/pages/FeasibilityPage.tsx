@@ -870,6 +870,9 @@ function ResultCard({
     if (r.isOwnNetwork && r.status === "outside_viable") {
       return { label: "REDE PRÓPRIA - VIÁVEL", variant: "secondary" as const, icon: CheckCircle, color: "text-blue-600" };
     }
+    if (r.status === "check_om") {
+      return { label: "CHECAR O&M DISPONIBILIDADE", variant: "outline" as const, icon: AlertTriangle, color: "text-yellow-600" };
+    }
     if (r.isOwnNetwork && r.status === "outside_not_viable") {
       return { label: "REDE PRÓPRIA - NÃO ATENDE", variant: "destructive" as const, icon: Ban, color: "text-red-600" };
     }
