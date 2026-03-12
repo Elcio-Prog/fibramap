@@ -4,7 +4,7 @@ import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
 
-async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ status: number; body: string }> {
+async function callWebhookProxy(webhookUrl: string, items: any[], solicitante: string): Promise<{ status: number; body: string }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Sessão expirada");
 
@@ -17,7 +17,10 @@ async function callWebhookProxy(webhookUrl: string, payload: any): Promise<{ sta
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ webhookUrl, payload }),
+      body: JSON.stringify({
+        webhookUrl,
+        finalBody: { payload: items, solicitante },
+      }),
     }
   );
   if (!resp.ok) {
