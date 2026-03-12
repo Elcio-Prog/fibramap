@@ -212,7 +212,7 @@ export function useBulkExport() {
     const testPayload = [sampleItem];
 
     try {
-      const result = await callWebhookProxy(webhook.url, testPayload);
+      const result = await callWebhookProxy(webhook.url, testPayload, user?.email || "teste@teste.com");
       return { ok: result.status === 200 || result.status === 202, code: result.status };
     } catch (e: any) {
       return { ok: false, code: 0, error: e.message };
