@@ -345,21 +345,25 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">
-                          <CartEditableCell
-                            value={item.bloco_ip}
-                            onSave={(v) => updateItem(item.id, { bloco_ip: v })}
-                            width="w-[110px]"
-                            options={BLOCO_IP_OPTIONS}
-                          />
+                          <Select value={item.bloco_ip || ""} onValueChange={(v) => updateItem(item.id, { bloco_ip: v })}>
+                            <SelectTrigger className="h-6 text-[10px] w-[110px] border-dashed">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Tipo Solicitação - dropdown */}
                         <td className="px-1 py-0.5">
-                          <CartEditableCell
-                            value={item.tipo_solicitacao}
-                            onSave={(v) => updateItem(item.id, { tipo_solicitacao: v })}
-                            width="w-[120px]"
-                            options={TIPO_SOLICITACAO_OPTIONS}
-                          />
+                          <Select value={item.tipo_solicitacao || ""} onValueChange={(v) => updateItem(item.id, { tipo_solicitacao: v })}>
+                            <SelectTrigger className="h-6 text-[10px] w-[130px] border-dashed">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {TIPO_SOLICITACAO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Cód. Smark */}
                         <td className="px-1 py-0.5">
