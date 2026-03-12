@@ -9,6 +9,7 @@ import {
   findNearestPoint,
   findBestConnectionPoint,
   findBestConnectionPointByRoute,
+  findNearestConnectionPointAny,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
