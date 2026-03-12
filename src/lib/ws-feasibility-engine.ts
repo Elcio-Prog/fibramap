@@ -533,12 +533,19 @@ async function processItem(
  */
 async function saveItemResult(result: WsResult): Promise<void> {
   const notes = result.notes || "";
+  const processingStatus = result.is_viable
+    ? "viable"
+    : result.is_check_om
+      ? "check_om"
+      : result.geo_source === "nao_encontrado"
+        ? "geo_failed"
+        : "not_viable";
   await supabase
     .from("ws_feasibility_items")
     .update({
       lat_a: result.geo_lat,
       lng_a: result.geo_lng,
-      processing_status: result.is_viable ? "viable" : result.geo_source === "nao_encontrado" ? "geo_failed" : "not_viable",
+      processing_status: processingStatus,
       result_stage: result.stage,
       result_provider: result.provider_name,
       result_value: result.final_value,
