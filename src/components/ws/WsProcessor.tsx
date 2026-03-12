@@ -867,7 +867,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         </td>
                         {/* Taxa Inst. - editable */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v ? parseFloat(v) : null)} width="w-[70px]" />
+                          <InlineEdit value={dbRow?.taxa_instalacao != null ? String(dbRow.taxa_instalacao) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "taxa_instalacao", v !== "" ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
                         {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">

@@ -321,7 +321,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <CartEditableCell
                             value={item.taxa_instalacao != null ? String(item.taxa_instalacao) : ""}
                             type="number"
-                            onSave={(v) => updateItem(item.id, { taxa_instalacao: v ? parseFloat(v) : null })}
+                            onSave={(v) => updateItem(item.id, { taxa_instalacao: v !== "" ? parseFloat(v) : null })}
                             width="w-[80px]"
                           />
                         </td>
