@@ -53,7 +53,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-type ResultStatus = "inside" | "outside_viable" | "outside_not_viable" | "too_far";
+type ResultStatus = "inside" | "outside_viable" | "outside_not_viable" | "too_far" | "check_om";
 
 interface FeasibilityResult {
   address: string;
@@ -79,6 +79,7 @@ interface FeasibilityResult {
   highwayBlocked?: boolean;
   highwayMessage?: string;
   providerRules?: ProviderRules;
+  checkOmBoxName?: string;
 }
 
 export default function FeasibilityPage() {
