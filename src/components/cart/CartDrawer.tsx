@@ -83,7 +83,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
 
   const isFieldMissing = (item: CartItem, key: keyof CartItem) => {
     const v = item[key];
-    return v == null || v === "" || v === 0;
+    return v == null || v === "";
   };
 
   const exportCart = (format: "xlsx" | "csv") => {
