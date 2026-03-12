@@ -9,6 +9,7 @@ import {
   findNearestPoint,
   findBestConnectionPoint,
   findBestConnectionPointByRoute,
+  findNearestConnectionPointAny,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
@@ -67,6 +68,8 @@ export interface ViableOption {
   has_cross_ntt?: boolean;
   /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
   is_blocked?: boolean;
+  /** True when NTT box is nearby but unavailable — needs O&M check */
+  is_check_om?: boolean;
 }
 
 export interface WsResult {
@@ -81,6 +84,7 @@ export interface WsResult {
   lpu_value: number | null;
   final_value: number | null;
   is_viable: boolean;
+  is_check_om?: boolean;
   notes: string;
   ta_info?: string;
   // ALL viable options found
@@ -310,6 +314,27 @@ async function processItem(
               is_own_network: true,
               is_blocked: true,
             });
+          } else {
+            // Cenário 2: Não encontrou caixa apta — checar se existe caixa próxima indisponível
+            const nearestAnyBox = findNearestConnectionPointAny(
+              lat, lng, elMapped, netTurboProvider.max_lpu_distance_m
+            );
+            if (nearestAnyBox) {
+              allOptions.push({
+                stage: "Rede Própria",
+                provider_name: netTurboProvider.name,
+                provider_id: netTurboProvider.id,
+                provider_color: netTurboProvider.color,
+                distance_m: Math.round(nearestAnyBox.distance),
+                lpu_value: null,
+                final_value: null,
+                notes: `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma.`,
+                ta_info: `${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
+                nearest_point: nearestAnyBox.point,
+                is_own_network: true,
+                is_check_om: true,
+              });
+            }
           }
         } catch (err) {
           console.warn("NTT route check failed:", err);
@@ -452,20 +477,25 @@ async function processItem(
       "Pré-Cadastro": 5,
     };
     const sorted = [...allOptions].sort((a, b) => {
-      // Blocked options go last
+      // Blocked options go last, then check_om, then normal
       if (a.is_blocked && !b.is_blocked) return 1;
       if (!a.is_blocked && b.is_blocked) return -1;
+      if (a.is_check_om && !b.is_check_om) return 1;
+      if (!a.is_check_om && b.is_check_om) return -1;
       return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m;
     });
     
-    // Best is first non-blocked option
-    const bestNonBlocked = sorted.find(o => !o.is_blocked);
-    const best = bestNonBlocked || sorted[0];
+    // Best is first non-blocked, non-check_om option
+    const bestNonBlocked = sorted.find(o => !o.is_blocked && !o.is_check_om);
+    // If no fully viable option, prefer check_om over blocked
+    const bestCheckOm = !bestNonBlocked ? sorted.find(o => o.is_check_om) : null;
+    const best = bestNonBlocked || bestCheckOm || sorted[0];
     const isViable = !!bestNonBlocked;
+    const isCheckOm = !isViable && !!bestCheckOm;
 
     // Build notes with all options summary
     const optionsSummary = allOptions.length > 1
-      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : ""}`).join(", ")}]`
+      ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : o.is_check_om ? " (checar O&M)" : ""}`).join(", ")}]`
       : "";
 
     return {
@@ -476,7 +506,8 @@ async function processItem(
         lpu_value: best.lpu_value,
         final_value: best.final_value,
         is_viable: isViable,
-        notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.notes) + optionsSummary,
+        is_check_om: isCheckOm,
+        notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.is_check_om ? best.notes : best.notes) + optionsSummary,
         ta_info: best.ta_info,
       },
       all_options: sorted,
@@ -502,12 +533,19 @@ async function processItem(
  */
 async function saveItemResult(result: WsResult): Promise<void> {
   const notes = result.notes || "";
+  const processingStatus = result.is_viable
+    ? "viable"
+    : result.is_check_om
+      ? "check_om"
+      : result.geo_source === "nao_encontrado"
+        ? "geo_failed"
+        : "not_viable";
   await supabase
     .from("ws_feasibility_items")
     .update({
       lat_a: result.geo_lat,
       lng_a: result.geo_lng,
-      processing_status: result.is_viable ? "viable" : result.geo_source === "nao_encontrado" ? "geo_failed" : "not_viable",
+      processing_status: processingStatus,
       result_stage: result.stage,
       result_provider: result.provider_name,
       result_value: result.final_value,

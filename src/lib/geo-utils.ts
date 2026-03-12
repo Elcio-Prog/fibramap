@@ -304,6 +304,37 @@ export function findBestConnectionPoint(
 }
 
 /**
+ * Find the nearest TA/CE point ignoring all aptness rules.
+ * Used to detect nearby unavailable boxes for "Checar O&M" status.
+ */
+export function findNearestConnectionPointAny(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  limitMeters: number,
+): { distance: number; point: [number, number]; nome: string; tipo: "TA" | "CE"; motivoBloqueio?: string } | null {
+  const candidates: Array<{ lat: number; lng: number; nome: string; tipo: "TA" | "CE"; distance: number; motivoBloqueio?: string }> = [];
+
+  for (const el of elements) {
+    const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
+    const tipo = props.tipo;
+    if (tipo !== "TA" && tipo !== "CE") continue;
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    if (geo?.type !== "Point") continue;
+    const [lng2, lat2] = geo.coordinates;
+    const d = haversineDistance(lat, lng, lat2, lng2);
+    if (d <= limitMeters) {
+      candidates.push({ lat: lat2, lng: lng2, nome: props.nome || tipo, tipo, distance: d });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.distance - b.distance);
+  const best = candidates[0];
+  return { distance: best.distance, point: [best.lat, best.lng], nome: best.nome, tipo: best.tipo };
+}
+
+/**
  * Find the best connection point with strict nearest-candidate priority.
  * Rule:
  * 1) Prefer nearest apt candidate within limit (straight-line sorted).

@@ -433,7 +433,7 @@ export default function WsSingleSearch() {
     for (let i = 0; i < options.length; i++) {
       const o = options[i];
       const prefix = `Opção ${i + 1}`;
-      row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.stage;
+      row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.is_check_om ? `${o.stage} (Checar O&M)` : o.stage;
       row[`${prefix} - Provedor`] = o.provider_name;
       row[`${prefix} - Distância (m)`] = o.distance_m;
       row[`${prefix} - Valor LPU`] = o.lpu_value ?? "";
@@ -443,8 +443,9 @@ export default function WsSingleSearch() {
     }
 
     // Viability summary
-    const nonBlocked = options.filter(o => !o.is_blocked);
-    row["Viável"] = nonBlocked.length > 0 ? "SIM" : "NÃO";
+    const nonBlocked = options.filter(o => !o.is_blocked && !o.is_check_om);
+    const checkOm = options.filter(o => o.is_check_om);
+    row["Viável"] = nonBlocked.length > 0 ? "SIM" : checkOm.length > 0 ? "Checar O&M disponibilidade" : "NÃO";
 
     // Add LM radius results as columns on the same row
     if (radiusResults && radiusResults.length > 0) {
@@ -596,10 +597,14 @@ export default function WsSingleSearch() {
                 </thead>
                 <tbody>
                   {options.map((o, i) => (
-                    <tr key={i} className="border-t">
+                    <tr key={i} className={`border-t ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}>
                       <td className="px-2 py-1">{i + 1}</td>
                       <td className="px-2 py-1">
-                        <Badge variant="outline" className="text-[10px]">{o.stage}</Badge>
+                        {o.is_check_om ? (
+                          <Badge variant="outline" className="text-[10px] border-yellow-400 text-yellow-700 dark:text-yellow-400">Checar O&M</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">{o.stage}</Badge>
+                        )}
                       </td>
                       <td className="px-2 py-1 flex items-center gap-1">
                         <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: o.provider_color }} />

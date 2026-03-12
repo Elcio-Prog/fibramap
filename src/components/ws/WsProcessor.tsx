@@ -85,7 +85,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [totalItems, setTotalItems] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "viable" | "not_viable" | "pending" | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending" | "failed">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
@@ -204,6 +204,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       lpu_value: null,
       final_value: row.result_value,
       is_viable: row.is_viable ?? false,
+      is_check_om: row.processing_status === "check_om",
       notes: row.result_notes || "",
       all_options: [],
     }));
@@ -308,6 +309,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               lpu_value: null,
               final_value: allItems[i].result_value,
               is_viable: allItems[i].is_viable ?? false,
+              is_check_om: allItems[i].processing_status === "check_om",
               notes: allItems[i].result_notes || "",
               all_options: [],
             });
@@ -433,7 +435,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         "Valor a ser Vendido": dbRow?.valor_a_ser_vendido ?? "",
         "Código Smark": dbRow?.codigo_smark || "",
         "Geo Fonte": r.geo_source === "coordenada" ? "Coordenada" : r.geo_source === "cep" ? "CEP" : r.geo_source === "endereco" ? "Endereço" : "Não encontrado",
-        "Viável": r.is_viable ? "SIM" : "NÃO",
+        "Viável": r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M disponibilidade" : "NÃO",
         "Qtd Opções": r.all_options.filter(o => !o.is_blocked).length,
         "Melhor Etapa": r.stage || "—",
         "Melhor Provedor": r.provider_name || "—",
@@ -450,7 +452,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         const o = r.all_options[i];
         const prefix = `Opção ${i + 1}`;
         if (o) {
-          row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.stage;
+          row[`${prefix} - Etapa`] = o.is_blocked ? `${o.stage} (INVIÁVEL)` : o.is_check_om ? `${o.stage} (Checar O&M)` : o.stage;
           row[`${prefix} - Provedor`] = o.provider_name;
           row[`${prefix} - Distância (m)`] = o.distance_m;
           row[`${prefix} - Valor LPU`] = o.lpu_value ?? "";
@@ -487,14 +489,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const filteredResults = results?.filter(r => {
     if (filter === "all") return true;
     if (filter === "viable") return r.is_viable;
-    if (filter === "not_viable") return !r.is_viable;
+    if (filter === "check_om") return r.is_check_om;
+    if (filter === "not_viable") return !r.is_viable && !r.is_check_om;
     if (filter === "pending") return r.geo_source === "nao_encontrado";
-    if (filter === "failed") return !r.is_viable && r.geo_source !== "nao_encontrado";
+    if (filter === "failed") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
     return true;
   });
 
   const viableCount = results?.filter((r) => r.is_viable).length ?? 0;
-  const notViableCount = results?.filter((r) => !r.is_viable).length ?? 0;
+  const checkOmCount = results?.filter((r) => r.is_check_om).length ?? 0;
+  const notViableCount = results?.filter((r) => !r.is_viable && !r.is_check_om).length ?? 0;
   const geoFailCount = results?.filter((r) => r.geo_source === "nao_encontrado").length ?? 0;
 
   const stageGroups: Record<string, number> = {};
@@ -552,6 +556,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           lat: r.geo_lat,
           lng: r.geo_lng,
           is_viable: r.is_viable,
+          is_check_om: r.is_check_om,
           stage: r.stage || "",
           provider_name: r.provider_name || "",
           velocidade_mbps: r.item.velocidade_mbps,
@@ -649,6 +654,11 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Viáveis: {viableCount}
               </Badge>
+              {checkOmCount > 0 && (
+                <Badge variant="outline" className="border-yellow-400 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">
+                  ⚠️ Checar O&M: {checkOmCount}
+                </Badge>
+              )}
               <Badge variant="outline" className="text-destructive border-destructive/30">
                 <XCircle className="h-3 w-3 mr-1" /> Inviáveis: {notViableCount}
               </Badge>
@@ -679,6 +689,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="viable">Viáveis</SelectItem>
+                    <SelectItem value="check_om">Checar O&M</SelectItem>
                     <SelectItem value="not_viable">Inviáveis</SelectItem>
                     <SelectItem value="pending">Geo falhou</SelectItem>
                     <SelectItem value="failed">Falhas</SelectItem>
@@ -735,7 +746,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     const dbRow = dbRows[r.item.id];
                     const coords = r.geo_lat != null && r.geo_lng != null ? `${r.geo_lat}, ${r.geo_lng}` : "";
                     return (
-                      <tr key={i} className={`border-t ${r.is_viable ? "" : "bg-destructive/5"}`}>
+                      <tr key={i} className={`border-t ${r.is_viable ? "" : r.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : "bg-destructive/5"}`}>
                         {!processing && isComplete && (
                           <td className="px-2 py-1 text-center">
                             <SelectionCheckbox
@@ -771,6 +782,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-2 py-1">
                           {r.is_viable ? (
                             <Badge className="text-[10px] px-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">SIM</Badge>
+                          ) : r.is_check_om ? (
+                            <Badge variant="outline" className="text-[10px] px-1 border-yellow-400 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 whitespace-nowrap">Checar O&M</Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px] px-1 text-destructive">NÃO</Badge>
                           )}

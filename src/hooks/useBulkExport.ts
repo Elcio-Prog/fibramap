@@ -28,7 +28,7 @@ function mapItemToColumnValue(item: CartItem, colunaApp: string): any {
     "Endereço": item.endereco,
     "Cidade": item.cidade,
     "Geo": item.coordenadas || (item.lat != null && item.lng != null ? `${item.lat},${item.lng}` : ""),
-    "Viável": item.is_viable ? "VIÁVEL" : "INVIÁVEL",
+    "Viável": item.is_viable ? "VIÁVEL" : item.is_check_om ? "Checar O&M disponibilidade" : "INVIÁVEL",
     "Melhor Etapa": item.stage,
     "Provedor": item.provider_name,
     "Vel.": item.velocidade_original || (item.velocidade_mbps != null ? `${item.velocidade_mbps} Mbps` : ""),
