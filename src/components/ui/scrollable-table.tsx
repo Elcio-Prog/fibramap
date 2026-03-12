@@ -54,7 +54,7 @@ export default function ScrollableTable({ children, className = "", totalScrolla
   }, [checkScroll]);
 
   const animRef = useRef<number | null>(null);
-  const SPEED = 4; // px per frame
+  const SPEED = 8; // px per frame
 
   const startScroll = (direction: "left" | "right") => {
     stopScroll();
