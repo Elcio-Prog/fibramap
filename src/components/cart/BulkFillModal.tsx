@@ -72,14 +72,14 @@ export default function BulkFillModal({ open, onOpenChange, selectedIds }: Props
   };
 
   const overwriteCount = getOverwriteCount();
-  const hasAnyValue = produto || vigencia || taxaInstalacao || tecnologia || meioFisico || valorVendido || velocidade || tipoSolicitacao || blocoIp || cnpj || codigoSmark || observacoes;
+  const hasAnyValue = produto || vigencia || taxaInstalacao !== "" || tecnologia || meioFisico || valorVendido || velocidade || tipoSolicitacao || blocoIp || cnpj || codigoSmark || observacoes;
 
   const handleApply = () => {
     const ids = Array.from(selectedIds);
     const updates: Record<string, any> = {};
     if (produto) updates.produto = produto;
     if (vigencia) updates.vigencia = vigencia;
-    if (taxaInstalacao) updates.taxa_instalacao = parseFloat(taxaInstalacao);
+    if (taxaInstalacao !== "") updates.taxa_instalacao = parseFloat(taxaInstalacao);
     if (tecnologia) updates.tecnologia = tecnologia;
     if (meioFisico) updates.tecnologia_meio_fisico = meioFisico;
     if (valorVendido) updates.valor_a_ser_vendido = parseFloat(valorVendido);
