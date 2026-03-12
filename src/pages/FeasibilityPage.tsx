@@ -10,6 +10,7 @@ import {
   findBestTA,
   findBestConnectionPoint,
   findBestConnectionPointByRoute,
+  findNearestConnectionPointAny,
   getRouteDistance,
   isInsideCoverage,
   findNearestBoundaryPoint,
