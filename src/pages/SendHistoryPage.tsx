@@ -1,17 +1,155 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { History, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { History, ChevronDown, ChevronRight, Loader2, Copy, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import ScrollableTable from "@/components/ui/scrollable-table";
 
 const PAGE_SIZE = 20;
+
+function BatchItems({ log }: { log: any }) {
+  const { toast } = useToast();
+
+  const { data: items, isLoading } = useQuery({
+    queryKey: ["batch-items", log.id_lote],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ws_feasibility_items")
+        .select("*")
+        .eq("id_lote" as any, log.id_lote)
+        .order("row_number", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!log.id_lote,
+  });
+
+  const copyDesignacao = (val: string) => {
+    navigator.clipboard.writeText(val);
+    toast({ title: "Copiado!", description: val });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!items || items.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground py-4 text-center">
+        {log.id_lote ? "Nenhum item encontrado para este lote." : "Lote anterior à rastreabilidade por itens."}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        {items.length} registro{items.length !== 1 ? "s" : ""} enviado{items.length !== 1 ? "s" : ""} neste lote.
+      </p>
+
+      {log.status === "erro" && log.mensagem_erro && (
+        <div className="text-xs text-destructive bg-destructive/10 rounded p-2 flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span><strong>Erro:</strong> {log.mensagem_erro}</span>
+        </div>
+      )}
+
+      <ScrollableTable totalScrollableColumns={15}>
+        <table className="text-xs w-max min-w-full">
+          <thead className="sticky top-0 bg-muted z-10">
+            <tr>
+              <th className="px-2 py-1.5 text-left min-w-[100px] sticky left-0 z-20 bg-muted">Designação</th>
+              <th className="px-2 py-1.5 text-left min-w-[100px]">Cliente</th>
+              <th className="px-2 py-1.5 text-left">Coordenadas</th>
+              <th className="px-2 py-1.5 text-left">Status</th>
+              <th className="px-2 py-1.5 text-left">Produto</th>
+              <th className="px-2 py-1.5 text-left">Tecnologia</th>
+              <th className="px-2 py-1.5 text-left">Meio Físico</th>
+              <th className="px-2 py-1.5 text-left">Vel.</th>
+              <th className="px-2 py-1.5 text-left">Vigência</th>
+              <th className="px-2 py-1.5 text-left">Taxa Inst.</th>
+              <th className="px-2 py-1.5 text-left">Vlr Venda</th>
+              <th className="px-2 py-1.5 text-left">CNPJ</th>
+              <th className="px-2 py-1.5 text-left">Bloco IP</th>
+              <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
+              <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+              <th className="px-2 py-1.5 text-left">Origem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item: any) => {
+              const coords = item.lat_a != null && item.lng_a != null ? `${item.lat_a},${item.lng_a}` : "—";
+              return (
+                <tr key={item.id} className="border-t hover:bg-muted/30">
+                  <td className="px-2 py-1 max-w-[100px] font-medium sticky left-0 z-10 bg-background">
+                    {item.designacao ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="truncate block max-w-[100px] text-left hover:text-primary cursor-pointer"
+                            onClick={() => copyDesignacao(item.designacao)}
+                          >
+                            <span className="flex items-center gap-1">
+                              {item.designacao}
+                              <Copy className="h-2.5 w-2.5 shrink-0 opacity-40" />
+                            </span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Clique para copiar</TooltipContent>
+                      </Tooltip>
+                    ) : "—"}
+                  </td>
+                  <td className="px-2 py-1 max-w-[100px] truncate">{item.cliente || "—"}</td>
+                  <td className="px-2 py-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="max-w-[80px] truncate block">{coords}</span>
+                      </TooltipTrigger>
+                      {coords !== "—" && <TooltipContent>{coords}</TooltipContent>}
+                    </Tooltip>
+                  </td>
+                  <td className="px-2 py-1">
+                    <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
+                      {item.is_viable ? "Viável" : item.is_viable === false ? "Inviável" : "—"}
+                    </Badge>
+                  </td>
+                  <td className="px-2 py-1">{item.produto || "—"}</td>
+                  <td className="px-2 py-1">{item.tecnologia || "—"}</td>
+                  <td className="px-2 py-1">{item.tecnologia_meio_fisico || "—"}</td>
+                  <td className="px-2 py-1">{item.velocidade_mbps != null ? `${item.velocidade_mbps} Mbps` : "—"}</td>
+                  <td className="px-2 py-1">{item.vigencia || "—"}</td>
+                  <td className="px-2 py-1">{item.taxa_instalacao != null ? item.taxa_instalacao : "—"}</td>
+                  <td className="px-2 py-1">{item.valor_a_ser_vendido != null ? item.valor_a_ser_vendido : "—"}</td>
+                  <td className="px-2 py-1">{item.cnpj_cliente || "—"}</td>
+                  <td className="px-2 py-1">{item.bloco_ip || "—"}</td>
+                  <td className="px-2 py-1">{item.tipo_solicitacao || "—"}</td>
+                  <td className="px-2 py-1">{item.codigo_smark || "—"}</td>
+                  <td className="px-2 py-1 max-w-[100px] truncate">
+                    {/* Fetch batch title from the batch */}
+                    —
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </ScrollableTable>
+    </div>
+  );
+}
 
 export default function SendHistoryPage() {
   const { user } = useAuth();
@@ -107,7 +245,7 @@ export default function SendHistoryPage() {
           <Card>
             <CardContent className="py-3">
               <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center gap-3 flex-1 flex-wrap">
                   <Badge variant={log.status === "sucesso" ? "default" : "destructive"} className="text-xs">
                     {log.status === "sucesso" ? "Sucesso" : "Erro"}
                   </Badge>
@@ -120,13 +258,13 @@ export default function SendHistoryPage() {
                     <span className="text-xs text-muted-foreground">HTTP {log.response_code}</span>
                   )}
                 </div>
-                {expandedId === log.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {expandedId === log.id ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
               </CollapsibleTrigger>
-              <CollapsibleContent className="mt-3 pt-3 border-t space-y-1">
-                <p className="text-xs"><strong>ID do Lote:</strong> {log.id_lote}</p>
-                {log.mensagem_erro && (
-                  <p className="text-xs text-destructive"><strong>Erro:</strong> {log.mensagem_erro}</p>
-                )}
+              <CollapsibleContent className="mt-3 pt-3 border-t">
+                <div className="space-y-2 mb-2">
+                  <p className="text-xs text-muted-foreground"><strong>ID do Lote:</strong> {log.id_lote}</p>
+                </div>
+                <BatchItems log={log} />
               </CollapsibleContent>
             </CardContent>
           </Card>
