@@ -22,10 +22,10 @@ function BatchItems({ log }: { log: any }) {
   const { data: items, isLoading } = useQuery({
     queryKey: ["batch-items", log.id_lote],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ws_feasibility_items")
+      const { data, error } = await (supabase
+        .from("ws_feasibility_items") as any)
         .select("*")
-        .eq("id_lote" as any, log.id_lote)
+        .eq("id_lote", log.id_lote)
         .order("row_number", { ascending: true });
       if (error) throw error;
       return data as any[];
