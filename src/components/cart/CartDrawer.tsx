@@ -204,14 +204,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 <table className="text-xs w-max min-w-full">
                   <thead className="sticky top-0 bg-muted z-10">
                     <tr>
-                      <th className="px-2 py-1.5 text-center w-8">
+                      <th className="px-2 py-1.5 text-center w-8 sticky left-0 z-20 bg-muted">
                         <Checkbox
                           checked={allFilteredSelected}
                           onCheckedChange={toggleAllFiltered}
                           className="h-3.5 w-3.5"
                         />
                       </th>
-                      <th className="px-2 py-1.5 text-left min-w-[100px]">Designação</th>
+                      <th className="px-2 py-1.5 text-left min-w-[100px] sticky left-[32px] z-20 bg-muted">Designação</th>
                       <th className="px-2 py-1.5 text-left min-w-[100px] cursor-pointer" onClick={() => toggleSort("cliente")}>
                         <span className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></span>
                       </th>
