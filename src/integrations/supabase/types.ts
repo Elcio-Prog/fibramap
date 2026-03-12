@@ -616,6 +616,7 @@ export type Database = {
           enviado_para_sharepoint: boolean
           error_message: string | null
           id: string
+          id_lote: string | null
           is_l2l: boolean
           is_viable: boolean | null
           l2l_pair_id: string | null
@@ -670,6 +671,7 @@ export type Database = {
           enviado_para_sharepoint?: boolean
           error_message?: string | null
           id?: string
+          id_lote?: string | null
           is_l2l?: boolean
           is_viable?: boolean | null
           l2l_pair_id?: string | null
@@ -724,6 +726,7 @@ export type Database = {
           enviado_para_sharepoint?: boolean
           error_message?: string | null
           id?: string
+          id_lote?: string | null
           is_l2l?: boolean
           is_viable?: boolean | null
           l2l_pair_id?: string | null

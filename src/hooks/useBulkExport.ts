@@ -179,7 +179,7 @@ export function useBulkExport() {
           const chunk = ids.slice(i, i + 500);
           await supabase
             .from("ws_feasibility_items")
-            .update({ enviado_para_sharepoint: true, data_envio: now } as any)
+            .update({ enviado_para_sharepoint: true, data_envio: now, id_lote: idLote } as any)
             .in("id", chunk);
         }
         markAsSent(ids);
