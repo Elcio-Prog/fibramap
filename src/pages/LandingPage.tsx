@@ -31,7 +31,7 @@ export default function LandingPage() {
           <div className="text-center">
             <h2 className="text-xl font-semibold">Ferramenta WS</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Acesso geral — login e cadastro
+              Acesso geral 
             </p>
           </div>
           <ArrowRight className="mt-2 h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-accent" />
