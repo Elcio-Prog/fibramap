@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import L from "leaflet";
 import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 interface Props {
   map: L.Map | null;
@@ -14,10 +12,8 @@ interface Suggestion {
   lon: string;
 }
 
-/** Detect if input looks like coordinates: -23.5505, -46.6333 or -23.5505 -46.6333 */
 function parseCoords(input: string): { lat: number; lng: number } | null {
   const cleaned = input.trim();
-  // Match patterns like: -23.5505, -46.6333  or  -23.5505 -46.6333
   const match = cleaned.match(/^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/);
   if (match) {
     const lat = parseFloat(match[1]);
@@ -29,7 +25,6 @@ function parseCoords(input: string): { lat: number; lng: number } | null {
   return null;
 }
 
-/** Detect if input looks like a CEP */
 function parseCep(input: string): string | null {
   const digits = input.replace(/\D/g, "");
   if (digits.length === 8) return digits;
@@ -61,7 +56,6 @@ export default function MapSearchBar({ map }: Props) {
     setErrorMsg("");
   };
 
-  // Remove marker on click outside
   useEffect(() => {
     if (!map) return;
     const handler = () => clearMarker();
@@ -71,7 +65,6 @@ export default function MapSearchBar({ map }: Props) {
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 3) { setSuggestions([]); return; }
-    // Skip autocomplete for coords/CEP
     if (parseCoords(q) || parseCep(q)) { setSuggestions([]); return; }
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=br&limit=5`);
@@ -94,21 +87,18 @@ export default function MapSearchBar({ map }: Props) {
     if (!query.trim()) return;
     setShowSuggestions(false);
 
-    // 1. Coordinates
     const coords = parseCoords(query);
     if (coords) {
       placeMarker(coords.lat, coords.lng, `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`);
       return;
     }
 
-    // 2. CEP
     const cep = parseCep(query);
     if (cep) {
       try {
         const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await res.json();
         if (data.erro) { setErrorMsg("CEP não encontrado."); return; }
-        // Geocode the address from CEP
         const addr = `${data.logradouro}, ${data.localidade}, ${data.uf}, Brasil`;
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);
         const geoData = await geoRes.json();
@@ -123,7 +113,6 @@ export default function MapSearchBar({ map }: Props) {
       return;
     }
 
-    // 3. Address
     if (suggestions.length > 0) {
       const s = suggestions[0];
       placeMarker(parseFloat(s.lat), parseFloat(s.lon), s.display_name);
@@ -150,36 +139,43 @@ export default function MapSearchBar({ map }: Props) {
   };
 
   return (
-    <div className="absolute left-3 top-3 z-[1000] w-80">
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9 pr-16 h-9 text-sm bg-background/95 backdrop-blur-sm shadow-lg border"
+    <div className="absolute left-1/2 top-4 z-[1000] w-[min(420px,90%)] -translate-x-1/2">
+      {/* Search container */}
+      <div className="relative flex items-center rounded-full bg-sidebar shadow-lg shadow-black/20 ring-1 ring-white/10">
+        <Search className="pointer-events-none ml-4 h-4 w-4 shrink-0 text-sidebar-foreground/50" />
+        <input
+          className="h-11 flex-1 bg-transparent px-3 text-sm text-sidebar-foreground placeholder:text-sidebar-foreground/40 focus:outline-none"
           placeholder="Endereço, CEP ou coordenadas..."
           value={query}
-          onChange={e => handleInputChange(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
           onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
         />
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+        <div className="flex shrink-0 items-center gap-0.5 pr-2">
           {query && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setQuery(""); setSuggestions([]); setErrorMsg(""); clearMarker(); }}>
+            <button
+              onClick={() => { setQuery(""); setSuggestions([]); setErrorMsg(""); clearMarker(); }}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
               <X className="h-3.5 w-3.5" />
-            </Button>
+            </button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSearch}>
+          <button
+            onClick={handleSearch}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
             <Search className="h-3.5 w-3.5" />
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <div className="mt-2 overflow-hidden rounded-2xl bg-sidebar shadow-lg shadow-black/20 ring-1 ring-white/10">
           {suggestions.map((s, i) => (
             <button
               key={i}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors border-b last:border-b-0"
+              className="w-full border-b border-sidebar-border px-4 py-2.5 text-left text-xs text-sidebar-foreground/80 transition-colors last:border-b-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={() => selectSuggestion(s)}
             >
               {s.display_name}
@@ -190,7 +186,7 @@ export default function MapSearchBar({ map }: Props) {
 
       {/* Error message */}
       {errorMsg && (
-        <div className="mt-1 bg-background border rounded-md shadow-sm px-3 py-2 text-xs text-muted-foreground">
+        <div className="mt-2 rounded-2xl bg-sidebar px-4 py-2.5 text-xs text-sidebar-foreground/70 shadow-lg shadow-black/20 ring-1 ring-white/10">
           {errorMsg}
         </div>
       )}

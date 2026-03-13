@@ -1,18 +1,21 @@
 import { ReactNode, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { NavLink } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import {
   Map, Building2, Calculator, FileText, LogOut, Menu,
   Database, Users, Upload, Search, ClipboardList, Network,
-  Settings, History, ChevronLeft, ChevronRight,
+  Settings, History, ChevronLeft, ChevronRight, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
-import ProfileDropdown from "@/components/ProfileDropdown";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface SidebarSection {
@@ -61,12 +64,18 @@ function getInitials(email?: string) {
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const sections = [...baseSections, ...(isAdmin ? [adminSection] : [])];
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/landing");
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -108,7 +117,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3">
             {sections.map((section) => (
               <div key={section.title} className="mb-4">
-                {/* Section label */}
                 {!collapsed && (
                   <p className="mb-1.5 px-4 text-[11px] font-semibold uppercase tracking-widest text-sidebar-section">
                     {section.title}
@@ -156,43 +164,77 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-sidebar-border px-3 py-3 space-y-2">
-            {/* User row */}
-            <div
-              className={cn(
-                "flex items-center rounded-md",
-                collapsed ? "justify-center py-1" : "gap-3 px-2 py-1.5"
-              )}
-            >
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                  {getInitials(user?.email ?? undefined)}
-                </AvatarFallback>
-              </Avatar>
+          <div className="shrink-0 border-t border-sidebar-border px-2 py-3 space-y-2">
+            {/* Cart */}
+            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-end px-1")}>
+              <CartButton />
+            </div>
 
-              {!collapsed && (
-                <div className="min-w-0 flex-1">
+            {/* Profile dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    "flex w-full items-center rounded-md transition-colors duration-150 hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                    collapsed ? "justify-center px-2 py-2" : "gap-3 px-2 py-2"
+                  )}
+                >
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
+                      {getInitials(user?.email ?? undefined)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-sm font-medium text-sidebar-foreground">
+                        {user?.email?.split("@")[0] ?? "Usuário"}
+                      </p>
+                      <p className="truncate text-[11px] text-sidebar-foreground/50">
+                        {user?.email ?? ""}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                side="top"
+                align="start"
+                sideOffset={8}
+                className="w-56 border-sidebar-border bg-sidebar text-sidebar-foreground"
+              >
+                <DropdownMenuLabel className="font-normal">
                   <p className="truncate text-sm font-medium text-sidebar-foreground">
                     {user?.email?.split("@")[0] ?? "Usuário"}
                   </p>
                   <p className="truncate text-[11px] text-sidebar-foreground/50">
                     {user?.email ?? ""}
                   </p>
-                </div>
-              )}
+                </DropdownMenuLabel>
 
-              {!collapsed && (
-                <div className="shrink-0">
-                  <CartButton />
-                </div>
-              )}
-            </div>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator className="bg-sidebar-border" />
+                    <DropdownMenuItem
+                      onClick={() => navigate("/ws")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Wifi className="h-4 w-4" />
+                      Ferramenta WS
+                    </DropdownMenuItem>
+                  </>
+                )}
 
-            {collapsed && (
-              <div className="flex justify-center">
-                <CartButton />
-              </div>
-            )}
+                <DropdownMenuSeparator className="bg-sidebar-border" />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer gap-2 text-red-400 hover:!bg-sidebar-accent hover:!text-red-300 focus:!bg-sidebar-accent focus:!text-red-300"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Collapse toggle — desktop only */}
