@@ -296,7 +296,7 @@ export default function MapPage() {
       {isAdmin && <MapSearchBar map={mapInstance.current} />}
 
       {/* Side panel */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-[1000] flex w-72 flex-col gap-3 rounded-xl bg-card/95 p-4 shadow-lg backdrop-blur-sm border">
+      <div className="absolute right-3 top-3 z-[1000] flex w-72 flex-col gap-3 rounded-xl bg-card/95 p-4 shadow-lg backdrop-blur-sm border">
         <h3 className="flex items-center gap-2 font-semibold">
           <Layers className="h-4 w-4" /> Camadas
         </h3>
