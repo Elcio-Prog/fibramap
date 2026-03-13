@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom";
 import { LogOut, Wifi, Upload, Search, List, ClipboardList, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const wsLinks = [
   { to: "/ws", label: "Upload em Lote", icon: Upload, end: true },
