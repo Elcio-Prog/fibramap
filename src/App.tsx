@@ -9,6 +9,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import WsLayout from "@/components/WsLayout";
 import Auth from "@/pages/Auth";
+import LandingPage from "@/pages/LandingPage";
 import WsSingleSearch from "@/pages/WsSingleSearch";
 import MapPage from "@/pages/MapPage";
 import ProvidersPage from "@/pages/ProvidersPage";
@@ -40,8 +41,8 @@ function ProtectedRoutes() {
     );
   }
 
-  if (!session) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/auth"} replace />;
+  if (!session) return <Navigate to="/landing" replace />;
+  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/landing"} replace />;
 
   return (
     <AppLayout>
@@ -94,6 +95,27 @@ function WsRoutes() {
   );
 }
 
+/** Landing page — redirect logged-in users to their area */
+function LandingRoute() {
+  const { session, loading } = useAuth();
+  const { isAdmin, isWsUser, isLoading: roleLoading } = useUserRole();
+
+  if (loading) return null;
+  if (!session) return <LandingPage />;
+  if (roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isAdmin) return <Navigate to="/" replace />;
+  if (isWsUser) return <Navigate to="/ws" replace />;
+  return <LandingPage />;
+}
+
+/** /auth — admin login only */
 function AuthRoute() {
   const { session, loading, signOut } = useAuth();
   const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
@@ -108,12 +130,13 @@ function AuthRoute() {
     );
   }
 
-  if (isWsUser && !isAdmin) return <Navigate to="/ws" replace />;
   if (isAdmin) return <Navigate to="/" replace />;
+  if (isWsUser) return <Navigate to="/ws" replace />;
   signOut();
   return <Auth />;
 }
 
+/** /ws/login — WS login + signup */
 function WsAuthRoute() {
   const { session, loading } = useAuth();
   const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
@@ -141,6 +164,7 @@ const App = () => (
         <CartProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/landing" element={<LandingRoute />} />
               <Route path="/auth" element={<AuthRoute />} />
               <Route path="/ws/login" element={<WsAuthRoute />} />
               <Route path="/ws/*" element={<WsRoutes />} />
