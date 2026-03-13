@@ -41,8 +41,8 @@ function ProtectedRoutes() {
     );
   }
 
-  if (!session) return <Navigate to="/" replace />;
-  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/"} replace />;
+  if (!session) return <Navigate to="/landing" replace />;
+  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/landing"} replace />;
 
   return (
     <AppLayout>
@@ -110,7 +110,7 @@ function LandingRoute() {
     );
   }
 
-  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (isAdmin) return <Navigate to="/" replace />;
   if (isWsUser) return <Navigate to="/ws" replace />;
   return <LandingPage />;
 }
@@ -130,7 +130,7 @@ function AuthRoute() {
     );
   }
 
-  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (isAdmin) return <Navigate to="/" replace />;
   if (isWsUser) return <Navigate to="/ws" replace />;
   signOut();
   return <Auth />;
@@ -164,11 +164,11 @@ const App = () => (
         <CartProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<LandingRoute />} />
+              <Route path="/landing" element={<LandingRoute />} />
               <Route path="/auth" element={<AuthRoute />} />
               <Route path="/ws/login" element={<WsAuthRoute />} />
               <Route path="/ws/*" element={<WsRoutes />} />
-              <Route path="/admin/*" element={<ProtectedRoutes />} />
+              <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
           </BrowserRouter>
         </CartProvider>

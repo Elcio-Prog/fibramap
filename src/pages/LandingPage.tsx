@@ -8,6 +8,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
       {/* Header */}
       <div className="mb-12 text-center">
+
         <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           FibraMaps
         </h1>
