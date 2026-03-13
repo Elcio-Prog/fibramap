@@ -311,11 +311,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Vigência */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "vigencia") ? "bg-destructive/10" : ""}`}>
-                          <CartEditableCell
-                            value={item.vigencia}
-                            onSave={(v) => updateItem(item.id, { vigencia: v })}
-                            width="w-[80px]"
-                          />
+                          <Select value={item.vigencia || ""} onValueChange={(v) => updateItem(item.id, { vigencia: v })}>
+                            <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Taxa Instalação */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "taxa_instalacao") ? "bg-destructive/10" : ""}`}>
