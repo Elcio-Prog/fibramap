@@ -22,11 +22,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
-  CheckCircle2, XCircle, Building2,
+  CheckCircle2, XCircle, Building2, ChevronDown, ChevronUp,
 } from "lucide-react";
+import {
+  TIPO_SOLICITACAO_OPTIONS, VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS,
+  PRODUTO_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, UF_OPTIONS,
+} from "@/lib/field-options";
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -82,6 +88,30 @@ export default function WsSingleSearch() {
   const [designacao, setDesignacao] = useState("");
   const [tipoLink, setTipoLink] = useState("");
   const [velocidade, setVelocidade] = useState("");
+
+  // New complementary fields
+  const [codigoSmark, setCodigoSmark] = useState("");
+  const [tipoSolicitacao, setTipoSolicitacao] = useState("");
+  const [cnpjCliente, setCnpjCliente] = useState("");
+  // Ponta B
+  const [enderecoPontaB, setEnderecoPontaB] = useState("");
+  const [numeroPontaB, setNumeroPontaB] = useState("");
+  const [cidadePontaB, setCidadePontaB] = useState("");
+  const [ufPontaB, setUfPontaB] = useState("");
+  const [cepPontaB, setCepPontaB] = useState("");
+  const [latPontaB, setLatPontaB] = useState("");
+  const [lngPontaB, setLngPontaB] = useState("");
+  // Comercial
+  const [valorVendido, setValorVendido] = useState("");
+  const [vigencia, setVigencia] = useState("");
+  const [taxaInstalacao, setTaxaInstalacao] = useState("");
+  const [prazoAtivacao, setPrazoAtivacao] = useState("");
+  // Técnico
+  const [tecnologia, setTecnologia] = useState("");
+  const [tecnologiaMeioFisico, setTecnologiaMeioFisico] = useState("");
+  const [blocoIp, setBlocoIp] = useState("");
+  // Collapsible sections
+  const [showExtra, setShowExtra] = useState(false);
 
   // Results
   const [loading, setLoading] = useState(false);
@@ -421,12 +451,29 @@ export default function WsSingleSearch() {
     // Build a single row with all viability options as columns + LM radius as columns
     const row: Record<string, any> = {
       "Designação": designacao || "",
+      "Código Smark": codigoSmark || "",
+      "Tipo Solicitação": tipoSolicitacao || "",
+      "Produto": tipoLink || "",
       "Cliente": cliente || "",
-      "Tipo Link": tipoLink || "",
+      "CNPJ Cliente": cnpjCliente || "",
       "Vel. (Mbps)": velocidade || "",
+      "Valor a ser Vendido": valorVendido || "",
+      "Vigência": vigencia || "",
+      "Taxa Instalação": taxaInstalacao || "",
+      "Prazo Ativação": prazoAtivacao || "",
+      "Tecnologia": tecnologia || "",
+      "Meio Físico": tecnologiaMeioFisico || "",
+      "Bloco IP": blocoIp || "",
       "Endereço": geoResult.display,
       "Lat": geoResult.lat,
       "Lng": geoResult.lng,
+      "Endereço Ponta B": enderecoPontaB || "",
+      "Número Ponta B": numeroPontaB || "",
+      "Cidade Ponta B": cidadePontaB || "",
+      "UF Ponta B": ufPontaB || "",
+      "CEP Ponta B": cepPontaB || "",
+      "Lat Ponta B": latPontaB || "",
+      "Lng Ponta B": lngPontaB || "",
     };
 
     // Add viability options as columns
@@ -487,25 +534,8 @@ export default function WsSingleSearch() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* WS fields */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <Label>Cliente</Label>
-              <Input placeholder="Nome do cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
-            </div>
-            <div>
-              <Label>Designação</Label>
-              <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} />
-            </div>
-            <div>
-              <Label>Tipo Link</Label>
-              <Input placeholder="FO, Rádio..." value={tipoLink} onChange={e => setTipoLink(e.target.value)} />
-            </div>
-            <div>
-              <Label>Velocidade (Mbps)</Label>
-              <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
-            </div>
-          </div>
+          {/* === PONTA A: Location fields (unchanged) === */}
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ponta A — Localização</div>
 
           {/* Address input */}
           <Tabs value={inputMode} onValueChange={v => setInputMode(v as any)}>
@@ -552,6 +582,189 @@ export default function WsSingleSearch() {
             <Label className="text-sm">Raio de busca LM: {radius} km</Label>
             <Slider min={1} max={50} step={1} value={[radius]} onValueChange={([v]) => setRadius(v)} />
           </div>
+
+          {/* Toggle extra fields */}
+          <Separator />
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowExtra(!showExtra)}
+          >
+            {showExtra ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {showExtra ? "Ocultar campos complementares" : "Mostrar campos complementares"}
+          </button>
+
+          {showExtra && (
+            <div className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+              {/* IDENTIFICAÇÃO */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identificação</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Designação</Label>
+                    <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Código Smark</Label>
+                    <Input placeholder="CTP000..." value={codigoSmark} onChange={e => setCodigoSmark(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Tipo de Solicitação</Label>
+                    <Select value={tipoSolicitacao} onValueChange={setTipoSolicitacao}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIPO_SOLICITACAO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Produto</Label>
+                    <Select value={tipoLink} onValueChange={setTipoLink}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRODUTO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* INFORMAÇÕES DO CLIENTE */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Informações do Cliente</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Cliente</Label>
+                    <Input placeholder="Nome do cliente" value={cliente} onChange={e => setCliente(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">CNPJ Cliente</Label>
+                    <Input placeholder="00.000.000/0001-00" value={cnpjCliente} onChange={e => setCnpjCliente(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+
+              {/* PONTA B */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ponta B (L2L)</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-xs">Endereço (Ponta B)</Label>
+                    <Input placeholder="Rua, Bairro..." value={enderecoPontaB} onChange={e => setEnderecoPontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Número (Ponta B)</Label>
+                    <Input placeholder="123" value={numeroPontaB} onChange={e => setNumeroPontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">CEP (Ponta B)</Label>
+                    <Input placeholder="00000-000" value={cepPontaB} onChange={e => setCepPontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Cidade (Ponta B)</Label>
+                    <Input placeholder="Cidade" value={cidadePontaB} onChange={e => setCidadePontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF (Ponta B)</Label>
+                    <Select value={ufPontaB} onValueChange={setUfPontaB}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="UF" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UF_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Latitude (Ponta B)</Label>
+                    <Input type="number" step="any" placeholder="-22.8231" value={latPontaB} onChange={e => setLatPontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Longitude (Ponta B)</Label>
+                    <Input type="number" step="any" placeholder="-47.2668" value={lngPontaB} onChange={e => setLngPontaB(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+
+              {/* COMERCIAL */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Comercial</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Velocidade (Mbps)</Label>
+                    <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Valor a ser Vendido</Label>
+                    <Input type="number" step="0.01" placeholder="0.00" value={valorVendido} onChange={e => setValorVendido(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Vigência (meses)</Label>
+                    <Select value={vigencia} onValueChange={setVigencia}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Taxa de Instalação</Label>
+                    <Input type="number" step="0.01" placeholder="0.00" value={taxaInstalacao} onChange={e => setTaxaInstalacao(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Prazo de Ativação</Label>
+                    <Input placeholder="Ex: 30 dias" value={prazoAtivacao} onChange={e => setPrazoAtivacao(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+
+              {/* TÉCNICO */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Técnico</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Tecnologia</Label>
+                    <Select value={tecnologia} onValueChange={setTecnologia}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TECNOLOGIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Tecnologia (Meio Físico)</Label>
+                    <Select value={tecnologiaMeioFisico} onValueChange={setTecnologiaMeioFisico}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MEIO_FISICO_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bloco IP</Label>
+                    <Select value={blocoIp} onValueChange={setBlocoIp}>
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Button onClick={handleSearch} disabled={loading} className="w-full gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
