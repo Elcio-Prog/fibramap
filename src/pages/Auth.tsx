@@ -76,7 +76,7 @@ export default function Auth() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       {/* Back to landing */}
       <button
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/landing")}
         className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
