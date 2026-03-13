@@ -164,12 +164,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-sidebar-border px-2 py-3 space-y-2">
-            {/* Cart */}
-            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-end px-1")}>
-              <CartButton />
-            </div>
-
+          <div className="shrink-0 border-t border-sidebar-border px-2 py-3">
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
