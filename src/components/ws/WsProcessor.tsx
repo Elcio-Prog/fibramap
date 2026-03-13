@@ -22,7 +22,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
-import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
 const PRODUTO_OPTIONS = [
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
