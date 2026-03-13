@@ -22,7 +22,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
-import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
 const PRODUTO_OPTIONS = [
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
@@ -861,9 +861,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-1 py-0.5">
                           <InlineEdit value={r.final_value != null ? String(r.final_value) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "result_value", v ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
-                        {/* Vigência - editable */}
+                        {/* Vigência - dropdown */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={dbRow?.vigencia || ""} onSave={(v) => updateInlineField(r.item.id, "vigencia", v)} width="w-[80px]" />
+                          <Select value={dbRow?.vigencia || ""} onValueChange={(v) => updateInlineField(r.item.id, "vigencia", v)}>
+                            <SelectTrigger className="h-6 text-[10px] w-[80px] border-dashed">
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Taxa Inst. - editable */}
                         <td className="px-1 py-0.5">
