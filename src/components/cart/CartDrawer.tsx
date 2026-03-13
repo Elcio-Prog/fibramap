@@ -231,6 +231,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       <th className="px-2 py-1.5 text-left">Bloco IP</th>
                       <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
                       <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+                      <th className="px-2 py-1.5 text-left">Observações</th>
                       <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("batchTitle")}>
                         <span className="flex items-center gap-1">Origem <ArrowUpDown className="h-3 w-3" /></span>
                       </th>
