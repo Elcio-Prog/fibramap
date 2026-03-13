@@ -156,31 +156,43 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-sidebar-border p-3">
-            {/* Cart */}
-            <div className={cn("mb-2 flex items-center", collapsed ? "justify-center" : "justify-end px-1")}>
-              <CartButton />
-            </div>
-
+          <div className="shrink-0 border-t border-sidebar-border px-3 py-3 space-y-2">
             {/* User row */}
             <div
               className={cn(
-                "flex items-center rounded-md px-2 py-2",
-                collapsed ? "justify-center" : "gap-3"
+                "flex items-center rounded-md",
+                collapsed ? "justify-center py-1" : "gap-3 px-2 py-1.5"
               )}
             >
-              <Avatar className="h-8 w-8 shrink-0 bg-sidebar-primary text-sidebar-primary-foreground">
+              <Avatar className="h-8 w-8 shrink-0">
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
                   {getInitials(user?.email ?? undefined)}
                 </AvatarFallback>
               </Avatar>
 
               {!collapsed && (
-                <div className="flex flex-1 items-center justify-between min-w-0">
-                  <ProfileDropdown />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-sidebar-foreground">
+                    {user?.email?.split("@")[0] ?? "Usuário"}
+                  </p>
+                  <p className="truncate text-[11px] text-sidebar-foreground/50">
+                    {user?.email ?? ""}
+                  </p>
+                </div>
+              )}
+
+              {!collapsed && (
+                <div className="shrink-0">
+                  <CartButton />
                 </div>
               )}
             </div>
+
+            {collapsed && (
+              <div className="flex justify-center">
+                <CartButton />
+              </div>
+            )}
           </div>
 
           {/* Collapse toggle — desktop only */}
