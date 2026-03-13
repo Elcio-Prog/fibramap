@@ -12,9 +12,9 @@ export default function CartButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative flex items-center justify-center rounded-md px-3 py-2.5 text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        className="relative flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
       >
-        <ShoppingCart className="h-4 w-4" />
+        <ShoppingCart className="h-3.5 w-3.5" />
         {items.length > 0 && (
           <Badge className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[10px] rounded-full">
             {items.length}
