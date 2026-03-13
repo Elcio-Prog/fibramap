@@ -8,7 +8,7 @@ import {
   Settings, History, ChevronLeft, ChevronRight, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import CartButton from "@/components/cart/CartButton";
+
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
