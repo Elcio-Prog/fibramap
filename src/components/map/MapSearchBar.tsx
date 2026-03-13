@@ -139,7 +139,7 @@ export default function MapSearchBar({ map }: Props) {
   };
 
   return (
-    <div className="absolute left-1/2 top-4 z-[1000] w-[min(420px,90%)] -translate-x-1/2">
+    <div className="absolute top-4 z-[1000] w-[min(420px,50%)]" style={{ left: "calc((100% - 300px) / 2)", transform: "translateX(-50%)" }}>
       {/* Search container */}
       <div className="relative flex items-center rounded-full bg-sidebar shadow-lg shadow-black/20 ring-1 ring-white/10">
         <Search className="pointer-events-none ml-4 h-4 w-4 shrink-0 text-sidebar-foreground/50" />
