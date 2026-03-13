@@ -22,3 +22,23 @@ export const BLOCO_IP_OPTIONS = [
   "BLOCO IP /25",
   "SEM BLOCO IP",
 ];
+
+export const PRODUTO_OPTIONS = [
+  "NT LINK DEDICADO FULL",
+  "NT LINK DEDICADO FLEX",
+  "NT LINK EMPRESA",
+  "NT LINK IP TRANSITO",
+  "NT EVENTO",
+  "NT PTT",
+  "NT L2L",
+  "NT DARK FIBER",
+];
+
+export const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
+
+export const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
+
+export const UF_OPTIONS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
+  "PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+];
