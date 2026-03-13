@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Network, Wifi } from "lucide-react";
+import { Network, Wifi, Lock, ArrowLeft } from "lucide-react";
 
 export default function Auth() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isWsLogin = location.pathname === "/ws/login";
 
   const [isLogin, setIsLogin] = useState(true);
@@ -46,6 +47,7 @@ export default function Auth() {
           }
         }
       } else {
+        // Signup only available for WS
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -66,21 +68,47 @@ export default function Auth() {
 
   const icon = isWsLogin ? <Wifi className="h-6 w-6" /> : <Network className="h-6 w-6" />;
   const title = isWsLogin ? "Ferramenta WS" : "FibraMap";
-  const subtitle = isLogin ? "Entre na sua conta" : "Crie sua conta";
+  const subtitle = isLogin
+    ? "Entre na sua conta"
+    : "Crie sua conta";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      {/* Back to landing */}
+      <button
+        onClick={() => navigate("/")}
+        className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Voltar à seleção
+      </button>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl ${isWsLogin ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"}`}>
+          <div
+            className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl ${
+              isWsLogin
+                ? "bg-accent text-accent-foreground"
+                : "bg-primary text-primary-foreground"
+            }`}
+          >
             {icon}
           </div>
           <CardTitle className="text-2xl">{title}</CardTitle>
           <CardDescription>{subtitle}</CardDescription>
+
+          {/* Admin-only badge */}
+          {!isWsLogin && (
+            <div className="mx-auto mt-2 flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <Lock className="h-3 w-3" />
+              Acesso restrito — somente administradores
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && !isWsLogin && (
+            {/* Display name field — only for WS signup */}
+            {!isLogin && isWsLogin && (
               <Input
                 placeholder="Nome"
                 value={displayName}
@@ -107,7 +135,9 @@ export default function Auth() {
               {loading ? "Carregando..." : isLogin ? "Entrar" : "Cadastrar"}
             </Button>
           </form>
-          {!isWsLogin && (
+
+          {/* Toggle signup — ONLY for WS login */}
+          {isWsLogin && (
             <p className="mt-4 text-center text-sm text-muted-foreground">
               {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
               <button
