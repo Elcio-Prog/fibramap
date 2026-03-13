@@ -22,14 +22,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 
-import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
-
-const PRODUTO_OPTIONS = [
-  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
-  "NT LINK IP TRANSITO", "NT EVENTO", "NT PTT", "NT L2L", "NT DARK FIBER",
-];
-const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
-const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS, PRODUTO_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS } from "@/lib/field-options";
 
 /** Inline editable cell for the results table */
 function InlineEdit({ value, type = "text", onSave, width = "w-[80px]", options }: { value: string; type?: "text" | "number"; onSave: (v: string) => void; width?: string; options?: string[] }) {
