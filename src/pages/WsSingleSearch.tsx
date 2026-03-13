@@ -451,12 +451,29 @@ export default function WsSingleSearch() {
     // Build a single row with all viability options as columns + LM radius as columns
     const row: Record<string, any> = {
       "Designação": designacao || "",
+      "Código Smark": codigoSmark || "",
+      "Tipo Solicitação": tipoSolicitacao || "",
+      "Produto": tipoLink || "",
       "Cliente": cliente || "",
-      "Tipo Link": tipoLink || "",
+      "CNPJ Cliente": cnpjCliente || "",
       "Vel. (Mbps)": velocidade || "",
+      "Valor a ser Vendido": valorVendido || "",
+      "Vigência": vigencia || "",
+      "Taxa Instalação": taxaInstalacao || "",
+      "Prazo Ativação": prazoAtivacao || "",
+      "Tecnologia": tecnologia || "",
+      "Meio Físico": tecnologiaMeioFisico || "",
+      "Bloco IP": blocoIp || "",
       "Endereço": geoResult.display,
       "Lat": geoResult.lat,
       "Lng": geoResult.lng,
+      "Endereço Ponta B": enderecoPontaB || "",
+      "Número Ponta B": numeroPontaB || "",
+      "Cidade Ponta B": cidadePontaB || "",
+      "UF Ponta B": ufPontaB || "",
+      "CEP Ponta B": cepPontaB || "",
+      "Lat Ponta B": latPontaB || "",
+      "Lng Ponta B": lngPontaB || "",
     };
 
     // Add viability options as columns
