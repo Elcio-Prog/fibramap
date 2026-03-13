@@ -22,11 +22,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
-  CheckCircle2, XCircle, Building2,
+  CheckCircle2, XCircle, Building2, ChevronDown, ChevronUp,
 } from "lucide-react";
+import {
+  TIPO_SOLICITACAO_OPTIONS, VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS,
+  PRODUTO_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, UF_OPTIONS,
+} from "@/lib/field-options";
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -82,6 +88,30 @@ export default function WsSingleSearch() {
   const [designacao, setDesignacao] = useState("");
   const [tipoLink, setTipoLink] = useState("");
   const [velocidade, setVelocidade] = useState("");
+
+  // New complementary fields
+  const [codigoSmark, setCodigoSmark] = useState("");
+  const [tipoSolicitacao, setTipoSolicitacao] = useState("");
+  const [cnpjCliente, setCnpjCliente] = useState("");
+  // Ponta B
+  const [enderecoPontaB, setEnderecoPontaB] = useState("");
+  const [numeroPontaB, setNumeroPontaB] = useState("");
+  const [cidadePontaB, setCidadePontaB] = useState("");
+  const [ufPontaB, setUfPontaB] = useState("");
+  const [cepPontaB, setCepPontaB] = useState("");
+  const [latPontaB, setLatPontaB] = useState("");
+  const [lngPontaB, setLngPontaB] = useState("");
+  // Comercial
+  const [valorVendido, setValorVendido] = useState("");
+  const [vigencia, setVigencia] = useState("");
+  const [taxaInstalacao, setTaxaInstalacao] = useState("");
+  const [prazoAtivacao, setPrazoAtivacao] = useState("");
+  // Técnico
+  const [tecnologia, setTecnologia] = useState("");
+  const [tecnologiaMeioFisico, setTecnologiaMeioFisico] = useState("");
+  const [blocoIp, setBlocoIp] = useState("");
+  // Collapsible sections
+  const [showExtra, setShowExtra] = useState(false);
 
   // Results
   const [loading, setLoading] = useState(false);
