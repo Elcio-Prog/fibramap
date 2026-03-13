@@ -228,7 +228,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <DropdownMenuSeparator className="bg-sidebar-border" />
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="cursor-pointer gap-2 text-red-400 hover:!bg-sidebar-accent hover:!text-red-300 focus:!bg-sidebar-accent focus:!text-red-300"
+                  className="cursor-pointer gap-2 text-destructive hover:!bg-sidebar-accent hover:!text-destructive focus:!bg-sidebar-accent focus:!text-destructive"
                 >
                   <LogOut className="h-4 w-4" />
                   Sair
