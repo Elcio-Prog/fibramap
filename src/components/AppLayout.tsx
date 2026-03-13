@@ -6,6 +6,7 @@ import { NavLink } from "react-router-dom";
 import { Map, Building2, Calculator, FileText, LogOut, Menu, X, Database, Users, Upload, Search, ClipboardList, Network, Settings, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const baseLinks = [
   { to: "/", label: "Mapa", icon: Map },
