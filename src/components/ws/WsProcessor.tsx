@@ -859,7 +859,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         </td>
                         {/* Valor - editable */}
                         <td className="px-1 py-0.5">
-                          <InlineEdit value={r.final_value != null ? String(r.final_value) : ""} type="number" onSave={(v) => updateInlineField(r.item.id, "result_value", v ? parseFloat(v) : null)} width="w-[70px]" />
+                          <InlineEdit value={dbRow?.result_value != null ? String(dbRow.result_value) : (r.final_value != null ? String(r.final_value) : "")} type="number" onSave={(v) => updateInlineField(r.item.id, "result_value", v ? parseFloat(v) : null)} width="w-[70px]" />
                         </td>
                         {/* Vigência - dropdown */}
                         <td className="px-1 py-0.5">
