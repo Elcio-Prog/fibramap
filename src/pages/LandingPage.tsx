@@ -23,8 +23,8 @@ export default function LandingPage() {
         <button
           onClick={() => navigate("/ws/login")}
           aria-label="Acessar Ferramenta WS"
-          className="group relative flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm transition-all hover:border-accent hover:shadow-lg hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
+          className="group relative flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm transition-all hover:border-accent hover:shadow-lg hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-transform group-hover:scale-110">
             <Wifi className="h-7 w-7" />
           </div>
@@ -40,13 +40,13 @@ export default function LandingPage() {
         {/* FibraMap */}
         <button
           onClick={() => navigate("/auth")}
-          className="group relative flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
+          className="group relative flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm transition-all hover:border-primary hover:shadow-lg hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform group-hover:scale-110">
             <Network className="h-7 w-7" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-semibold">FibraMap</h2>
+            <h2 className="text-xl font-semibold">FibraMaps</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Painel administrativo
             </p>
@@ -57,6 +57,6 @@ export default function LandingPage() {
           </div>
         </button>
       </div>
-    </div>
-  );
+    </div>);
+
 }
