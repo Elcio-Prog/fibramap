@@ -517,25 +517,8 @@ export default function WsSingleSearch() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* WS fields */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <Label>Cliente</Label>
-              <Input placeholder="Nome do cliente" value={cliente} onChange={e => setCliente(e.target.value)} />
-            </div>
-            <div>
-              <Label>Designação</Label>
-              <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} />
-            </div>
-            <div>
-              <Label>Tipo Link</Label>
-              <Input placeholder="FO, Rádio..." value={tipoLink} onChange={e => setTipoLink(e.target.value)} />
-            </div>
-            <div>
-              <Label>Velocidade (Mbps)</Label>
-              <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
-            </div>
-          </div>
+          {/* === PONTA A: Location fields (unchanged) === */}
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ponta A — Localização</div>
 
           {/* Address input */}
           <Tabs value={inputMode} onValueChange={v => setInputMode(v as any)}>
