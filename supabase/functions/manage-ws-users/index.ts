@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const ALLOWED_ORIGINS = [
   "https://fibramap.lovable.app",
   "https://id-preview--0e81b9c8-14a6-450d-b23b-484015b8a5a5.lovable.app",
+  "https://0e81b9c8-14a6-450d-b23b-484015b8a5a5.lovableproject.com",
 ];
 
 function getCorsHeaders(req: Request) {
