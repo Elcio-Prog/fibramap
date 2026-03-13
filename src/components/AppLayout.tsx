@@ -8,7 +8,7 @@ import {
   Settings, History, ChevronLeft, ChevronRight, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import CartButton from "@/components/cart/CartButton";
+
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -164,12 +164,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Footer */}
-          <div className="shrink-0 border-t border-sidebar-border px-2 py-3 space-y-2">
-            {/* Cart */}
-            <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-end px-1")}>
-              <CartButton />
-            </div>
-
+          <div className="shrink-0 border-t border-sidebar-border px-2 py-3">
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
