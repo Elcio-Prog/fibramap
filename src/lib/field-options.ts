@@ -10,6 +10,8 @@ export const TIPO_SOLICITACAO_OPTIONS = [
   "Mudança de Last Mile",
 ];
 
+export const VIGENCIA_OPTIONS = ["12", "16", "18", "24", "36", "48", "60", "1"];
+
 export const BLOCO_IP_OPTIONS = [
   "BLOCO IP /32",
   "BLOCO IP /30",

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
 const PRODUTO_OPTIONS = [
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
@@ -166,7 +166,14 @@ export default function BulkFillModal({ open, onOpenChange, selectedIds }: Props
 
           <div className="space-y-1">
             <Label className="text-xs">Vigência</Label>
-            <Input className="h-8 text-xs" placeholder="Não alterar" value={vigencia} onChange={e => setVigencia(e.target.value)} />
+            <Select value={vigencia} onValueChange={setVigencia}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Não alterar" />
+              </SelectTrigger>
+              <SelectContent>
+                {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">

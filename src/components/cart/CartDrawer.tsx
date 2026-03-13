@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS } from "@/lib/field-options";
+import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Progress } from "@/components/ui/progress";
@@ -201,7 +201,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 {items.length === 0 ? "Carrinho vazio" : "Nenhum resultado encontrado"}
               </div>
             ) : (
-              <ScrollableTable totalScrollableColumns={15}>
+              <ScrollableTable totalScrollableColumns={16}>
                 <table className="text-xs w-max min-w-full">
                   <thead className="sticky top-0 bg-muted z-10">
                     <tr>
@@ -231,6 +231,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       <th className="px-2 py-1.5 text-left">Bloco IP</th>
                       <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
                       <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+                      <th className="px-2 py-1.5 text-left">Observações</th>
                       <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("batchTitle")}>
                         <span className="flex items-center gap-1">Origem <ArrowUpDown className="h-3 w-3" /></span>
                       </th>
@@ -310,11 +311,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Vigência */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "vigencia") ? "bg-destructive/10" : ""}`}>
-                          <CartEditableCell
-                            value={item.vigencia}
-                            onSave={(v) => updateItem(item.id, { vigencia: v })}
-                            width="w-[80px]"
-                          />
+                          <Select value={item.vigencia || ""} onValueChange={(v) => updateItem(item.id, { vigencia: v })}>
+                            <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
+                              <SelectValue placeholder="Selecionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         {/* Taxa Instalação */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "taxa_instalacao") ? "bg-destructive/10" : ""}`}>
@@ -371,6 +375,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             value={item.codigo_smark}
                             onSave={(v) => updateItem(item.id, { codigo_smark: v })}
                             width="w-[90px]"
+                          />
+                        </td>
+                        {/* Observações */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.observacoes_user}
+                            onSave={(v) => updateItem(item.id, { observacoes_user: v })}
+                            width="w-[120px]"
                           />
                         </td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{item.batchTitle}</td>
