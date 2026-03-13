@@ -166,7 +166,14 @@ export default function BulkFillModal({ open, onOpenChange, selectedIds }: Props
 
           <div className="space-y-1">
             <Label className="text-xs">Vigência</Label>
-            <Input className="h-8 text-xs" placeholder="Não alterar" value={vigencia} onChange={e => setVigencia(e.target.value)} />
+            <Select value={vigencia} onValueChange={setVigencia}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Não alterar" />
+              </SelectTrigger>
+              <SelectContent>
+                {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">

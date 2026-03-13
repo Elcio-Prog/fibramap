@@ -377,6 +377,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             width="w-[90px]"
                           />
                         </td>
+                        {/* Observações */}
+                        <td className="px-1 py-0.5">
+                          <CartEditableCell
+                            value={item.observacoes_user}
+                            onSave={(v) => updateItem(item.id, { observacoes_user: v })}
+                            width="w-[120px]"
+                          />
+                        </td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{item.batchTitle}</td>
                         <td className="px-2 py-1 text-center">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeItem(item.id)}>
