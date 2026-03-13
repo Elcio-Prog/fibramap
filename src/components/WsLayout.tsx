@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom";
 import { LogOut, Wifi, Upload, Search, List, ClipboardList, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
+import ProfileDropdown from "@/components/ProfileDropdown";
 
 const wsLinks = [
   { to: "/ws", label: "Upload em Lote", icon: Upload, end: true },
@@ -50,10 +51,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
         </div>
         <div className="flex items-center gap-3">
           <CartButton />
-          <span className="text-xs text-muted-foreground">{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> Sair
-          </Button>
+          <ProfileDropdown />
         </div>
       </header>
       <main className="flex-1 overflow-auto p-6">{children}</main>
