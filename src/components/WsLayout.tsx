@@ -51,10 +51,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
         </div>
         <div className="flex items-center gap-3">
           <CartButton />
-          <span className="text-xs text-muted-foreground">{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> Sair
-          </Button>
+          <ProfileDropdown />
         </div>
       </header>
       <main className="flex-1 overflow-auto p-6">{children}</main>

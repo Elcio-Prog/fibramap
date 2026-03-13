@@ -81,18 +81,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         <div className="border-t border-sidebar-border p-3">
           <div className="flex items-center justify-between mb-2 px-3">
-            <p className="truncate text-xs text-sidebar-foreground/50">{user?.email}</p>
+            <ProfileDropdown />
             <CartButton />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
         </div>
       </aside>
 
