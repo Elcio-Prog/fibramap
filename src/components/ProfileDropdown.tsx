@@ -88,7 +88,7 @@ export default function ProfileDropdown() {
         )}
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-muted">
           <LogOut className="h-4 w-4" />
           Sair
         </DropdownMenuItem>
