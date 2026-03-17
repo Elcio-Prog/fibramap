@@ -664,6 +664,19 @@ export default function WsSingleSearch() {
                 <tbody>
                   {options.map((o, i) => (
                     <tr key={i} className={`border-t ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}>
+                      <td className="px-2 py-1 text-center">
+                        <Checkbox
+                          checked={selectedOptionIdxs.has(i)}
+                          onCheckedChange={() => {
+                            setSelectedOptionIdxs(prev => {
+                              const next = new Set(prev);
+                              if (next.has(i)) next.delete(i); else next.add(i);
+                              return next;
+                            });
+                          }}
+                          className="h-3.5 w-3.5"
+                        />
+                      </td>
                       <td className="px-2 py-1">{i + 1}</td>
                       <td className="px-2 py-1">
                         {o.is_check_om ? (
