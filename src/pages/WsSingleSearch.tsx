@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useCart, CartItem } from "@/contexts/CartContext";
 import * as XLSX from "xlsx";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
