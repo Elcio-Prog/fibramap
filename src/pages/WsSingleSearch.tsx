@@ -614,7 +614,7 @@ export default function WsSingleSearch() {
                         tipo_solicitacao: "",
                         valor_a_ser_vendido: null,
                         codigo_smark: "",
-                        observacoes_user: "",
+                        observacoes_user: o.notes || "",
                         observacoes_system: o.notes || "",
                         created_at: new Date().toISOString(),
                         produto: "NT LINK DEDICADO FULL",
