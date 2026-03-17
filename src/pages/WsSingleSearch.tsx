@@ -149,6 +149,7 @@ export default function WsSingleSearch() {
     setOptions([]);
     setRadiusResults(null);
     setGeoResult(null);
+    setSelectedOptionIdxs(new Set());
 
     try {
       let geo: { lat: number; lng: number; display: string } | null = null;
