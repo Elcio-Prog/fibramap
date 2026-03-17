@@ -94,7 +94,9 @@ export default function WsSingleSearch() {
   // Radius
   const [radius, setRadius] = useState(5);
   const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
+  const [selectedOptionIdxs, setSelectedOptionIdxs] = useState<Set<number>>(new Set());
 
+  const { addItems, isInCart, isSent } = useCart();
   // Map
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
