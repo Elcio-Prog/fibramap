@@ -581,9 +581,59 @@ export default function WsSingleSearch() {
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" /> Opções de Viabilidade ({options.length})
               </span>
-              <Button size="sm" className="gap-2" onClick={exportToExcel}>
-                <Download className="h-4 w-4" /> Excel
-              </Button>
+              <div className="flex items-center gap-2">
+                {selectedOptionIdxs.size > 0 && (
+                  <Button size="sm" className="gap-2" onClick={() => {
+                    if (!geoResult) return;
+                    const newItems: CartItem[] = Array.from(selectedOptionIdxs).map(idx => {
+                      const o = options[idx];
+                      const cartId = `single-${Date.now()}-${idx}`;
+                      return {
+                        id: cartId,
+                        batchId: "single-search",
+                        batchTitle: "Busca Unitária",
+                        designacao: designacao || "",
+                        cliente: cliente || "",
+                        cnpj_cliente: "",
+                        endereco: geoResult.display,
+                        cidade: "",
+                        uf: "",
+                        lat: geoResult.lat,
+                        lng: geoResult.lng,
+                        is_viable: !o.is_blocked,
+                        is_check_om: o.is_check_om,
+                        stage: o.stage,
+                        provider_name: o.provider_name,
+                        velocidade_mbps: velocidade ? Number(velocidade) : null,
+                        velocidade_original: velocidade || "",
+                        distance_m: o.distance_m,
+                        final_value: o.final_value ?? null,
+                        vigencia: "",
+                        taxa_instalacao: null,
+                        bloco_ip: "",
+                        tipo_solicitacao: "",
+                        valor_a_ser_vendido: null,
+                        codigo_smark: "",
+                        observacoes_user: "",
+                        observacoes_system: o.notes || "",
+                        created_at: new Date().toISOString(),
+                        produto: "NT LINK DEDICADO FULL",
+                        tecnologia: "GPON",
+                        tecnologia_meio_fisico: "Fibra",
+                        coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+                      };
+                    });
+                    addItems(newItems);
+                    setSelectedOptionIdxs(new Set());
+                    toast({ title: `${newItems.length} item(ns) adicionado(s) ao carrinho` });
+                  }}>
+                    <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho ({selectedOptionIdxs.size})
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="gap-2" onClick={exportToExcel}>
+                  <Download className="h-4 w-4" /> Excel
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
