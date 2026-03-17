@@ -26,8 +26,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
-  CheckCircle2, XCircle, Building2,
+  CheckCircle2, XCircle, Building2, ShoppingCart,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast as useToastSonner } from "@/hooks/use-toast";
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
