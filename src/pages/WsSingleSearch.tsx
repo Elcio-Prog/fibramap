@@ -641,6 +641,16 @@ export default function WsSingleSearch() {
               <table className="text-xs w-full">
                 <thead className="bg-muted">
                   <tr>
+                    <th className="px-2 py-1.5 text-center w-8">
+                      <Checkbox
+                        checked={options.length > 0 && selectedOptionIdxs.size === options.length}
+                        onCheckedChange={() => {
+                          if (selectedOptionIdxs.size === options.length) setSelectedOptionIdxs(new Set());
+                          else setSelectedOptionIdxs(new Set(options.map((_, i) => i)));
+                        }}
+                        className="h-3.5 w-3.5"
+                      />
+                    </th>
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
