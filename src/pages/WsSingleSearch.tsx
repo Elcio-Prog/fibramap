@@ -730,30 +730,31 @@ export default function WsSingleSearch() {
                 <Badge key={p} variant="outline" className="text-xs">{p}: {c}</Badge>
               ))}
             </div>
-            <div className="overflow-x-auto max-h-64 border rounded-md overflow-y-auto">
+            <div className="overflow-x-auto border rounded-md">
               <table className="text-xs w-full">
                 <thead className="sticky top-0 bg-muted">
                   <tr>
-                    <th className="px-2 py-1.5 text-left">Distância</th>
                     <th className="px-2 py-1.5 text-left">Parceiro</th>
-                    <th className="px-2 py-1.5 text-left">Cliente</th>
-                    <th className="px-2 py-1.5 text-left">Endereço</th>
-                    <th className="px-2 py-1.5 text-right">Valor</th>
-                    <th className="px-2 py-1.5 text-right">Banda</th>
+                    <th className="px-2 py-1.5 text-left">Distância</th>
+                    <th className="px-2 py-1.5 text-left">Contato / Telefone</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {radiusResults.slice(0, 100).map((r, i) => {
+                  {radiusResults.slice(0, 5).map((r, i) => {
                     const d = r.distanceM;
                     const distLabel = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${d.toFixed(0)} m`;
+                    // Match parceiro to provider or pre_provider for contact info
+                    const parcNorm = r.compra.parceiro?.trim().toLowerCase();
+                    const matchedProvider = (providers || []).find(p => p.name.trim().toLowerCase() === parcNorm);
+                    const matchedPreProvider = !matchedProvider ? (preProviders || []).find(pp => pp.nome_fantasia.trim().toLowerCase() === parcNorm) : null;
+                    const contactName = matchedProvider?.gerente_comercial || matchedProvider?.contato_noc_nome || matchedPreProvider?.contato_comercial_nome || matchedPreProvider?.contato_noc_nome || "";
+                    const contactPhone = matchedProvider?.telefone_gerente || matchedProvider?.contato_noc_fone || matchedPreProvider?.contato_comercial_fone || matchedPreProvider?.contato_noc_fone || "";
+                    const contactLabel = [contactName, contactPhone].filter(Boolean).join(" · ") || "—";
                     return (
                       <tr key={i} className="border-t">
-                        <td className="px-2 py-1 font-mono">{distLabel}</td>
                         <td className="px-2 py-1">{r.compra.parceiro}</td>
-                        <td className="px-2 py-1 max-w-[100px] truncate">{r.compra.cliente || "—"}</td>
-                        <td className="px-2 py-1 max-w-[150px] truncate">{r.compra.endereco}</td>
-                        <td className="px-2 py-1 text-right">R$ {r.compra.valor_mensal.toFixed(2)}</td>
-                        <td className="px-2 py-1 text-right">{r.compra.banda_mbps ?? "—"}</td>
+                        <td className="px-2 py-1 font-mono">{distLabel}</td>
+                        <td className="px-2 py-1 text-muted-foreground">{contactLabel}</td>
                       </tr>
                     );
                   })}
