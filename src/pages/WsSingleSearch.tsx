@@ -655,7 +655,6 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-right">Distância</th>
-                    <th className="px-2 py-1.5 text-right">Valor LPU</th>
                     <th className="px-2 py-1.5 text-right">Valor Final</th>
                     <th className="px-2 py-1.5 text-left">TA/CE</th>
                     <th className="px-2 py-1.5 text-left">Notas</th>
@@ -691,7 +690,6 @@ export default function WsSingleSearch() {
                         {o.has_cross_ntt && <Building2 className="h-3 w-3 text-muted-foreground" />}
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
-                      <td className="px-2 py-1 text-right">{o.lpu_value != null ? `R$${o.lpu_value}` : "—"}</td>
                       <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
                       <td className="px-2 py-1 max-w-[120px] truncate">{o.ta_info || "—"}</td>
                       <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
