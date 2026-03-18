@@ -532,6 +532,34 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
         onOpenChange={setBulkFillOpen}
         selectedIds={selectedIds}
       />
+
+      {/* Observations Detail Dialog */}
+      <Dialog open={!!obsDetailItem} onOpenChange={(open) => !open && setObsDetailItem(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto z-[200]">
+          <DialogHeader>
+            <DialogTitle>Observações - {obsDetailItem?.designacao || obsDetailItem?.cliente || "Item"}</DialogTitle>
+            <DialogDescription>
+              Detalhes completos das observações deste registro.
+            </DialogDescription>
+          </DialogHeader>
+          {obsDetailItem && (
+            <div className="space-y-4 text-sm">
+              {obsDetailItem.observacoes_user && (
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Usuário</Label>
+                  <p className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs">{obsDetailItem.observacoes_user}</p>
+                </div>
+              )}
+              {obsDetailItem.observacoes_system && (
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Sistema</Label>
+                  <pre className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs font-mono">{obsDetailItem.observacoes_system}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
