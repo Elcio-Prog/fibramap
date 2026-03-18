@@ -57,7 +57,7 @@ function GradientKpiCard({ title, value, subtitle, variation, icon: Icon, gradie
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+      className="cursor-pointer rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
       style={{ background: gradient }}
     >
       <div className="flex items-start justify-between">
