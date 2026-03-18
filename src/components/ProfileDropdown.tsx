@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { LogOut, Network, Wifi, ChevronDown, Settings } from "lucide-react";
 import {
   DropdownMenu,
@@ -10,12 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-function getInitials(email?: string) {
-  if (!email) return "?";
-  const parts = email.split("@")[0].split(/[._-]/);
-  return parts
+function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
+  const name = displayName || fullName || email?.split("@")[0] || "?";
+  return name
+    .split(/[\s._-]+/)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
@@ -27,14 +29,34 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [profile, setProfile] = useState<{ display_name: string | null; full_name: string | null; avatar_url: string | null }>({
+    display_name: null,
+    full_name: null,
+    avatar_url: null,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("display_name, full_name, avatar_url")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setProfile({
+            display_name: data.display_name,
+            full_name: (data as any).full_name,
+            avatar_url: (data as any).avatar_url,
+          });
+        }
+      });
+  }, [user]);
+
   const isInWsArea = location.pathname.startsWith("/ws");
 
   const handleSwitchArea = () => {
-    if (isInWsArea) {
-      navigate("/");
-    } else {
-      navigate("/ws");
-    }
+    navigate(isInWsArea ? "/" : "/ws");
   };
 
   const handleSignOut = async () => {
@@ -42,14 +64,15 @@ export default function ProfileDropdown() {
     navigate("/landing");
   };
 
-  const displayName = user?.email?.split("@")[0] ?? "Usuário";
+  const displayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Avatar className="h-7 w-7 shrink-0">
+          {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt="Avatar" />}
           <AvatarFallback className="bg-primary text-primary-foreground text-[10px] font-semibold">
-            {getInitials(user?.email ?? undefined)}
+            {getInitials(profile.display_name, profile.full_name, user?.email)}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 text-left hidden sm:block">
@@ -60,12 +83,13 @@ export default function ProfileDropdown() {
             {user?.email ?? ""}
           </p>
         </div>
-        {isAdmin && <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />}
+        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
-          <p className="truncate text-sm font-medium">{user?.email}</p>
+          <p className="truncate text-sm font-medium">{displayName}</p>
+          <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
         </DropdownMenuLabel>
 
         {isAdmin && (
