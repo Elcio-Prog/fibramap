@@ -281,23 +281,56 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
 }
 
 export default function WsUsersPage() {
+  const { data: wsList } = useQuery({
+    queryKey: ["managed-users", "ws_user"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "ws_user" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
+  const { data: adminList } = useQuery({
+    queryKey: ["managed-users", "admin"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "admin" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
+  const { data: pendingList } = useQuery({
+    queryKey: ["managed-users", "pending"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_pending_users");
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
+
+  const wsCount = wsList?.length ?? 0;
+  const adminCount = adminList?.length ?? 0;
+  const pendingCount = pendingList?.length ?? 0;
+  const total = wsCount + adminCount + pendingCount;
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Gestão de Usuários</h1>
-      <Tabs defaultValue="pending">
+      <h1 className="text-2xl font-bold">
+        Gestão de Usuários
+        <span className="text-sm font-normal text-muted-foreground ml-2">· {total} usuários</span>
+      </h1>
+      <Tabs defaultValue="ws">
         <TabsList>
-          <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes</TabsTrigger>
-          <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS</TabsTrigger>
-          <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Administradores</TabsTrigger>
+          <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS ({wsCount})</TabsTrigger>
+          <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Administradores ({adminCount})</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
-        <TabsContent value="pending" className="mt-4">
-          <PendingUserList />
-        </TabsContent>
         <TabsContent value="ws" className="mt-4">
           <UserList role="ws_user" label="WS" icon={Wifi} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} />
+        </TabsContent>
+        <TabsContent value="pending" className="mt-4">
+          <PendingUserList />
         </TabsContent>
       </Tabs>
     </div>
