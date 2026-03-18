@@ -28,6 +28,13 @@ import UserSettingsPage from "@/pages/UserSettingsPage";
 import SendHistoryPage from "@/pages/SendHistoryPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import DashboardPage from "@/pages/DashboardPage";
+import DrilldownVolume from "@/pages/dashboard/DrilldownVolume";
+import DrilldownSolicitantes from "@/pages/dashboard/DrilldownSolicitantes";
+import DrilldownLoteUnitario from "@/pages/dashboard/DrilldownLoteUnitario";
+import DrilldownComparativo from "@/pages/dashboard/DrilldownComparativo";
+import DrilldownProvedores from "@/pages/dashboard/DrilldownProvedores";
+import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
