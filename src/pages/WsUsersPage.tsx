@@ -309,7 +309,7 @@ export default function WsUsersPage() {
   const wsCount = wsList?.length ?? 0;
   const adminCount = adminList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount + pendingCount;
+  const total = wsCount + adminCount;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
