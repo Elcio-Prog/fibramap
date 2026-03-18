@@ -26,6 +26,8 @@ import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
 import SendHistoryPage from "@/pages/SendHistoryPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
