@@ -222,6 +222,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
                 <DropdownMenuSeparator className="bg-sidebar-border" />
                 <DropdownMenuItem
+                  onClick={() => navigate("/account")}
+                  className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                >
+                  <Settings className="h-4 w-4" />
+                  Configurações da Conta
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-sidebar-border" />
+                <DropdownMenuItem
                   onClick={handleSignOut}
                   className="cursor-pointer gap-2 text-destructive hover:!bg-sidebar-accent hover:!text-destructive focus:!bg-sidebar-accent focus:!text-destructive"
                 >
