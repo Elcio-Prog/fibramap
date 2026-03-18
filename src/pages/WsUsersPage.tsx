@@ -45,10 +45,9 @@ function formatDate(d?: string) {
 }
 
 /* ── Pending Users ── */
-function PendingUserList() {
+function PendingUserList({ globalSearch }: { globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
