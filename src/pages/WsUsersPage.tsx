@@ -92,7 +92,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       ) : !filtered?.length ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            {search ? "Nenhum resultado encontrado." : "Nenhum usuário pendente."}
+            {globalSearch ? "Nenhum resultado encontrado." : "Nenhum usuário pendente."}
           </CardContent>
         </Card>
       ) : (
