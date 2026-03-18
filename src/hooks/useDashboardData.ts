@@ -159,7 +159,7 @@ export function useComparativoData() {
         months[format(startOfMonth(m), "yyyy-MM")] = 0;
       }
       items.forEach((item: any) => {
-        const key = format(new Date(item.data_envio), "yyyy-MM");
+        const key = format(new Date(item.data_envio || item.created_at), "yyyy-MM");
         if (key in months) months[key]++;
       });
       return Object.entries(months).map(([month, total]) => ({ month, total }));

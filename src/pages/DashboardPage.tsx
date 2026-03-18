@@ -166,7 +166,6 @@ export default function DashboardPage() {
         const key = format(new Date(dateStr), "yyyy-MM-dd");
         countMap[key] = (countMap[key] || 0) + 1;
       }
-      }
     });
     return days.slice(-60).map(d => ({
       label: format(d, "dd/MM"),
