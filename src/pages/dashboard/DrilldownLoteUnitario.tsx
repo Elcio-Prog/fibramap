@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
-const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)]";
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
 import { useDrilldownLogs, PeriodFilter, getDateRange } from "@/hooks/useDashboardData";
 import { format, eachDayOfInterval } from "date-fns";
 
