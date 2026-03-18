@@ -246,7 +246,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
         </Dialog>
       </div>
 
-      <UserSearchInput value={search} onChange={setSearch} />
+      
 
       {isLoading ? (
         <div className="flex justify-center py-6"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>
