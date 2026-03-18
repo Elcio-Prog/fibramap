@@ -97,7 +97,7 @@ export default function DrilldownVolume() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Area type="monotone" dataKey="total" stroke="hsl(210, 100%, 55%)" strokeWidth={2} fill="url(#gradBlue)" />
                   </AreaChart>
                 ) : (
