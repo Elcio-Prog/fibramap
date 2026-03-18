@@ -94,6 +94,7 @@ export default function UserSettingsPage() {
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from("profiles").update({ avatar_url: publicUrl } as any).eq("user_id", user.id);
       setAvatarUrl(publicUrl);
+      window.dispatchEvent(new Event("profile-updated"));
       toast({ title: "Foto atualizada!" });
     } catch (err: any) {
       toast({ title: "Erro ao enviar foto", description: err.message, variant: "destructive" });
