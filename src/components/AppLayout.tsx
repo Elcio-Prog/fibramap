@@ -189,14 +189,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   )}
                 >
                   <Avatar className="h-8 w-8 shrink-0">
+                    {profile.avatar_url && <AvatarImage src={profile.avatar_url} alt="Avatar" />}
                     <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-semibold">
-                      {getInitials(user?.email ?? undefined)}
+                      {getInitials(profile.display_name, profile.full_name, user?.email)}
                     </AvatarFallback>
                   </Avatar>
                   {!collapsed && (
                     <div className="min-w-0 flex-1 text-left">
                       <p className="truncate text-sm font-medium text-sidebar-foreground">
-                        {user?.email?.split("@")[0] ?? "Usuário"}
+                        {profileDisplayName}
                       </p>
                       <p className="truncate text-[11px] text-sidebar-foreground/50">
                         {user?.email ?? ""}
@@ -214,7 +215,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               >
                 <DropdownMenuLabel className="font-normal">
                   <p className="truncate text-sm font-medium text-sidebar-foreground">
-                    {user?.email?.split("@")[0] ?? "Usuário"}
+                    {profileDisplayName}
                   </p>
                   <p className="truncate text-[11px] text-sidebar-foreground/50">
                     {user?.email ?? ""}
