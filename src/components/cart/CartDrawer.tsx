@@ -535,12 +535,19 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           </DialogHeader>
           {obsDetailItem && (
             <div className="space-y-4 text-sm">
-              {obsDetailItem.observacoes_user && (
-                <div>
-                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Usuário</Label>
-                  <p className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs">{obsDetailItem.observacoes_user}</p>
-                </div>
-              )}
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground">Observações do Usuário</Label>
+                <Textarea
+                  className="mt-1 text-xs min-h-[60px]"
+                  value={obsDetailItem.observacoes_user || ""}
+                  onChange={(e) => {
+                    const newVal = e.target.value;
+                    updateItem(obsDetailItem.id, { observacoes_user: newVal });
+                    setObsDetailItem({ ...obsDetailItem, observacoes_user: newVal });
+                  }}
+                  placeholder="Adicionar observação..."
+                />
+              </div>
               {obsDetailItem.observacoes_system && (
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground">Observações do Sistema</Label>
