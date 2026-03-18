@@ -582,52 +582,87 @@ export default function WsSingleSearch() {
                 <CheckCircle2 className="h-4 w-4" /> Opções de Viabilidade ({options.length})
               </span>
               <div className="flex items-center gap-2">
-                {selectedOptionIdxs.size > 0 && (
+                {selectedOptionIdx !== null && (
                   <Button size="sm" className="gap-2" onClick={() => {
-                    if (!geoResult) return;
-                    const newItems: CartItem[] = Array.from(selectedOptionIdxs).map(idx => {
-                      const o = options[idx];
-                      const cartId = `single-${Date.now()}-${idx}`;
-                      return {
-                        id: cartId,
-                        batchId: "single-search",
-                        batchTitle: "Busca Unitária",
-                        designacao: designacao || "",
-                        cliente: cliente || "",
-                        cnpj_cliente: "",
-                        endereco: geoResult.display,
-                        cidade: "",
-                        uf: "",
-                        lat: geoResult.lat,
-                        lng: geoResult.lng,
-                        is_viable: !o.is_blocked,
-                        is_check_om: o.is_check_om,
-                        stage: o.stage,
-                        provider_name: o.provider_name,
-                        velocidade_mbps: velocidade ? Number(velocidade) : null,
-                        velocidade_original: velocidade || "",
-                        distance_m: o.distance_m,
-                        final_value: o.final_value ?? null,
-                        vigencia: "",
-                        taxa_instalacao: null,
-                        bloco_ip: "",
-                        tipo_solicitacao: "",
-                        valor_a_ser_vendido: null,
-                        codigo_smark: "",
-                        observacoes_user: o.notes || "",
-                        observacoes_system: o.notes || "",
-                        created_at: new Date().toISOString(),
-                        produto: "NT LINK DEDICADO FULL",
-                        tecnologia: "GPON",
-                        tecnologia_meio_fisico: "Fibra",
-                        coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
-                      };
+                    if (!geoResult || selectedOptionIdx === null) return;
+                    const o = options[selectedOptionIdx];
+                    const cartId = `single-${Date.now()}-${selectedOptionIdx}`;
+
+                    // Build observacoes_system with other options + LM results
+                    const otherOptions = options
+                      .filter((_, i) => i !== selectedOptionIdx)
+                      .map(opt => {
+                        const distLabel = opt.distance_m != null ? `${opt.distance_m}m` : "—";
+                        const valLabel = opt.final_value != null ? `R$${opt.final_value}` : "—";
+                        return `${opt.provider_name} (${opt.stage}) - ${distLabel} - ${valLabel}`;
+                      });
+
+                    const lmLines = (radiusResults || []).slice(0, 5).map(r => {
+                      const d = r.distanceM;
+                      const distLabel = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${d.toFixed(0)} m`;
+                      const parcNorm = r.compra.parceiro?.trim().toLowerCase() || "";
+                      const matchedProv = (providers || []).find(p => {
+                        const pn = p.name.trim().toLowerCase();
+                        return parcNorm.includes(pn) || pn.includes(parcNorm);
+                      });
+                      const matchedPreProv = !matchedProv ? (preProviders || []).find(pp => {
+                        const ppn = pp.nome_fantasia.trim().toLowerCase();
+                        return parcNorm.includes(ppn) || ppn.includes(parcNorm);
+                      }) : null;
+                      const contactName = matchedProv?.gerente_comercial || matchedProv?.contato_noc_nome || matchedPreProv?.contato_comercial_nome || matchedPreProv?.contato_noc_nome || "";
+                      const contactPhone = matchedProv?.telefone_gerente || matchedProv?.contato_noc_fone || matchedPreProv?.contato_comercial_fone || matchedPreProv?.contato_noc_fone || "";
+                      const contactLabel = [contactName, contactPhone].filter(Boolean).join(" · ") || "—";
+                      return `${r.compra.parceiro} - ${distLabel} - ${contactLabel}`;
                     });
-                    addItems(newItems);
-                    setSelectedOptionIdxs(new Set());
-                    toast({ title: `${newItems.length} item(ns) adicionado(s) ao carrinho` });
+
+                    let obsSystem = "";
+                    if (otherOptions.length > 0) {
+                      obsSystem += "Outras opções de Viabilidades:\n" + otherOptions.join("\n");
+                    }
+                    if (lmLines.length > 0) {
+                      if (obsSystem) obsSystem += "\n\n";
+                      obsSystem += "Base LM no Raio:\n" + lmLines.join("\n");
+                    }
+
+                    const newItem: CartItem = {
+                      id: cartId,
+                      batchId: "single-search",
+                      batchTitle: "Busca Unitária",
+                      designacao: designacao || "",
+                      cliente: cliente || "",
+                      cnpj_cliente: "",
+                      endereco: geoResult.display,
+                      cidade: "",
+                      uf: "",
+                      lat: geoResult.lat,
+                      lng: geoResult.lng,
+                      is_viable: !o.is_blocked,
+                      is_check_om: o.is_check_om,
+                      stage: o.stage,
+                      provider_name: o.provider_name,
+                      velocidade_mbps: velocidade ? Number(velocidade) : null,
+                      velocidade_original: velocidade || "",
+                      distance_m: o.distance_m,
+                      final_value: o.final_value ?? null,
+                      vigencia: "",
+                      taxa_instalacao: null,
+                      bloco_ip: "",
+                      tipo_solicitacao: "",
+                      valor_a_ser_vendido: null,
+                      codigo_smark: "",
+                      observacoes_user: o.notes || "",
+                      observacoes_system: obsSystem,
+                      created_at: new Date().toISOString(),
+                      produto: "NT LINK DEDICADO FULL",
+                      tecnologia: "GPON",
+                      tecnologia_meio_fisico: "Fibra",
+                      coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+                    };
+                    addItems([newItem]);
+                    setSelectedOptionIdx(null);
+                    toast({ title: "Item adicionado ao carrinho" });
                   }}>
-                    <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho ({selectedOptionIdxs.size})
+                    <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho
                   </Button>
                 )}
                 <Button size="sm" variant="outline" className="gap-2" onClick={exportToExcel}>
