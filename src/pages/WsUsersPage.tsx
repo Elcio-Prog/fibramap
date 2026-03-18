@@ -278,7 +278,13 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
                     <Eye className="h-3 w-3" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (u.is_active) {
+                      setDeactivateUser(u);
+                    } else {
+                      toggleUser.mutate({ user_id: u.id, is_active: true });
+                    }
+                  }} className="gap-1 text-xs h-7">
                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
                     {u.is_active ? "Desativar" : "Ativar"}
                   </Button>
