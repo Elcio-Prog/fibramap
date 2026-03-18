@@ -357,13 +357,13 @@ export default function WsUsersPage() {
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
         <TabsContent value="ws" className="mt-4">
-          <UserList role="ws_user" label="WS" icon={Wifi} />
+          <UserList role="ws_user" label="WS" icon={Wifi} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
-          <UserList role="admin" label="Admin" icon={Users} />
+          <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="pending" className="mt-4">
-          <PendingUserList />
+          <PendingUserList globalSearch={globalSearch} />
         </TabsContent>
       </Tabs>
     </div>
