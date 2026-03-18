@@ -28,7 +28,7 @@ import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
   CheckCircle2, XCircle, Building2, ShoppingCart,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast as useToastSonner } from "@/hooks/use-toast";
 
 // Fix leaflet icons
@@ -94,7 +94,7 @@ export default function WsSingleSearch() {
   // Radius
   const [radius, setRadius] = useState(5);
   const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
-  const [selectedOptionIdxs, setSelectedOptionIdxs] = useState<Set<number>>(new Set());
+  const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
 
   const { addItems, isInCart, isSent } = useCart();
   // Map
@@ -149,7 +149,7 @@ export default function WsSingleSearch() {
     setOptions([]);
     setRadiusResults(null);
     setGeoResult(null);
-    setSelectedOptionIdxs(new Set());
+    setSelectedOptionIdx(null);
 
     try {
       let geo: { lat: number; lng: number; display: string } | null = null;
@@ -582,52 +582,87 @@ export default function WsSingleSearch() {
                 <CheckCircle2 className="h-4 w-4" /> Opções de Viabilidade ({options.length})
               </span>
               <div className="flex items-center gap-2">
-                {selectedOptionIdxs.size > 0 && (
+                {selectedOptionIdx !== null && (
                   <Button size="sm" className="gap-2" onClick={() => {
-                    if (!geoResult) return;
-                    const newItems: CartItem[] = Array.from(selectedOptionIdxs).map(idx => {
-                      const o = options[idx];
-                      const cartId = `single-${Date.now()}-${idx}`;
-                      return {
-                        id: cartId,
-                        batchId: "single-search",
-                        batchTitle: "Busca Unitária",
-                        designacao: designacao || "",
-                        cliente: cliente || "",
-                        cnpj_cliente: "",
-                        endereco: geoResult.display,
-                        cidade: "",
-                        uf: "",
-                        lat: geoResult.lat,
-                        lng: geoResult.lng,
-                        is_viable: !o.is_blocked,
-                        is_check_om: o.is_check_om,
-                        stage: o.stage,
-                        provider_name: o.provider_name,
-                        velocidade_mbps: velocidade ? Number(velocidade) : null,
-                        velocidade_original: velocidade || "",
-                        distance_m: o.distance_m,
-                        final_value: o.final_value ?? null,
-                        vigencia: "",
-                        taxa_instalacao: null,
-                        bloco_ip: "",
-                        tipo_solicitacao: "",
-                        valor_a_ser_vendido: null,
-                        codigo_smark: "",
-                        observacoes_user: o.notes || "",
-                        observacoes_system: o.notes || "",
-                        created_at: new Date().toISOString(),
-                        produto: "NT LINK DEDICADO FULL",
-                        tecnologia: "GPON",
-                        tecnologia_meio_fisico: "Fibra",
-                        coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
-                      };
+                    if (!geoResult || selectedOptionIdx === null) return;
+                    const o = options[selectedOptionIdx];
+                    const cartId = `single-${Date.now()}-${selectedOptionIdx}`;
+
+                    // Build observacoes_system with other options + LM results
+                    const otherOptions = options
+                      .filter((_, i) => i !== selectedOptionIdx)
+                      .map(opt => {
+                        const distLabel = opt.distance_m != null ? `${opt.distance_m}m` : "—";
+                        const valLabel = opt.final_value != null ? `R$${opt.final_value}` : "—";
+                        return `${opt.provider_name} (${opt.stage}) - ${distLabel} - ${valLabel}`;
+                      });
+
+                    const lmLines = (radiusResults || []).slice(0, 5).map(r => {
+                      const d = r.distanceM;
+                      const distLabel = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${d.toFixed(0)} m`;
+                      const parcNorm = r.compra.parceiro?.trim().toLowerCase() || "";
+                      const matchedProv = (providers || []).find(p => {
+                        const pn = p.name.trim().toLowerCase();
+                        return parcNorm.includes(pn) || pn.includes(parcNorm);
+                      });
+                      const matchedPreProv = !matchedProv ? (preProviders || []).find(pp => {
+                        const ppn = pp.nome_fantasia.trim().toLowerCase();
+                        return parcNorm.includes(ppn) || ppn.includes(parcNorm);
+                      }) : null;
+                      const contactName = matchedProv?.gerente_comercial || matchedProv?.contato_noc_nome || matchedPreProv?.contato_comercial_nome || matchedPreProv?.contato_noc_nome || "";
+                      const contactPhone = matchedProv?.telefone_gerente || matchedProv?.contato_noc_fone || matchedPreProv?.contato_comercial_fone || matchedPreProv?.contato_noc_fone || "";
+                      const contactLabel = [contactName, contactPhone].filter(Boolean).join(" · ") || "—";
+                      return `${r.compra.parceiro} - ${distLabel} - ${contactLabel}`;
                     });
-                    addItems(newItems);
-                    setSelectedOptionIdxs(new Set());
-                    toast({ title: `${newItems.length} item(ns) adicionado(s) ao carrinho` });
+
+                    let obsSystem = "";
+                    if (otherOptions.length > 0) {
+                      obsSystem += "Outras opções de Viabilidades:\n" + otherOptions.join("\n");
+                    }
+                    if (lmLines.length > 0) {
+                      if (obsSystem) obsSystem += "\n\n";
+                      obsSystem += "Base LM no Raio:\n" + lmLines.join("\n");
+                    }
+
+                    const newItem: CartItem = {
+                      id: cartId,
+                      batchId: "single-search",
+                      batchTitle: "Busca Unitária",
+                      designacao: designacao || "",
+                      cliente: cliente || "",
+                      cnpj_cliente: "",
+                      endereco: geoResult.display,
+                      cidade: "",
+                      uf: "",
+                      lat: geoResult.lat,
+                      lng: geoResult.lng,
+                      is_viable: !o.is_blocked,
+                      is_check_om: o.is_check_om,
+                      stage: o.stage,
+                      provider_name: o.provider_name,
+                      velocidade_mbps: velocidade ? Number(velocidade) : null,
+                      velocidade_original: velocidade || "",
+                      distance_m: o.distance_m,
+                      final_value: o.final_value ?? null,
+                      vigencia: "",
+                      taxa_instalacao: null,
+                      bloco_ip: "",
+                      tipo_solicitacao: "",
+                      valor_a_ser_vendido: null,
+                      codigo_smark: "",
+                      observacoes_user: o.notes || "",
+                      observacoes_system: obsSystem,
+                      created_at: new Date().toISOString(),
+                      produto: "NT LINK DEDICADO FULL",
+                      tecnologia: "GPON",
+                      tecnologia_meio_fisico: "Fibra",
+                      coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+                    };
+                    addItems([newItem]);
+                    setSelectedOptionIdx(null);
+                    toast({ title: "Item adicionado ao carrinho" });
                   }}>
-                    <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho ({selectedOptionIdxs.size})
+                    <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho
                   </Button>
                 )}
                 <Button size="sm" variant="outline" className="gap-2" onClick={exportToExcel}>
@@ -641,16 +676,7 @@ export default function WsSingleSearch() {
               <table className="text-xs w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-2 py-1.5 text-center w-8">
-                      <Checkbox
-                        checked={options.length > 0 && selectedOptionIdxs.size === options.length}
-                        onCheckedChange={() => {
-                          if (selectedOptionIdxs.size === options.length) setSelectedOptionIdxs(new Set());
-                          else setSelectedOptionIdxs(new Set(options.map((_, i) => i)));
-                        }}
-                        className="h-3.5 w-3.5"
-                      />
-                    </th>
+                    <th className="px-2 py-1.5 text-center w-8"></th>
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
@@ -662,18 +688,19 @@ export default function WsSingleSearch() {
                 </thead>
                 <tbody>
                   {options.map((o, i) => (
-                    <tr key={i} className={`border-t ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}>
+                    <tr
+                      key={i}
+                      className={`border-t cursor-pointer ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
+                      onClick={() => setSelectedOptionIdx(selectedOptionIdx === i ? null : i)}
+                    >
                       <td className="px-2 py-1 text-center">
-                        <Checkbox
-                          checked={selectedOptionIdxs.has(i)}
-                          onCheckedChange={() => {
-                            setSelectedOptionIdxs(prev => {
-                              const next = new Set(prev);
-                              if (next.has(i)) next.delete(i); else next.add(i);
-                              return next;
-                            });
-                          }}
-                          className="h-3.5 w-3.5"
+                        <input
+                          type="radio"
+                          name="viability-option"
+                          checked={selectedOptionIdx === i}
+                          onChange={() => setSelectedOptionIdx(i)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-3.5 w-3.5 accent-primary"
                         />
                       </td>
                       <td className="px-2 py-1">{i + 1}</td>
