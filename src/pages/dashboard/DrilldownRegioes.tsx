@@ -31,10 +31,19 @@ export default function DrilldownRegioes() {
   const points = (items || []).filter((i: any) => i.lat_a != null && i.lng_a != null);
   const filteredPoints = selectedCity ? points.filter((i: any) => (i.cidade_a || "Não informada") === selectedCity) : points;
 
+  const pointsKey = filteredPoints.map(p => `${p.lat_a},${p.lng_a}`).join("|");
+
   useEffect(() => {
     if (!mapRef.current || isLoading) return;
+
+    let cancelled = false;
+
     loadHeat().then(() => {
-      if (mapInstance.current) mapInstance.current.remove();
+      if (cancelled || !mapRef.current) return;
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
       const map = L.map(mapRef.current!, { zoomControl: true, attributionControl: false }).setView([-15.78, -47.93], 4);
       mapInstance.current = map;
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { attribution: "© CARTO" }).addTo(map);
@@ -48,10 +57,18 @@ export default function DrilldownRegioes() {
         const bounds = L.latLngBounds(filteredPoints.map((i: any) => [Number(i.lat_a), Number(i.lng_a)]));
         map.fitBounds(bounds, { padding: [30, 30] });
       }
-      setTimeout(() => map.invalidateSize(), 300);
+      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => map.invalidateSize(), 400);
     });
-    return () => { if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; } };
-  }, [filteredPoints.length, isLoading, selectedCity]);
+
+    return () => {
+      cancelled = true;
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, [isLoading, selectedCity, pointsKey]);
 
   return (
     <div className="min-h-screen p-6" style={{ background: "hsl(var(--dash-bg))" }}>
