@@ -48,6 +48,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [bulkFillOpen, setBulkFillOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
