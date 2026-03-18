@@ -18,6 +18,8 @@ export function getDateRange(period: PeriodFilter, custom?: DateRange): DateRang
       return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
     case "30d":
       return { from: startOfDay(subDays(now, 29)), to: endOfDay(now) };
+    case "total":
+      return { from: new Date("2020-01-01"), to: endOfDay(now) };
     case "custom":
       return custom || { from: startOfMonth(now), to: endOfDay(now) };
     default:
