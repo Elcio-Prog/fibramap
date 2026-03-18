@@ -28,6 +28,13 @@ import UserSettingsPage from "@/pages/UserSettingsPage";
 import SendHistoryPage from "@/pages/SendHistoryPage";
 import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import DashboardPage from "@/pages/DashboardPage";
+import DrilldownVolume from "@/pages/dashboard/DrilldownVolume";
+import DrilldownSolicitantes from "@/pages/dashboard/DrilldownSolicitantes";
+import DrilldownLoteUnitario from "@/pages/dashboard/DrilldownLoteUnitario";
+import DrilldownComparativo from "@/pages/dashboard/DrilldownComparativo";
+import DrilldownProvedores from "@/pages/dashboard/DrilldownProvedores";
+import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +58,13 @@ function ProtectedRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/" element={<MapPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/volume" element={<DrilldownVolume />} />
+        <Route path="/dashboard/solicitantes" element={<DrilldownSolicitantes />} />
+        <Route path="/dashboard/lote-unitario" element={<DrilldownLoteUnitario />} />
+        <Route path="/dashboard/comparativo" element={<DrilldownComparativo />} />
+        <Route path="/dashboard/provedores" element={<DrilldownProvedores />} />
+        <Route path="/dashboard/regioes" element={<DrilldownRegioes />} />
         <Route path="/ntt-update" element={<NttNetworkUpdatePage />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />

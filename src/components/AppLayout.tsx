@@ -6,7 +6,7 @@ import { useNavigate, NavLink } from "react-router-dom";
 import {
   Map, Building2, Calculator, FileText, LogOut, Menu,
   Database, Users, Upload, Search, ClipboardList, Network,
-  Settings, History, ChevronLeft, ChevronRight, Wifi,
+  Settings, History, ChevronLeft, ChevronRight, Wifi, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +46,7 @@ const baseSections: SidebarSection[] = [
 const adminSection: SidebarSection = {
   title: "SISTEMA",
   links: [
+    { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { to: "/ntt-update", label: "Atualizar Rede NTT", icon: Network },
     { to: "/ws-upload", label: "Upload WS", icon: Upload },
     { to: "/ws-single", label: "Busca Unitária WS", icon: Search },
