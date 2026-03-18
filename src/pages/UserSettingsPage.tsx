@@ -143,6 +143,7 @@ export default function UserSettingsPage() {
       setOrigDisplayName(displayName);
       setOrigFullName(fullName);
       setOrigPhone(phone);
+      window.dispatchEvent(new Event("profile-updated"));
       toast({ title: "Perfil salvo com sucesso!" });
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
