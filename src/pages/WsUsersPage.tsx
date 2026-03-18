@@ -252,7 +252,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
         <div className="flex justify-center py-6"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : !filtered?.length ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">
-          {search ? "Nenhum resultado encontrado." : `Nenhum usuário ${label} cadastrado.`}
+          {globalSearch ? "Nenhum resultado encontrado." : `Nenhum usuário ${label} cadastrado.`}
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
