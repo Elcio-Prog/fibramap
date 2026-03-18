@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay, format } from "date-fns";
 
-export type PeriodFilter = "today" | "7d" | "30d" | "custom";
+export type PeriodFilter = "today" | "7d" | "30d" | "custom" | "total";
 
 export interface DateRange {
   from: Date;

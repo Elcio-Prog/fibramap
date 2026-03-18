@@ -49,6 +49,20 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+
+    /* Dashboard dark theme tokens */
+    --dash-bg: 215 50% 8%;
+    --dash-card: 215 45% 13%;
+    --dash-card-hover: 215 42% 16%;
+    --dash-border: 215 40% 20%;
+    --dash-text: 210 20% 92%;
+    --dash-text-muted: 215 20% 55%;
+    --dash-gradient-blue: 210 100% 55%;
+    --dash-gradient-cyan: 185 90% 50%;
+    --dash-gradient-purple: 265 85% 60%;
+    --dash-gradient-magenta: 320 85% 55%;
+    --dash-gradient-green: 160 70% 45%;
+    --dash-gradient-orange: 25 95% 55%;
   }
 
   .dark {
