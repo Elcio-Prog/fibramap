@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LogOut, Network, Wifi, ChevronDown } from "lucide-react";
+import { LogOut, Network, Wifi, ChevronDown, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +87,14 @@ export default function ProfileDropdown() {
           </>
         )}
 
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => navigate(isInWsArea ? "/ws/account" : "/account")}
+          className="cursor-pointer gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          Configurações da Conta
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-muted">
           <LogOut className="h-4 w-4" />

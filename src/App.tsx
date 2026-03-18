@@ -23,7 +23,8 @@ import WsBatchDetailPage from "@/pages/WsBatchDetailPage";
 import WsDashboard from "@/pages/WsDashboard";
 import PreProvidersPage from "@/pages/PreProvidersPage";
 import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
-import SettingsPage from "@/pages/SettingsPage";
+import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import UserSettingsPage from "@/pages/UserSettingsPage";
 import SendHistoryPage from "@/pages/SendHistoryPage";
 import NotFound from "./pages/NotFound";
 
@@ -57,7 +58,8 @@ function ProtectedRoutes() {
         <Route path="/ws-users" element={<WsUsersPage />} />
         <Route path="/ws-upload" element={<WsUploadPage />} />
         <Route path="/ws-single" element={<WsSingleSearch />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings" element={<AdminSettingsPage />} />
+        <Route path="/account" element={<UserSettingsPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -89,6 +91,7 @@ function WsRoutes() {
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
+        <Route path="/account" element={<UserSettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WsLayout>
