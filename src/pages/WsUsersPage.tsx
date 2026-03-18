@@ -105,7 +105,6 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                     <p className="font-medium text-sm truncate">{u.display_name}</p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </button>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">{formatDate(u.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge variant="outline" className="text-xs">Sem papel</Badge>
