@@ -676,16 +676,7 @@ export default function WsSingleSearch() {
               <table className="text-xs w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-2 py-1.5 text-center w-8">
-                      <Checkbox
-                        checked={options.length > 0 && selectedOptionIdxs.size === options.length}
-                        onCheckedChange={() => {
-                          if (selectedOptionIdxs.size === options.length) setSelectedOptionIdxs(new Set());
-                          else setSelectedOptionIdxs(new Set(options.map((_, i) => i)));
-                        }}
-                        className="h-3.5 w-3.5"
-                      />
-                    </th>
+                    <th className="px-2 py-1.5 text-center w-8"></th>
                     <th className="px-2 py-1.5 text-left">#</th>
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
@@ -697,18 +688,19 @@ export default function WsSingleSearch() {
                 </thead>
                 <tbody>
                   {options.map((o, i) => (
-                    <tr key={i} className={`border-t ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}>
+                    <tr
+                      key={i}
+                      className={`border-t cursor-pointer ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
+                      onClick={() => setSelectedOptionIdx(selectedOptionIdx === i ? null : i)}
+                    >
                       <td className="px-2 py-1 text-center">
-                        <Checkbox
-                          checked={selectedOptionIdxs.has(i)}
-                          onCheckedChange={() => {
-                            setSelectedOptionIdxs(prev => {
-                              const next = new Set(prev);
-                              if (next.has(i)) next.delete(i); else next.add(i);
-                              return next;
-                            });
-                          }}
-                          className="h-3.5 w-3.5"
+                        <input
+                          type="radio"
+                          name="viability-option"
+                          checked={selectedOptionIdx === i}
+                          onChange={() => setSelectedOptionIdx(i)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-3.5 w-3.5 accent-primary"
                         />
                       </td>
                       <td className="px-2 py-1">{i + 1}</td>
