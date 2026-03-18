@@ -46,6 +46,7 @@ const baseSections: SidebarSection[] = [
 const adminSection: SidebarSection = {
   title: "SISTEMA",
   links: [
+    { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { to: "/ntt-update", label: "Atualizar Rede NTT", icon: Network },
     { to: "/ws-upload", label: "Upload WS", icon: Upload },
     { to: "/ws-single", label: "Busca Unitária WS", icon: Search },

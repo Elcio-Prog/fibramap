@@ -58,6 +58,13 @@ function ProtectedRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/" element={<MapPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard/volume" element={<DrilldownVolume />} />
+        <Route path="/dashboard/solicitantes" element={<DrilldownSolicitantes />} />
+        <Route path="/dashboard/lote-unitario" element={<DrilldownLoteUnitario />} />
+        <Route path="/dashboard/comparativo" element={<DrilldownComparativo />} />
+        <Route path="/dashboard/provedores" element={<DrilldownProvedores />} />
+        <Route path="/dashboard/regioes" element={<DrilldownRegioes />} />
         <Route path="/ntt-update" element={<NttNetworkUpdatePage />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
