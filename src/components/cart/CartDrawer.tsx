@@ -48,6 +48,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [bulkFillOpen, setBulkFillOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
@@ -379,11 +380,23 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Observações */}
                         <td className="px-1 py-0.5">
-                          <CartEditableCell
-                            value={item.observacoes_user}
-                            onSave={(v) => updateItem(item.id, { observacoes_user: v })}
-                            width="w-[120px]"
-                          />
+                          <div className="flex items-center gap-1">
+                            <CartEditableCell
+                              value={item.observacoes_user}
+                              onSave={(v) => updateItem(item.id, { observacoes_user: v })}
+                              width="w-[120px]"
+                            />
+                            {item.observacoes_system && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 shrink-0"
+                                onClick={() => setObsDetailItem(item)}
+                              >
+                                <Search className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{item.batchTitle}</td>
                         <td className="px-2 py-1 text-center">
@@ -519,6 +532,34 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
         onOpenChange={setBulkFillOpen}
         selectedIds={selectedIds}
       />
+
+      {/* Observations Detail Dialog */}
+      <Dialog open={!!obsDetailItem} onOpenChange={(open) => !open && setObsDetailItem(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto z-[200]">
+          <DialogHeader>
+            <DialogTitle>Observações - {obsDetailItem?.designacao || obsDetailItem?.cliente || "Item"}</DialogTitle>
+            <DialogDescription>
+              Detalhes completos das observações deste registro.
+            </DialogDescription>
+          </DialogHeader>
+          {obsDetailItem && (
+            <div className="space-y-4 text-sm">
+              {obsDetailItem.observacoes_user && (
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Usuário</Label>
+                  <p className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs">{obsDetailItem.observacoes_user}</p>
+                </div>
+              )}
+              {obsDetailItem.observacoes_system && (
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Sistema</Label>
+                  <pre className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs font-mono">{obsDetailItem.observacoes_system}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
