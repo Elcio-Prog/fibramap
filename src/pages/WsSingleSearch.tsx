@@ -83,7 +83,7 @@ export default function WsSingleSearch() {
   // WS extra fields
   const [cliente, setCliente] = useState("");
   const [designacao, setDesignacao] = useState("");
-  const [tipoLink, setTipoLink] = useState("");
+  const tipoLink = "";
   const [velocidade, setVelocidade] = useState("");
 
   // Results
