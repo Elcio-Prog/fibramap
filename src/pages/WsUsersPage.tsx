@@ -11,6 +11,11 @@ import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi,
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { UserSearchInput } from "@/components/ws-users/UserSearchInput";
 import { UserDetailModal } from "@/components/ws-users/UserDetailModal";
