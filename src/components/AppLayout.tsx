@@ -70,6 +70,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profile, setProfile] = useState<{ display_name: string | null; full_name: string | null; avatar_url: string | null }>({
+    display_name: null, full_name: null, avatar_url: null,
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("display_name, full_name, avatar_url").eq("user_id", user.id).single()
+      .then(({ data }) => {
+        if (data) setProfile({ display_name: data.display_name, full_name: (data as any).full_name, avatar_url: (data as any).avatar_url });
+      });
+  }, [user]);
+
+  const profileDisplayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
 
   const sections = [...baseSections, ...(isAdmin ? [adminSection] : [])];
 
