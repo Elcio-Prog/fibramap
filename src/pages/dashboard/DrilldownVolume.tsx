@@ -27,9 +27,10 @@ export default function DrilldownVolume() {
   const todayStr = format(today, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(today, { locale: ptBR }), "yyyy-MM-dd");
   const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
-  const todayCount = items?.filter(i => format(new Date(i.data_envio!), "yyyy-MM-dd") === todayStr).length ?? 0;
-  const weekCount = items?.filter(i => i.data_envio! >= weekStart).length ?? 0;
-  const monthCount = items?.filter(i => i.data_envio! >= monthStart).length ?? 0;
+  const getItemDate = (i: any) => i.data_envio || i.created_at;
+  const todayCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") === todayStr).length ?? 0;
+  const weekCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= weekStart).length ?? 0;
+  const monthCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= monthStart).length ?? 0;
 
   const chartData = (() => {
     if (!items?.length) return [];
