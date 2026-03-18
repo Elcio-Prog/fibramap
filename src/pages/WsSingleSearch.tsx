@@ -83,7 +83,7 @@ export default function WsSingleSearch() {
   // WS extra fields
   const [cliente, setCliente] = useState("");
   const [designacao, setDesignacao] = useState("");
-  const [tipoLink, setTipoLink] = useState("");
+  const tipoLink = "";
   const [velocidade, setVelocidade] = useState("");
 
   // Results
@@ -502,10 +502,6 @@ export default function WsSingleSearch() {
             <div>
               <Label>Designação</Label>
               <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} />
-            </div>
-            <div>
-              <Label>Tipo Link</Label>
-              <Input placeholder="FO, Rádio..." value={tipoLink} onChange={e => setTipoLink(e.target.value)} />
             </div>
             <div>
               <Label>Velocidade (Mbps)</Label>
