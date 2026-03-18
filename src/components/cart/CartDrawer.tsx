@@ -526,7 +526,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
 
       {/* Observations Detail Dialog */}
       <Dialog open={!!obsDetailItem} onOpenChange={(open) => !open && setObsDetailItem(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto z-[200]">
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-auto z-[2100]" style={{ zIndex: 2100 }}>
           <DialogHeader>
             <DialogTitle>Observações - {obsDetailItem?.designacao || obsDetailItem?.cliente || "Item"}</DialogTitle>
             <DialogDescription>
