@@ -27,26 +27,27 @@ export default function DrilldownVolume() {
   const todayStr = format(today, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(today, { locale: ptBR }), "yyyy-MM-dd");
   const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
-  const todayCount = items?.filter(i => format(new Date(i.data_envio!), "yyyy-MM-dd") === todayStr).length ?? 0;
-  const weekCount = items?.filter(i => i.data_envio! >= weekStart).length ?? 0;
-  const monthCount = items?.filter(i => i.data_envio! >= monthStart).length ?? 0;
+  const getItemDate = (i: any) => i.data_envio || i.created_at;
+  const todayCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") === todayStr).length ?? 0;
+  const weekCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= weekStart).length ?? 0;
+  const monthCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= monthStart).length ?? 0;
 
   const chartData = (() => {
     if (!items?.length) return [];
     if (view === "daily") {
       const days = eachDayOfInterval({ start: range.from, end: range.to });
       const countMap: Record<string, number> = {};
-      items.forEach(i => { const key = format(new Date(i.data_envio!), "yyyy-MM-dd"); countMap[key] = (countMap[key] || 0) + 1; });
+      items.forEach(i => { const key = format(new Date(getItemDate(i)), "yyyy-MM-dd"); countMap[key] = (countMap[key] || 0) + 1; });
       return days.map(d => ({ label: format(d, "dd/MM"), total: countMap[format(d, "yyyy-MM-dd")] || 0 }));
     } else if (view === "weekly") {
       const weeks = eachWeekOfInterval({ start: range.from, end: range.to }, { locale: ptBR });
       const countMap: Record<string, number> = {};
-      items.forEach(i => { const key = format(startOfWeek(new Date(i.data_envio!), { locale: ptBR }), "yyyy-MM-dd"); countMap[key] = (countMap[key] || 0) + 1; });
+      items.forEach(i => { const key = format(startOfWeek(new Date(getItemDate(i)), { locale: ptBR }), "yyyy-MM-dd"); countMap[key] = (countMap[key] || 0) + 1; });
       return weeks.map(w => ({ label: `Sem ${format(w, "dd/MM")}`, total: countMap[format(w, "yyyy-MM-dd")] || 0 }));
     } else {
       const months = eachMonthOfInterval({ start: range.from, end: range.to });
       const countMap: Record<string, number> = {};
-      items.forEach(i => { const key = format(startOfMonth(new Date(i.data_envio!)), "yyyy-MM"); countMap[key] = (countMap[key] || 0) + 1; });
+      items.forEach(i => { const key = format(startOfMonth(new Date(getItemDate(i))), "yyyy-MM"); countMap[key] = (countMap[key] || 0) + 1; });
       return months.map(m => ({ label: format(m, "MMM/yy", { locale: ptBR }), total: countMap[format(m, "yyyy-MM")] || 0 }));
     }
   })();
