@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Save, X, Eye, EyeOff, Camera } from "lucide-react";
+import { Loader2, Save, X, Eye, EyeOff, Camera, Trash2 } from "lucide-react";
 
 function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
   const name = displayName || fullName || email?.split("@")[0] || "?";
@@ -94,9 +94,30 @@ export default function UserSettingsPage() {
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       await supabase.from("profiles").update({ avatar_url: publicUrl } as any).eq("user_id", user.id);
       setAvatarUrl(publicUrl);
+      window.dispatchEvent(new Event("profile-updated"));
       toast({ title: "Foto atualizada!" });
     } catch (err: any) {
       toast({ title: "Erro ao enviar foto", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    if (!user || !avatarUrl) return;
+    setUploading(true);
+    try {
+      // List and remove files in user folder
+      const { data: files } = await supabase.storage.from("avatars").list(user.id);
+      if (files && files.length > 0) {
+        await supabase.storage.from("avatars").remove(files.map((f) => `${user.id}/${f.name}`));
+      }
+      await supabase.from("profiles").update({ avatar_url: null } as any).eq("user_id", user.id);
+      setAvatarUrl(null);
+      window.dispatchEvent(new Event("profile-updated"));
+      toast({ title: "Foto removida!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover foto", description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -122,6 +143,7 @@ export default function UserSettingsPage() {
       setOrigDisplayName(displayName);
       setOrigFullName(fullName);
       setOrigPhone(phone);
+      window.dispatchEvent(new Event("profile-updated"));
       toast({ title: "Perfil salvo com sucesso!" });
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
@@ -224,9 +246,21 @@ export default function UserSettingsPage() {
               onChange={handleUploadAvatar}
             />
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground space-y-2">
             <p>Clique na foto para alterar</p>
             <p className="text-xs">JPG, PNG ou WebP. Máx 5MB.</p>
+            {avatarUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                onClick={handleDeleteAvatar}
+                disabled={uploading}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remover foto
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

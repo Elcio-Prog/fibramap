@@ -35,7 +35,7 @@ export default function ProfileDropdown() {
     avatar_url: null,
   });
 
-  useEffect(() => {
+  const fetchProfile = () => {
     if (!user) return;
     supabase
       .from("profiles")
@@ -51,6 +51,13 @@ export default function ProfileDropdown() {
           });
         }
       });
+  };
+
+  useEffect(() => {
+    fetchProfile();
+    const handler = () => fetchProfile();
+    window.addEventListener("profile-updated", handler);
+    return () => window.removeEventListener("profile-updated", handler);
   }, [user]);
 
   const isInWsArea = location.pathname.startsWith("/ws");

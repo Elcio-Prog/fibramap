@@ -74,12 +74,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     display_name: null, full_name: null, avatar_url: null,
   });
 
-  useEffect(() => {
+  const fetchProfile = () => {
     if (!user) return;
     supabase.from("profiles").select("display_name, full_name, avatar_url").eq("user_id", user.id).single()
       .then(({ data }) => {
         if (data) setProfile({ display_name: data.display_name, full_name: (data as any).full_name, avatar_url: (data as any).avatar_url });
       });
+  };
+
+  useEffect(() => {
+    fetchProfile();
+    const handler = () => fetchProfile();
+    window.addEventListener("profile-updated", handler);
+    return () => window.removeEventListener("profile-updated", handler);
   }, [user]);
 
   const profileDisplayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
