@@ -49,7 +49,7 @@ const adminSection: SidebarSection = {
     { to: "/ntt-update", label: "Atualizar Rede NTT", icon: Network },
     { to: "/ws-upload", label: "Upload WS", icon: Upload },
     { to: "/ws-single", label: "Busca Unitária WS", icon: Search },
-    { to: "/ws-users", label: "Usuários WS", icon: Users },
+    { to: "/ws-users", label: "Gestão de Usuários", icon: Users },
     { to: "/send-history", label: "Histórico Envios", icon: History },
     { to: "/settings", label: "Configurações", icon: Settings },
   ],
