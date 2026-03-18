@@ -103,6 +103,26 @@ export default function UserSettingsPage() {
     }
   };
 
+  const handleDeleteAvatar = async () => {
+    if (!user || !avatarUrl) return;
+    setUploading(true);
+    try {
+      // List and remove files in user folder
+      const { data: files } = await supabase.storage.from("avatars").list(user.id);
+      if (files && files.length > 0) {
+        await supabase.storage.from("avatars").remove(files.map((f) => `${user.id}/${f.name}`));
+      }
+      await supabase.from("profiles").update({ avatar_url: null } as any).eq("user_id", user.id);
+      setAvatarUrl(null);
+      window.dispatchEvent(new Event("profile-updated"));
+      toast({ title: "Foto removida!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao remover foto", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
       setFullNameError("Nome Completo é obrigatório");
