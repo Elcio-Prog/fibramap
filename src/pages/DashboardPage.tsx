@@ -428,7 +428,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(215, 20%, 55%)" }} interval={0} angle={-25} textAnchor="end" height={50} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="url(#gradGreen)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
