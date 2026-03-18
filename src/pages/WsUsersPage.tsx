@@ -143,7 +143,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
   const [newName, setNewName] = useState("");
   const [resetOpen, setResetOpen] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
-  const [search, setSearch] = useState("");
+  
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
