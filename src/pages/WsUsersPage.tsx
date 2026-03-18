@@ -341,12 +341,15 @@ export default function WsUsersPage() {
   const pendingCount = pendingList?.length ?? 0;
   const total = wsCount + adminCount;
 
+  const [globalSearch, setGlobalSearch] = useState("");
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">
         Gestão de Usuários
         <span className="text-sm font-normal text-muted-foreground ml-2">· {total} usuários</span>
       </h1>
+      <UserSearchInput value={globalSearch} onChange={setGlobalSearch} />
       <Tabs defaultValue="ws">
         <TabsList>
           <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS ({wsCount})</TabsTrigger>
