@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-
-const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
 import { useComparativoData } from "@/hooks/useDashboardData";
 import { format, parse, getDaysInMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
+const CURSOR_STYLE = { fill: "hsl(215, 40%, 20%)", opacity: 0.3 };
 
 export default function DrilldownComparativo() {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ export default function DrilldownComparativo() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: "hsl(215, 20%, 55%)" }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                  <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Bar dataKey="total" fill="url(#gradCyan)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>

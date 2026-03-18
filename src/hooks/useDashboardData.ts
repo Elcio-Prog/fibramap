@@ -9,6 +9,11 @@ export interface DateRange {
   to: Date;
 }
 
+/** Helper to get the effective date of an item (data_envio or created_at fallback) */
+export function getItemDate(item: { data_envio?: string | null; created_at?: string | null }): string {
+  return item.data_envio || item.created_at || new Date().toISOString();
+}
+
 export function getDateRange(period: PeriodFilter, custom?: DateRange): DateRange {
   const now = new Date();
   switch (period) {
@@ -159,7 +164,7 @@ export function useComparativoData() {
         months[format(startOfMonth(m), "yyyy-MM")] = 0;
       }
       items.forEach((item: any) => {
-        const key = format(new Date(item.data_envio || item.created_at), "yyyy-MM");
+        const key = format(new Date(getItemDate(item)), "yyyy-MM");
         if (key in months) months[key]++;
       });
       return Object.entries(months).map(([month, total]) => ({ month, total }));

@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useDrilldownLogs, PeriodFilter } from "@/hooks/useDashboardData";
 
 const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
-import { useDrilldownLogs, PeriodFilter } from "@/hooks/useDashboardData";
+const CURSOR_STYLE = { fill: "hsl(215, 40%, 20%)", opacity: 0.3 };
 
 export default function DrilldownSolicitantes() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export default function DrilldownSolicitantes() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                  <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Bar dataKey="total" fill="url(#gradPurple)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ChartContainer>
@@ -88,6 +89,9 @@ export default function DrilldownSolicitantes() {
                       <TableCell className="text-right text-[hsl(var(--dash-text-muted))]">{((count / grandTotal) * 100).toFixed(1)}%</TableCell>
                     </TableRow>
                   ))}
+                  {sorted.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-[hsl(var(--dash-text-muted))]">Nenhum dado encontrado.</TableCell></TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
