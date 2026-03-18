@@ -155,7 +155,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
+  const filtered = useMemo(() => filterUsers(users, globalSearch), [users, globalSearch]);
 
   const createUser = useMutation({
     mutationFn: async () => {
