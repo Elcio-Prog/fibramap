@@ -35,15 +35,15 @@ function getPreviousRange(range: DateRange): DateRange {
   };
 }
 
-// Fetch all sent feasibility items for a date range (admin-only view)
+// Fetch all processed feasibility items for a date range (admin-only view)
 async function fetchSentItems(from: Date, to: Date) {
   const { data, error } = await supabase
     .from("ws_feasibility_items")
-    .select("id, batch_id, data_envio, result_provider, cidade_a, uf_a, lat_a, lng_a, endereco_a, is_viable, id_lote")
-    .eq("enviado_para_sharepoint", true)
-    .gte("data_envio", from.toISOString())
-    .lte("data_envio", to.toISOString())
-    .order("data_envio", { ascending: true })
+    .select("id, batch_id, data_envio, created_at, result_provider, cidade_a, uf_a, lat_a, lng_a, endereco_a, is_viable, id_lote, processing_status")
+    .in("processing_status", ["viable", "not_viable"])
+    .gte("created_at", from.toISOString())
+    .lte("created_at", to.toISOString())
+    .order("created_at", { ascending: true })
     .limit(5000);
   if (error) throw error;
   return data || [];
