@@ -332,7 +332,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Line type="monotone" dataKey="lote" stroke="hsl(265, 85%, 60%)" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="unitario" stroke="hsl(320, 85%, 55%)" strokeWidth={2} dot={false} />
                   </LineChart>
