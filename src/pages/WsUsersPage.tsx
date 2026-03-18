@@ -59,7 +59,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
     },
   });
 
-  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
+  const filtered = useMemo(() => filterUsers(users, globalSearch), [users, globalSearch]);
 
   const assignRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: string }) => {
