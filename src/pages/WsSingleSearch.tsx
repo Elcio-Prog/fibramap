@@ -504,10 +504,6 @@ export default function WsSingleSearch() {
               <Input placeholder="CNS000..." value={designacao} onChange={e => setDesignacao(e.target.value)} />
             </div>
             <div>
-              <Label>Tipo Link</Label>
-              <Input placeholder="FO, Rádio..." value={tipoLink} onChange={e => setTipoLink(e.target.value)} />
-            </div>
-            <div>
               <Label>Velocidade (Mbps)</Label>
               <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
             </div>
