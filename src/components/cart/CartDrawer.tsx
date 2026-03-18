@@ -380,11 +380,23 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Observações */}
                         <td className="px-1 py-0.5">
-                          <CartEditableCell
-                            value={item.observacoes_user}
-                            onSave={(v) => updateItem(item.id, { observacoes_user: v })}
-                            width="w-[120px]"
-                          />
+                          <div className="flex items-center gap-1">
+                            <CartEditableCell
+                              value={item.observacoes_user}
+                              onSave={(v) => updateItem(item.id, { observacoes_user: v })}
+                              width="w-[120px]"
+                            />
+                            {item.observacoes_system && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 shrink-0"
+                                onClick={() => setObsDetailItem(item)}
+                              >
+                                <Search className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            )}
+                          </div>
                         </td>
                         <td className="px-2 py-1 max-w-[100px] truncate">{item.batchTitle}</td>
                         <td className="px-2 py-1 text-center">
