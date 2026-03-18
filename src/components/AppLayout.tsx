@@ -55,10 +55,10 @@ const adminSection: SidebarSection = {
   ],
 };
 
-function getInitials(email?: string) {
-  if (!email) return "?";
-  const parts = email.split("@")[0].split(/[._-]/);
-  return parts
+function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
+  const name = displayName || fullName || email?.split("@")[0] || "?";
+  return name
+    .split(/[\s._-]+/)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
