@@ -171,6 +171,9 @@ const App = () => (
             <Routes>
               <Route path="/landing" element={<LandingRoute />} />
               <Route path="/auth" element={<AuthRoute />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/ws/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/ws/login" element={<WsAuthRoute />} />
               <Route path="/ws/*" element={<WsRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />
