@@ -56,7 +56,7 @@ export default function DrilldownProvedores() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval={0} angle={-30} textAnchor="end" height={60} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Bar dataKey="total" fill="url(#gradCyan)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>

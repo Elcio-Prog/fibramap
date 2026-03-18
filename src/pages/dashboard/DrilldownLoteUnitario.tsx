@@ -83,7 +83,7 @@ export default function DrilldownLoteUnitario() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} unit="%" />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Line type="monotone" dataKey="lotePct" stroke="hsl(265, 85%, 60%)" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ChartContainer>
