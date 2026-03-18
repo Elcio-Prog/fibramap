@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)]";
 import { useDrilldownLogs, PeriodFilter } from "@/hooks/useDashboardData";
 
 export default function DrilldownSolicitantes() {
@@ -54,7 +56,7 @@ export default function DrilldownSolicitantes() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Bar dataKey="total" fill="url(#gradPurple)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ChartContainer>

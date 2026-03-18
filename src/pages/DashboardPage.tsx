@@ -18,6 +18,9 @@ import "leaflet/dist/leaflet.css";
 
 const loadHeat = () => import("leaflet.heat");
 
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)]";
+const CURSOR_STYLE = { fill: "hsl(215, 40%, 20%)", opacity: 0.3 };
+
 const PERIODS: { value: PeriodFilter; label: string }[] = [
   { value: "today", label: "Hoje" },
   { value: "7d", label: "7 dias" },
@@ -57,7 +60,7 @@ function GradientKpiCard({ title, value, subtitle, variation, icon: Icon, gradie
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+      className="cursor-pointer rounded-xl p-5 transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
       style={{ background: gradient }}
     >
       <div className="flex items-start justify-between">
@@ -315,7 +318,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Area type="monotone" dataKey="total" stroke="hsl(210, 100%, 55%)" strokeWidth={2} fill="url(#gradBlue)" />
                 </AreaChart>
               </ChartContainer>
@@ -329,7 +332,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Line type="monotone" dataKey="lote" stroke="hsl(265, 85%, 60%)" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="unitario" stroke="hsl(320, 85%, 55%)" strokeWidth={2} dot={false} />
                   </LineChart>
@@ -348,7 +351,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="url(#gradCyan)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
@@ -405,7 +408,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                     <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="url(#gradPurple)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ChartContainer>
@@ -426,7 +429,7 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(215, 20%, 55%)" }} interval={0} angle={-25} textAnchor="end" height={50} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="url(#gradGreen)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
+
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)]";
 import { useDrilldownItems, PeriodFilter, getDateRange } from "@/hooks/useDashboardData";
 import { format, startOfDay, startOfWeek, startOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -95,7 +97,7 @@ export default function DrilldownVolume() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Area type="monotone" dataKey="total" stroke="hsl(210, 100%, 55%)" strokeWidth={2} fill="url(#gradBlue)" />
                   </AreaChart>
                 ) : (
@@ -103,7 +105,7 @@ export default function DrilldownVolume() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="hsl(210, 100%, 55%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 )}
