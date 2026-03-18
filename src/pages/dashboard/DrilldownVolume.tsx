@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
+import { useDrilldownItems, PeriodFilter, getDateRange, getItemDate } from "@/hooks/useDashboardData";
+import { format, startOfWeek, startOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
-import { useDrilldownItems, PeriodFilter, getDateRange } from "@/hooks/useDashboardData";
-import { format, startOfDay, startOfWeek, startOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval } from "date-fns";
-import { ptBR } from "date-fns/locale";
+const CURSOR_STYLE = { fill: "hsl(215, 40%, 20%)", opacity: 0.3 };
 
 export default function DrilldownVolume() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function DrilldownVolume() {
   const todayStr = format(today, "yyyy-MM-dd");
   const weekStart = format(startOfWeek(today, { locale: ptBR }), "yyyy-MM-dd");
   const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
-  const getItemDate = (i: any) => i.data_envio || i.created_at;
+
   const todayCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") === todayStr).length ?? 0;
   const weekCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= weekStart).length ?? 0;
   const monthCount = items?.filter(i => format(new Date(getItemDate(i)), "yyyy-MM-dd") >= monthStart).length ?? 0;
@@ -52,6 +53,7 @@ export default function DrilldownVolume() {
     }
   })();
 
+  const totalInPeriod = items?.length ?? 0;
   const chartConfig = { total: { label: "Viabilidades", color: "hsl(210, 100%, 55%)" } };
 
   return (
@@ -66,8 +68,13 @@ export default function DrilldownVolume() {
           <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--dash-text-muted))]" /></div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[{ label: "Hoje", val: todayCount }, { label: "Esta semana", val: weekCount }, { label: "Este mês", val: monthCount }].map(c => (
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              {[
+                { label: "No período", val: totalInPeriod },
+                { label: "Hoje", val: todayCount },
+                { label: "Esta semana", val: weekCount },
+                { label: "Este mês", val: monthCount },
+              ].map(c => (
                 <div key={c.label} className="rounded-xl border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-card))] p-4 text-center">
                   <p className="text-sm text-[hsl(var(--dash-text-muted))]">{c.label}</p>
                   <p className="text-2xl font-bold text-[hsl(var(--dash-text))]">{c.val}</p>
@@ -98,7 +105,7 @@ export default function DrilldownVolume() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval="preserveStartEnd" />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Area type="monotone" dataKey="total" stroke="hsl(210, 100%, 55%)" strokeWidth={2} fill="url(#gradBlue)" />
                   </AreaChart>
                 ) : (
@@ -106,7 +113,7 @@ export default function DrilldownVolume() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                    <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                    <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                     <Bar dataKey="total" fill="hsl(210, 100%, 55%)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 )}

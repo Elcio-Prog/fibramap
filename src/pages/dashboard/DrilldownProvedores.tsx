@@ -4,14 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-
-const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
 import { useDrilldownItems, PeriodFilter } from "@/hooks/useDashboardData";
 
-const VIBRANT_COLORS = [
-  "hsl(210, 100%, 55%)", "hsl(185, 90%, 50%)", "hsl(265, 85%, 60%)",
-  "hsl(320, 85%, 55%)", "hsl(160, 70%, 45%)", "hsl(25, 95%, 55%)",
-];
+const DARK_TOOLTIP_CLS = "!bg-[hsl(215,45%,13%)] !border-[hsl(215,40%,20%)] !text-[hsl(210,20%,92%)] [&_.text-muted-foreground]:!text-[hsl(215,20%,55%)] [&_.text-foreground]:!text-[hsl(210,20%,92%)] [&_.font-medium]:!text-[hsl(210,20%,92%)]";
+const CURSOR_STYLE = { fill: "hsl(215, 40%, 20%)", opacity: 0.3 };
 
 export default function DrilldownProvedores() {
   const navigate = useNavigate();
@@ -56,7 +52,7 @@ export default function DrilldownProvedores() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} interval={0} angle={-30} textAnchor="end" height={60} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
-                  <ChartTooltip content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
+                  <ChartTooltip cursor={CURSOR_STYLE} content={<ChartTooltipContent className={DARK_TOOLTIP_CLS} />} />
                   <Bar dataKey="total" fill="url(#gradCyan)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>
