@@ -28,7 +28,7 @@ import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
   CheckCircle2, XCircle, Building2, ShoppingCart,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast as useToastSonner } from "@/hooks/use-toast";
 
 // Fix leaflet icons
