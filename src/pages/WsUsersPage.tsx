@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, UserCheck, Clock, ArrowLeftRight } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, ArrowLeftRight, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { format } from "date-fns";
+import { UserSearchInput } from "@/components/ws-users/UserSearchInput";
+import { UserDetailModal } from "@/components/ws-users/UserDetailModal";
 
 interface ManagedUser {
   id: string;
@@ -29,10 +29,27 @@ function invokeManageUsers(action: string, params: Record<string, any> = {}) {
   });
 }
 
-/* ── Pending Users (no role assigned) ── */
+function filterUsers(users: ManagedUser[] | undefined, search: string) {
+  if (!users || !search.trim()) return users;
+  const q = search.toLowerCase();
+  return users.filter(
+    (u) =>
+      u.display_name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q)
+  );
+}
+
+function formatDate(d?: string) {
+  if (!d) return "—";
+  try { return format(new Date(d), "dd/MM/yyyy"); } catch { return "—"; }
+}
+
+/* ── Pending Users ── */
 function PendingUserList() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["managed-users", "pending"],
@@ -42,6 +59,8 @@ function PendingUserList() {
       return (data as any).users as ManagedUser[];
     },
   });
+
+  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
 
   const assignRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: string }) => {
@@ -66,44 +85,43 @@ function PendingUserList() {
       <p className="text-sm text-muted-foreground">
         Usuários que se cadastraram mas ainda não possuem um papel definido.
       </p>
+      <UserSearchInput value={search} onChange={setSearch} />
 
       {isLoading ? (
         <div className="flex justify-center py-6">
           <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : !users?.length ? (
+      ) : !filtered?.length ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            Nenhum usuário pendente.
+            {search ? "Nenhum resultado encontrado." : "Nenhum usuário pendente."}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
-          {users.map((u) => (
+          {filtered.map((u) => (
             <Card key={u.id}>
               <CardContent className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium text-sm">{u.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => setDetailUser(u)} className="text-left min-w-0 hover:opacity-80 transition-opacity">
+                    <p className="font-medium text-sm truncate">{u.display_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  </button>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">{formatDate(u.created_at)}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Badge variant="outline" className="text-xs">Sem papel</Badge>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-1 text-xs h-7"
+                  <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                  <Button variant="default" size="sm" className="gap-1 text-xs h-7"
                     onClick={() => assignRole.mutate({ user_id: u.id, role: "ws_user" })}
-                    disabled={assignRole.isPending}
-                  >
+                    disabled={assignRole.isPending}>
                     <Wifi className="h-3 w-3" /> WS
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-1 text-xs h-7"
+                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
                     onClick={() => assignRole.mutate({ user_id: u.id, role: "admin" })}
-                    disabled={assignRole.isPending}
-                  >
+                    disabled={assignRole.isPending}>
                     <Users className="h-3 w-3" /> Admin
                   </Button>
                 </div>
@@ -112,6 +130,7 @@ function PendingUserList() {
           ))}
         </div>
       )}
+      <UserDetailModal user={detailUser} role="pending" open={!!detailUser} onOpenChange={(o) => !o && setDetailUser(null)} />
     </div>
   );
 }
@@ -126,6 +145,8 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
   const [newName, setNewName] = useState("");
   const [resetOpen, setResetOpen] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
+  const [search, setSearch] = useState("");
+  const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["managed-users", role],
@@ -135,6 +156,8 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
       return (data as any).users as ManagedUser[];
     },
   });
+
+  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
 
   const createUser = useMutation({
     mutationFn: async () => {
@@ -225,37 +248,43 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
         </Dialog>
       </div>
 
+      <UserSearchInput value={search} onChange={setSearch} />
+
       {isLoading ? (
         <div className="flex justify-center py-6"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-      ) : !users?.length ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Nenhum usuário {label} cadastrado.</CardContent></Card>
+      ) : !filtered?.length ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">
+          {search ? "Nenhum resultado encontrado." : `Nenhum usuário ${label} cadastrado.`}
+        </CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {users.map((u) => (
+          {filtered.map((u) => (
             <Card key={u.id}>
               <CardContent className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium text-sm">{u.display_name}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => setDetailUser(u)} className="text-left min-w-0 hover:opacity-80 transition-opacity">
+                    <p className="font-medium text-sm truncate">{u.display_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                  </button>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">{formatDate(u.created_at)}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs">
                     {u.is_active ? "Ativo" : "Inativo"}
                   </Badge>
-                   <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
-                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
-                     {u.is_active ? "Desativar" : "Ativar"}
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     className="gap-1 text-xs h-7"
-                     onClick={() => changeRole.mutate({ user_id: u.id })}
-                     disabled={changeRole.isPending}
-                   >
-                     <ArrowLeftRight className="h-3 w-3" />
-                     {role === "ws_user" ? "→ Admin" : "→ WS"}
-                   </Button>
+                  <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
+                    {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
+                    {u.is_active ? "Desativar" : "Ativar"}
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1 text-xs h-7"
+                    onClick={() => changeRole.mutate({ user_id: u.id })}
+                    disabled={changeRole.isPending}>
+                    <ArrowLeftRight className="h-3 w-3" />
+                    {role === "ws_user" ? "→ Admin" : "→ WS"}
+                  </Button>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Senha</Button>
@@ -276,6 +305,7 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
           ))}
         </div>
       )}
+      <UserDetailModal user={detailUser} role={role} open={!!detailUser} onOpenChange={(o) => !o && setDetailUser(null)} />
     </div>
   );
 }
