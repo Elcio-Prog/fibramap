@@ -246,9 +246,21 @@ export default function UserSettingsPage() {
               onChange={handleUploadAvatar}
             />
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground space-y-2">
             <p>Clique na foto para alterar</p>
             <p className="text-xs">JPG, PNG ou WebP. Máx 5MB.</p>
+            {avatarUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive hover:text-destructive"
+                onClick={handleDeleteAvatar}
+                disabled={uploading}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remover foto
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
