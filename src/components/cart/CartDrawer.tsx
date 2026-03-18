@@ -534,26 +534,18 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
             </DialogDescription>
           </DialogHeader>
           {obsDetailItem && (
-            <div className="space-y-4 text-sm">
-              <div>
-                <Label className="text-xs font-semibold text-muted-foreground">Observações do Usuário</Label>
-                <Textarea
-                  className="mt-1 text-xs min-h-[60px]"
-                  value={obsDetailItem.observacoes_user || ""}
-                  onChange={(e) => {
-                    const newVal = e.target.value;
-                    updateItem(obsDetailItem.id, { observacoes_user: newVal });
-                    setObsDetailItem({ ...obsDetailItem, observacoes_user: newVal });
-                  }}
-                  placeholder="Adicionar observação..."
-                />
-              </div>
-              {obsDetailItem.observacoes_system && (
-                <div>
-                  <Label className="text-xs font-semibold text-muted-foreground">Observações do Sistema</Label>
-                  <pre className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2 text-xs font-mono">{obsDetailItem.observacoes_system}</pre>
-                </div>
-              )}
+            <div className="text-sm">
+              <Label className="text-xs font-semibold text-muted-foreground">Observações</Label>
+              <Textarea
+                className="mt-1 text-xs min-h-[200px]"
+                value={obsDetailItem.observacoes_user || ""}
+                onChange={(e) => {
+                  const newVal = e.target.value;
+                  updateItem(obsDetailItem.id, { observacoes_user: newVal });
+                  setObsDetailItem({ ...obsDetailItem, observacoes_user: newVal });
+                }}
+                placeholder="Adicionar observação..."
+              />
             </div>
           )}
         </DialogContent>
