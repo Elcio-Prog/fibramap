@@ -45,10 +45,9 @@ function formatDate(d?: string) {
 }
 
 /* ── Pending Users ── */
-function PendingUserList() {
+function PendingUserList({ globalSearch }: { globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
@@ -60,7 +59,7 @@ function PendingUserList() {
     },
   });
 
-  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
+  const filtered = useMemo(() => filterUsers(users, globalSearch), [users, globalSearch]);
 
   const assignRole = useMutation({
     mutationFn: async ({ user_id, role }: { user_id: string; role: string }) => {
@@ -85,7 +84,6 @@ function PendingUserList() {
       <p className="text-sm text-muted-foreground">
         Usuários que se cadastraram mas ainda não possuem um papel definido.
       </p>
-      <UserSearchInput value={search} onChange={setSearch} />
 
       {isLoading ? (
         <div className="flex justify-center py-6">
@@ -94,7 +92,7 @@ function PendingUserList() {
       ) : !filtered?.length ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            {search ? "Nenhum resultado encontrado." : "Nenhum usuário pendente."}
+            {globalSearch ? "Nenhum resultado encontrado." : "Nenhum usuário pendente."}
           </CardContent>
         </Card>
       ) : (
@@ -136,7 +134,7 @@ function PendingUserList() {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; label: string; icon: any }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -145,7 +143,7 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
   const [newName, setNewName] = useState("");
   const [resetOpen, setResetOpen] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
-  const [search, setSearch] = useState("");
+  
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
@@ -157,7 +155,7 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
     },
   });
 
-  const filtered = useMemo(() => filterUsers(users, search), [users, search]);
+  const filtered = useMemo(() => filterUsers(users, globalSearch), [users, globalSearch]);
 
   const createUser = useMutation({
     mutationFn: async () => {
@@ -248,13 +246,13 @@ function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; labe
         </Dialog>
       </div>
 
-      <UserSearchInput value={search} onChange={setSearch} />
+      
 
       {isLoading ? (
         <div className="flex justify-center py-6"><RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : !filtered?.length ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">
-          {search ? "Nenhum resultado encontrado." : `Nenhum usuário ${label} cadastrado.`}
+          {globalSearch ? "Nenhum resultado encontrado." : `Nenhum usuário ${label} cadastrado.`}
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
@@ -341,12 +339,15 @@ export default function WsUsersPage() {
   const pendingCount = pendingList?.length ?? 0;
   const total = wsCount + adminCount;
 
+  const [globalSearch, setGlobalSearch] = useState("");
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">
         Gestão de Usuários
         <span className="text-sm font-normal text-muted-foreground ml-2">· {total} usuários</span>
       </h1>
+      <UserSearchInput value={globalSearch} onChange={setGlobalSearch} />
       <Tabs defaultValue="ws">
         <TabsList>
           <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS ({wsCount})</TabsTrigger>
@@ -354,13 +355,13 @@ export default function WsUsersPage() {
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
         <TabsContent value="ws" className="mt-4">
-          <UserList role="ws_user" label="WS" icon={Wifi} />
+          <UserList role="ws_user" label="WS" icon={Wifi} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
-          <UserList role="admin" label="Admin" icon={Users} />
+          <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="pending" className="mt-4">
-          <PendingUserList />
+          <PendingUserList globalSearch={globalSearch} />
         </TabsContent>
       </Tabs>
     </div>
