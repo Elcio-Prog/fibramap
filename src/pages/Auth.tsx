@@ -123,14 +123,27 @@ export default function Auth() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <Input
-              type="password"
-              placeholder="Senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-            />
+            <div>
+              <Input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              {isLogin && (
+                <div className="mt-1.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => navigate(isWsLogin ? "/ws/forgot-password" : "/forgot-password")}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Esqueci a senha
+                  </button>
+                </div>
+              )}
+            </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Carregando..." : isLogin ? "Entrar" : "Cadastrar"}
             </Button>

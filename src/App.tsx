@@ -26,6 +26,8 @@ import NttNetworkUpdatePage from "@/pages/NttNetworkUpdatePage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
 import SendHistoryPage from "@/pages/SendHistoryPage";
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -169,6 +171,9 @@ const App = () => (
             <Routes>
               <Route path="/landing" element={<LandingRoute />} />
               <Route path="/auth" element={<AuthRoute />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/ws/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/ws/login" element={<WsAuthRoute />} />
               <Route path="/ws/*" element={<WsRoutes />} />
               <Route path="/*" element={<ProtectedRoutes />} />
