@@ -161,9 +161,11 @@ export default function DashboardPage() {
     const days = eachDayOfInterval({ start: range.from, end: range.to });
     const countMap: Record<string, number> = {};
     items.forEach(i => {
-      if (i.data_envio) {
-        const key = format(new Date(i.data_envio), "yyyy-MM-dd");
+      const dateStr = i.data_envio || i.created_at;
+      if (dateStr) {
+        const key = format(new Date(dateStr), "yyyy-MM-dd");
         countMap[key] = (countMap[key] || 0) + 1;
+      }
       }
     });
     return days.slice(-60).map(d => ({
