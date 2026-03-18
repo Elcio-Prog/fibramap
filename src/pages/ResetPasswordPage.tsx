@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, AlertTriangle, ArrowLeft, Mail } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -19,14 +19,18 @@ export default function ResetPasswordPage() {
   const [errors, setErrors] = useState<{ new?: string; confirm?: string }>({});
   const [isRecovery, setIsRecovery] = useState(false);
 
+  // Resend flow state
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendError, setResendError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
   useEffect(() => {
-    // Listen for the SIGNED_IN event with type=recovery from the URL hash
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecovery(true);
       }
     });
-    // Also check hash immediately
     if (window.location.hash.includes("type=recovery")) {
       setIsRecovery(true);
     }
@@ -55,15 +59,74 @@ export default function ResetPasswordPage() {
     }
   };
 
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resendEmail.trim()) { setResendError("Informe seu e-mail"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resendEmail)) { setResendError("E-mail inválido"); return; }
+    setResendError("");
+    setResendLoading(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(resendEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    } catch {
+      // silent
+    } finally {
+      setResendLoading(false);
+      setResendSent(true);
+    }
+  };
+
   if (!isRecovery) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Link inválido ou expirado. Solicite um novo link de recuperação.
-            <Button variant="outline" className="mt-4 w-full" onClick={() => navigate("/auth")}>
-              Voltar ao login
-            </Button>
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <CardTitle className="text-2xl">Link Expirado</CardTitle>
+            <CardDescription>
+              Este link de redefinição expirou ou já foi utilizado.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {resendSent ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Se este e-mail estiver cadastrado, você receberá um link em instantes.
+                </p>
+                <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar ao login
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleResend} className="space-y-4">
+                <div>
+                  <Input
+                    type="email"
+                    placeholder="Informe seu e-mail para reenviar"
+                    value={resendEmail}
+                    onChange={(e) => { setResendEmail(e.target.value); setResendError(""); }}
+                    className={resendError ? "border-destructive" : ""}
+                  />
+                  {resendError && <p className="mt-1 text-xs text-destructive">{resendError}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={resendLoading}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  {resendLoading ? "Enviando..." : "Reenviar link"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/auth")}
+                  className="flex items-center justify-center gap-1.5 w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar ao login
+                </button>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
