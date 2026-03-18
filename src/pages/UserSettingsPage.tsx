@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Save, X, Eye, EyeOff, Camera } from "lucide-react";
+import { Loader2, Save, X, Eye, EyeOff, Camera, Trash2 } from "lucide-react";
 
 function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
   const name = displayName || fullName || email?.split("@")[0] || "?";
