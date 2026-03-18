@@ -11,6 +11,11 @@ import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi,
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { UserSearchInput } from "@/components/ws-users/UserSearchInput";
 import { UserDetailModal } from "@/components/ws-users/UserDetailModal";
@@ -144,6 +149,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
   const [resetPassword, setResetPassword] = useState("");
   
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
+  const [deactivateUser, setDeactivateUser] = useState<ManagedUser | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["managed-users", role],
@@ -272,7 +278,13 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
                     <Eye className="h-3 w-3" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => toggleUser.mutate({ user_id: u.id, is_active: !u.is_active })} className="gap-1 text-xs h-7">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    if (u.is_active) {
+                      setDeactivateUser(u);
+                    } else {
+                      toggleUser.mutate({ user_id: u.id, is_active: true });
+                    }
+                  }} className="gap-1 text-xs h-7">
                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
                     {u.is_active ? "Desativar" : "Ativar"}
                   </Button>
@@ -303,6 +315,33 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
         </div>
       )}
       <UserDetailModal user={detailUser} role={role} open={!!detailUser} onOpenChange={(o) => !o && setDetailUser(null)} />
+      <AlertDialog open={!!deactivateUser} onOpenChange={(o) => !o && setDeactivateUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <AlertDialogTitle>Desativar usuário?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              Tem certeza que deseja desativar <span className="font-medium">{deactivateUser?.display_name}</span>? Ele perderá o acesso ao sistema imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deactivateUser) {
+                  toggleUser.mutate({ user_id: deactivateUser.id, is_active: false });
+                  setDeactivateUser(null);
+                }
+              }}
+            >
+              Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
