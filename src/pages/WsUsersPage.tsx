@@ -263,7 +263,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                     <p className="font-medium text-sm truncate">{u.display_name}</p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </button>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">{formatDate(u.created_at)}</span>
+                  
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge variant={u.is_active ? "default" : "secondary"} className="text-xs">
