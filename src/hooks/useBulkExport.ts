@@ -174,8 +174,13 @@ export function useBulkExport() {
       } as any);
 
       if (allSuccess) {
-        // Persist cart edits + send metadata back to db
-        for (const item of items) {
+        // Separate items: DB items (valid UUID) vs ephemeral items (single search)
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const dbItems = items.filter(i => UUID_RE.test(i.id));
+        const ephemeralItems = items.filter(i => !UUID_RE.test(i.id));
+
+        // Update existing DB items
+        for (const item of dbItems) {
           await supabase
             .from("ws_feasibility_items")
             .update({
@@ -197,6 +202,68 @@ export function useBulkExport() {
             } as any)
             .eq("id", item.id);
         }
+
+        // For ephemeral items (single search), create a batch and insert them
+        if (ephemeralItems.length > 0) {
+          const { data: newBatch } = await supabase
+            .from("ws_batches")
+            .insert({
+              user_id: user!.id,
+              file_name: "Busca Unitária",
+              title: "Busca Unitária",
+              total_items: ephemeralItems.length,
+              processed_items: ephemeralItems.length,
+              failed_items: 0,
+              status: "completed",
+              processed_at: now,
+            } as any)
+            .select("id")
+            .single();
+
+          if (newBatch) {
+            for (let idx = 0; idx < ephemeralItems.length; idx++) {
+              const item = ephemeralItems[idx];
+              await supabase
+                .from("ws_feasibility_items")
+                .insert({
+                  batch_id: newBatch.id,
+                  row_number: idx + 1,
+                  designacao: item.designacao || null,
+                  cliente: item.cliente || null,
+                  endereco_a: item.endereco || null,
+                  cidade_a: item.cidade || null,
+                  uf_a: item.uf || null,
+                  lat_a: item.lat,
+                  lng_a: item.lng,
+                  is_viable: item.is_viable ?? null,
+                  is_l2l: false,
+                  velocidade_mbps: item.velocidade_mbps,
+                  result_stage: item.stage || null,
+                  result_provider: item.provider_name || null,
+                  result_distance_m: item.distance_m ?? null,
+                  result_value: item.final_value ?? null,
+                  result_notes: item.observacoes_system || null,
+                  processing_status: "viable",
+                  enviado_para_sharepoint: true,
+                  data_envio: now,
+                  id_lote: idLote,
+                  produto: item.produto || null,
+                  tecnologia: item.tecnologia || null,
+                  tecnologia_meio_fisico: item.tecnologia_meio_fisico || null,
+                  vigencia: item.vigencia || null,
+                  taxa_instalacao: item.taxa_instalacao,
+                  valor_a_ser_vendido: item.valor_a_ser_vendido,
+                  cnpj_cliente: item.cnpj_cliente || null,
+                  bloco_ip: item.bloco_ip || null,
+                  tipo_solicitacao: item.tipo_solicitacao || null,
+                  codigo_smark: item.codigo_smark || null,
+                  observacoes_user: item.observacoes_user || null,
+                  observacoes_system: item.observacoes_system || null,
+                } as any);
+            }
+          }
+        }
+
         markAsSent(items.map((i) => i.id));
       }
 
