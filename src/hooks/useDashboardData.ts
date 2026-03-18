@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfMonth, endOfMonth, subMonths, subDays, startOfDay, endOfDay, format } from "date-fns";
 
-export type PeriodFilter = "today" | "7d" | "30d" | "custom";
+export type PeriodFilter = "today" | "7d" | "30d" | "custom" | "total";
 
 export interface DateRange {
   from: Date;
@@ -18,6 +18,8 @@ export function getDateRange(period: PeriodFilter, custom?: DateRange): DateRang
       return { from: startOfDay(subDays(now, 6)), to: endOfDay(now) };
     case "30d":
       return { from: startOfDay(subDays(now, 29)), to: endOfDay(now) };
+    case "total":
+      return { from: new Date("2020-01-01"), to: endOfDay(now) };
     case "custom":
       return custom || { from: startOfMonth(now), to: endOfDay(now) };
     default:

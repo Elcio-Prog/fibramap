@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -30,72 +29,76 @@ export default function DrilldownComparativo() {
     return { ...c, variation, avgDaily, isBest: c.month === maxMonth?.month, isWorst: c.month === minMonth?.month };
   });
 
-  const chartConfig = { total: { label: "Total", color: "hsl(var(--primary))" } };
+  const chartConfig = { total: { label: "Total", color: "hsl(185, 90%, 50%)" } };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}><ArrowLeft className="h-4 w-4" /></Button>
-        <h1 className="text-xl font-bold">Comparativo Mensal</h1>
-      </div>
+    <div className="min-h-screen p-6" style={{ background: "hsl(var(--dash-bg))" }}>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="text-[hsl(var(--dash-text))] hover:bg-[hsl(var(--dash-card))]"><ArrowLeft className="h-4 w-4" /></Button>
+          <h1 className="text-xl font-bold text-[hsl(var(--dash-text))]">Comparativo Mensal</h1>
+        </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-      ) : (
-        <>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Últimos 6 meses</CardTitle></CardHeader>
-            <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--dash-text-muted))]" /></div>
+        ) : (
+          <>
+            <div className="rounded-xl border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-card))] p-4">
+              <h3 className="text-sm font-semibold text-[hsl(var(--dash-text))] mb-3">Últimos 6 meses</h3>
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                  <defs>
+                    <linearGradient id="gradCyan" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(185, 90%, 50%)" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="hsl(210, 100%, 55%)" stopOpacity={0.6} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 40%, 20%)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: "hsl(215, 20%, 55%)" }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "hsl(215, 20%, 55%)" }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" fill="url(#gradCyan)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Tabela Comparativa</CardTitle></CardHeader>
-            <CardContent>
+            <div className="rounded-xl border border-[hsl(var(--dash-border))] bg-[hsl(var(--dash-card))] p-4">
+              <h3 className="text-sm font-semibold text-[hsl(var(--dash-text))] mb-3">Tabela Comparativa</h3>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Mês</TableHead>
-                    <TableHead className="text-right">Total Enviado</TableHead>
-                    <TableHead className="text-right">Variação</TableHead>
-                    <TableHead className="text-right">Média Diária</TableHead>
+                  <TableRow className="border-[hsl(var(--dash-border))]">
+                    <TableHead className="text-[hsl(var(--dash-text-muted))]">Mês</TableHead>
+                    <TableHead className="text-[hsl(var(--dash-text-muted))] text-right">Total</TableHead>
+                    <TableHead className="text-[hsl(var(--dash-text-muted))] text-right">Variação</TableHead>
+                    <TableHead className="text-[hsl(var(--dash-text-muted))] text-right">Média Diária</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tableData.map(row => (
-                    <TableRow key={row.month} className={row.isBest ? "bg-accent/10" : row.isWorst ? "bg-destructive/10" : ""}>
-                      <TableCell className="font-medium">
+                    <TableRow key={row.month} className={`border-[hsl(var(--dash-border))] ${row.isBest ? "bg-emerald-500/10" : row.isWorst ? "bg-red-500/10" : ""}`}>
+                      <TableCell className="text-[hsl(var(--dash-text))] font-medium">
                         {row.label}
-                        {row.isBest && <span className="ml-2 text-xs text-accent">⬆ Melhor</span>}
-                        {row.isWorst && <span className="ml-2 text-xs text-destructive">⬇ Pior</span>}
+                        {row.isBest && <span className="ml-2 text-xs text-emerald-400">⬆ Melhor</span>}
+                        {row.isWorst && <span className="ml-2 text-xs text-red-400">⬇ Pior</span>}
                       </TableCell>
-                      <TableCell className="text-right font-medium">{row.total}</TableCell>
+                      <TableCell className="text-right text-[hsl(var(--dash-text))] font-medium">{row.total}</TableCell>
                       <TableCell className="text-right">
                         {row.variation !== null ? (
-                          <span className={`inline-flex items-center gap-0.5 text-xs ${row.variation >= 0 ? "text-accent" : "text-destructive"}`}>
+                          <span className={`inline-flex items-center gap-0.5 text-xs ${row.variation >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {row.variation >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             {row.variation >= 0 ? "+" : ""}{row.variation.toFixed(1)}%
                           </span>
-                        ) : "—"}
+                        ) : <span className="text-[hsl(var(--dash-text-muted))]">—</span>}
                       </TableCell>
-                      <TableCell className="text-right">{row.avgDaily}</TableCell>
+                      <TableCell className="text-right text-[hsl(var(--dash-text))]">{row.avgDaily}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </>
-      )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
