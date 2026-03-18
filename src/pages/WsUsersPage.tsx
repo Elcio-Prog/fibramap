@@ -84,7 +84,6 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       <p className="text-sm text-muted-foreground">
         Usuários que se cadastraram mas ainda não possuem um papel definido.
       </p>
-      <UserSearchInput value={search} onChange={setSearch} />
 
       {isLoading ? (
         <div className="flex justify-center py-6">
