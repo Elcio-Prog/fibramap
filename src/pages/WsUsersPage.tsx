@@ -134,7 +134,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon }: { role: "ws_user" | "admin"; label: string; icon: any }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
