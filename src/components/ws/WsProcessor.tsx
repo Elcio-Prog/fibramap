@@ -105,6 +105,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
+  const [activeStages, setActiveStages] = useState<Set<string> | null>(null); // null = all active
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
@@ -505,11 +506,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
   // Filtered results
   const filteredResults = results?.filter(r => {
-    if (filter === "all") return true;
-    if (filter === "viable") return r.is_viable;
-    if (filter === "check_om") return r.is_check_om;
-    if (filter === "not_viable") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
-    if (filter === "pending") return r.geo_source === "nao_encontrado";
+    // Status filter
+    if (filter === "viable" && !r.is_viable) return false;
+    if (filter === "check_om" && !r.is_check_om) return false;
+    if (filter === "not_viable" && (r.is_viable || r.is_check_om || r.geo_source === "nao_encontrado")) return false;
+    if (filter === "pending" && r.geo_source !== "nao_encontrado") return false;
+    // Stage filter
+    if (activeStages !== null) {
+      const stage = r.stage || "Sem viabilidade";
+      if (!activeStages.has(stage)) return false;
+    }
     return true;
   });
 
@@ -686,13 +692,43 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               )}
             </div>
 
-            {/* Stage groups */}
+            {/* Stage groups — clickable filters */}
             <div className="flex flex-wrap gap-2">
-              {Object.entries(stageGroups).map(([stage, count]) => (
-                <Badge key={stage} variant="outline" className="text-xs">
-                  {stage}: {count}
-                </Badge>
-              ))}
+              {Object.entries(stageGroups).map(([stage, count]) => {
+                const isActive = activeStages === null || activeStages.has(stage);
+                return (
+                  <Badge
+                    key={stage}
+                    variant={isActive ? "default" : "outline"}
+                    className={`text-xs cursor-pointer select-none transition-opacity ${
+                      isActive ? "" : "opacity-40"
+                    }`}
+                    onClick={() => {
+                      setActiveStages(prev => {
+                        const allStages = Object.keys(stageGroups);
+                        if (prev === null) {
+                          // All active → deactivate this one
+                          const next = new Set(allStages);
+                          next.delete(stage);
+                          return next.size === 0 ? null : next;
+                        }
+                        const next = new Set(prev);
+                        if (next.has(stage)) {
+                          next.delete(stage);
+                          // If none left, reset to all
+                          return next.size === 0 ? null : next;
+                        } else {
+                          next.add(stage);
+                          // If all selected, reset to null
+                          return next.size === allStages.length ? null : next;
+                        }
+                      });
+                    }}
+                  >
+                    {stage}: {count}
+                  </Badge>
+                );
+              })}
             </div>
 
             {/* Filter */}
