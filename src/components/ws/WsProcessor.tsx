@@ -720,7 +720,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
             )}
 
             {/* Results table */}
-            <ScrollableTable totalScrollableColumns={21}>
+            {filteredResults && filteredResults.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum item encontrado para o filtro selecionado.</p>
+            )}
+            {filteredResults && filteredResults.length > 0 && <ScrollableTable totalScrollableColumns={21}>
               <table className="text-xs w-max min-w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
