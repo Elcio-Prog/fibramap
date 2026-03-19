@@ -506,11 +506,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
   // Filtered results
   const filteredResults = results?.filter(r => {
-    if (filter === "all") return true;
-    if (filter === "viable") return r.is_viable;
-    if (filter === "check_om") return r.is_check_om;
-    if (filter === "not_viable") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
-    if (filter === "pending") return r.geo_source === "nao_encontrado";
+    // Status filter
+    if (filter === "viable" && !r.is_viable) return false;
+    if (filter === "check_om" && !r.is_check_om) return false;
+    if (filter === "not_viable" && (r.is_viable || r.is_check_om || r.geo_source === "nao_encontrado")) return false;
+    if (filter === "pending" && r.geo_source !== "nao_encontrado") return false;
+    // Stage filter
+    if (activeStages !== null) {
+      const stage = r.stage || "Sem viabilidade";
+      if (!activeStages.has(stage)) return false;
+    }
     return true;
   });
 
