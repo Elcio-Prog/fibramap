@@ -625,20 +625,55 @@ export function findNearestBoundaryPoint(
  *  1) Request A→B and B→A (driving) with alternatives=true.
  *  2) Compare all returned alternatives by `distance` (meters).
  *  3) Pick the smallest distance route and normalize geometry direction to A→B.
+ *  4) Includes in-memory cache and retry with backoff for OSRM rate-limiting.
  */
+
+// In-memory cache for OSRM route results (survives within session)
+const _osrmCache = new Map<string, { distance: number; geometry: any } | null>();
+const _osrmCacheMaxAge = 5 * 60 * 1000; // 5 min
+const _osrmCacheTimestamps = new Map<string, number>();
+
+function _osrmCacheKey(fromLat: number, fromLng: number, toLat: number, toLng: number): string {
+  // Round to 5 decimals (~1m precision) to improve cache hits
+  return `${fromLat.toFixed(5)},${fromLng.toFixed(5)}-${toLat.toFixed(5)},${toLng.toFixed(5)}`;
+}
+
+// Simple semaphore to limit concurrent OSRM requests
+let _osrmInFlight = 0;
+const _osrmMaxConcurrent = 4;
+
+async function _osrmThrottle(): Promise<void> {
+  while (_osrmInFlight >= _osrmMaxConcurrent) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+  _osrmInFlight++;
+}
+
+function _osrmRelease(): void {
+  _osrmInFlight = Math.max(0, _osrmInFlight - 1);
+}
+
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
 ): Promise<{ distance: number; geometry: any } | null> {
+  // Check cache first
+  const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
+  const cachedTs = _osrmCacheTimestamps.get(cacheKey);
+  if (cachedTs && Date.now() - cachedTs < _osrmCacheMaxAge && _osrmCache.has(cacheKey)) {
+    return _osrmCache.get(cacheKey) ?? null;
+  }
+
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
+      if (res.status === 429) return null; // rate limited — signal retry
       const data = await res.json();
       if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
         return data.routes
@@ -665,21 +700,56 @@ export async function getRouteDistance(
     return geometry;
   };
 
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any } | null> => {
+    await _osrmThrottle();
+    try {
+      const [forwardRoutes, reverseRoutes] = await Promise.all([
+        fetchDrivingAlternatives(fromLat, fromLng, toLat, toLng),
+        fetchDrivingAlternatives(toLat, toLng, fromLat, fromLng),
+      ]);
+
+      // null means rate-limited
+      if (forwardRoutes === null || reverseRoutes === null) return undefined as any;
+
+      const normalized = [
+        ...(forwardRoutes || []).map((r) => ({ distance: r.distance, geometry: r.geometry })),
+        ...(reverseRoutes || []).map((r) => ({ distance: r.distance, geometry: reverseGeometry(r.geometry) })),
+      ];
+
+      if (normalized.length === 0) return null;
+      normalized.sort((a, b) => a.distance - b.distance);
+      return normalized[0];
+    } finally {
+      _osrmRelease();
+    }
+  };
+
   try {
-    const [forwardRoutes, reverseRoutes] = await Promise.all([
-      fetchDrivingAlternatives(fromLat, fromLng, toLat, toLng),
-      fetchDrivingAlternatives(toLat, toLng, fromLat, fromLng),
-    ]);
+    // Attempt with retry on rate-limit
+    let result = await attemptFetch();
+    if (result === undefined) {
+      // Rate-limited — wait and retry once
+      await new Promise(r => setTimeout(r, 1500));
+      result = await attemptFetch();
+      if (result === undefined) result = null;
+    }
 
-    const normalized = [
-      ...forwardRoutes.map((r) => ({ distance: r.distance, geometry: r.geometry })),
-      ...reverseRoutes.map((r) => ({ distance: r.distance, geometry: reverseGeometry(r.geometry) })),
-    ];
+    // Cache the result
+    _osrmCache.set(cacheKey, result);
+    _osrmCacheTimestamps.set(cacheKey, Date.now());
 
-    if (normalized.length === 0) return null;
+    // Evict old entries if cache grows too large
+    if (_osrmCache.size > 500) {
+      const now = Date.now();
+      for (const [k, ts] of _osrmCacheTimestamps) {
+        if (now - ts > _osrmCacheMaxAge) {
+          _osrmCache.delete(k);
+          _osrmCacheTimestamps.delete(k);
+        }
+      }
+    }
 
-    normalized.sort((a, b) => a.distance - b.distance);
-    return normalized[0];
+    return result;
   } catch {
     return null;
   }
