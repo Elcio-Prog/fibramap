@@ -48,12 +48,14 @@ interface RadiusResult {
 
 export default function WsSingleSearch() {
   const { toast } = useToast();
-  const { data: providers } = useProviders();
-  const { data: allGeoElements } = useGeoElements();
-  const { data: allLpuItems } = useLpuItems();
-  const { data: comprasLM } = useComprasLM();
+  const { data: providers, isLoading: loadingProviders } = useProviders();
+  const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
+  const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
+  const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
   const { data: preProviders } = usePreProviders();
   const { data: preProviderCities } = useAllPreProviderCities();
+
+  const dataLoading = loadingProviders || loadingGeo || loadingLpu || loadingLM;
 
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
     .filter(pp => pp.status === "pre_cadastro")
