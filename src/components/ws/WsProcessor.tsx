@@ -709,7 +709,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <SelectItem value="check_om">Checar O&M</SelectItem>
                     <SelectItem value="not_viable">Inviáveis</SelectItem>
                     <SelectItem value="pending">Geo falhou</SelectItem>
-                    <SelectItem value="failed">Falhas</SelectItem>
+                    
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-muted-foreground">
