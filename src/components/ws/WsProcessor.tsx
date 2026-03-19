@@ -555,8 +555,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   };
 
   const buildCartItems = (): CartItem[] => {
-    if (!filteredResults) return [];
-    return filteredResults
+    if (!results) return [];
+    return results
       .filter(r => selectedIds.has(r.item.id))
       .map(r => {
         const dbRow = dbRows[r.item.id];
