@@ -48,12 +48,14 @@ interface RadiusResult {
 
 export default function WsSingleSearch() {
   const { toast } = useToast();
-  const { data: providers } = useProviders();
-  const { data: allGeoElements } = useGeoElements();
-  const { data: allLpuItems } = useLpuItems();
-  const { data: comprasLM } = useComprasLM();
+  const { data: providers, isLoading: loadingProviders } = useProviders();
+  const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
+  const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
+  const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
   const { data: preProviders } = usePreProviders();
   const { data: preProviderCities } = useAllPreProviderCities();
+
+  const dataLoading = loadingProviders || loadingGeo || loadingLpu || loadingLM;
 
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
     .filter(pp => pp.status === "pre_cadastro")
@@ -180,8 +182,8 @@ export default function WsSingleSearch() {
 
       setGeoResult(geo);
 
-      if (!providers?.length || !allGeoElements?.length) {
-        toast({ title: "Sem dados de rede carregados", variant: "destructive" });
+      if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
+        toast({ title: "Dados de rede ainda carregando, aguarde...", variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -555,9 +557,9 @@ export default function WsSingleSearch() {
             <Slider min={1} max={50} step={1} value={[radius]} onValueChange={([v]) => setRadius(v)} />
           </div>
 
-          <Button onClick={handleSearch} disabled={loading} className="w-full gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            {loading ? "Buscando..." : "Buscar Viabilidade"}
+           <Button onClick={handleSearch} disabled={loading || dataLoading} className="w-full gap-2">
+             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+             {loading ? "Buscando..." : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
           </Button>
         </CardContent>
       </Card>
