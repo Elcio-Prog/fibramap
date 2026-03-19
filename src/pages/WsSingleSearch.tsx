@@ -182,8 +182,8 @@ export default function WsSingleSearch() {
 
       setGeoResult(geo);
 
-      if (!providers?.length || !allGeoElements?.length) {
-        toast({ title: "Sem dados de rede carregados", variant: "destructive" });
+      if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
+        toast({ title: "Dados de rede ainda carregando, aguarde...", variant: "destructive" });
         setLoading(false);
         return;
       }
