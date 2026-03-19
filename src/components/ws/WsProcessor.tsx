@@ -105,6 +105,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
+  const [activeStages, setActiveStages] = useState<Set<string> | null>(null); // null = all active
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
