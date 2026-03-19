@@ -56,7 +56,7 @@ export function SelectionCheckbox({
   );
 }
 
-export function FloatingActionBar({ selectedIds, onToggleAll, allSelected, buildCartItems }: Props) {
+export function FloatingActionBar({ selectedIds, onClearSelection, buildCartItems }: { selectedIds: Set<string>; onClearSelection: () => void; buildCartItems: () => CartItem[] }) {
   const { addItems, items: cartItems } = useCart();
 
   if (selectedIds.size === 0) return null;
@@ -64,7 +64,7 @@ export function FloatingActionBar({ selectedIds, onToggleAll, allSelected, build
   const handleAdd = () => {
     const newItems = buildCartItems();
     addItems(newItems);
-    onToggleAll(); // deselect all
+    onClearSelection();
   };
 
   return (
