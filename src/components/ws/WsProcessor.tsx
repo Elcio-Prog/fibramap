@@ -692,13 +692,43 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
               )}
             </div>
 
-            {/* Stage groups */}
+            {/* Stage groups — clickable filters */}
             <div className="flex flex-wrap gap-2">
-              {Object.entries(stageGroups).map(([stage, count]) => (
-                <Badge key={stage} variant="outline" className="text-xs">
-                  {stage}: {count}
-                </Badge>
-              ))}
+              {Object.entries(stageGroups).map(([stage, count]) => {
+                const isActive = activeStages === null || activeStages.has(stage);
+                return (
+                  <Badge
+                    key={stage}
+                    variant={isActive ? "default" : "outline"}
+                    className={`text-xs cursor-pointer select-none transition-opacity ${
+                      isActive ? "" : "opacity-40"
+                    }`}
+                    onClick={() => {
+                      setActiveStages(prev => {
+                        const allStages = Object.keys(stageGroups);
+                        if (prev === null) {
+                          // All active → deactivate this one
+                          const next = new Set(allStages);
+                          next.delete(stage);
+                          return next.size === 0 ? null : next;
+                        }
+                        const next = new Set(prev);
+                        if (next.has(stage)) {
+                          next.delete(stage);
+                          // If none left, reset to all
+                          return next.size === 0 ? null : next;
+                        } else {
+                          next.add(stage);
+                          // If all selected, reset to null
+                          return next.size === allStages.length ? null : next;
+                        }
+                      });
+                    }}
+                  >
+                    {stage}: {count}
+                  </Badge>
+                );
+              })}
             </div>
 
             {/* Filter */}
