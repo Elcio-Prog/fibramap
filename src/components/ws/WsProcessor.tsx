@@ -103,7 +103,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [totalItems, setTotalItems] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending" | "failed">("all");
+  const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
@@ -508,9 +508,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (filter === "all") return true;
     if (filter === "viable") return r.is_viable;
     if (filter === "check_om") return r.is_check_om;
-    if (filter === "not_viable") return !r.is_viable && !r.is_check_om;
+    if (filter === "not_viable") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
     if (filter === "pending") return r.geo_source === "nao_encontrado";
-    if (filter === "failed") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
     return true;
   });
 
@@ -710,7 +709,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <SelectItem value="check_om">Checar O&M</SelectItem>
                     <SelectItem value="not_viable">Inviáveis</SelectItem>
                     <SelectItem value="pending">Geo falhou</SelectItem>
-                    <SelectItem value="failed">Falhas</SelectItem>
+                    
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-muted-foreground">
