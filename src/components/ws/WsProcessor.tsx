@@ -664,7 +664,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         )}
 
         {/* Results (shown during processing and after) */}
-        {filteredResults && filteredResults.length > 0 && (
+        {results && results.length > 0 && (
           <div className="space-y-4">
             {/* Summary badges */}
             <div className="flex flex-wrap gap-2">
