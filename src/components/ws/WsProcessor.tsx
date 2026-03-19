@@ -944,9 +944,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         {!processing && isComplete && (
           <FloatingActionBar
             selectedIds={selectedIds}
-            onToggle={toggleSelect}
-            onToggleAll={toggleAll}
-            allSelected={allSelected}
+            onClearSelection={() => setSelectedIds(new Set())}
             buildCartItems={buildCartItems}
           />
         )}
