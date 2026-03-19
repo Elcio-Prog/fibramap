@@ -510,7 +510,6 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (filter === "check_om") return r.is_check_om;
     if (filter === "not_viable") return !r.is_viable && !r.is_check_om && r.geo_source !== "nao_encontrado";
     if (filter === "pending") return r.geo_source === "nao_encontrado";
-    if (filter === "failed") return r.geo_source === "nao_encontrado";
     return true;
   });
 
