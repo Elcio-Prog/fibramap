@@ -253,8 +253,16 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         <td className="px-2 py-1 max-w-[100px] truncate font-medium sticky left-[32px] z-10 bg-background">
                           {item.designacao || "—"}
                         </td>
-                        <td className="px-2 py-1 max-w-[100px] truncate">
-                          {item.cliente || "—"}
+                        <td className="px-2 py-1 max-w-[100px]">
+                          {item.batchId === "single-search" ? (
+                            <CartEditableCell
+                              value={item.cliente || ""}
+                              onSave={(v) => updateItem(item.id, { cliente: v })}
+                              width="w-[100px]"
+                            />
+                          ) : (
+                            <span className="truncate block">{item.cliente || "—"}</span>
+                          )}
                         </td>
                         <td className="px-2 py-1">
                           <Tooltip>
