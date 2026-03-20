@@ -488,13 +488,8 @@ export default function CalcularPage() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : (
-        <div className="flex flex-col-reverse lg:flex-row gap-6">
-          {/* Left — Result panel */}
-          <div className="lg:w-72 shrink-0">
-            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
-          </div>
-
-          {/* Right — Form */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left — Form */}
           <div className="flex-1 space-y-6 min-w-0">
             {/* Global fields */}
             <Card>
