@@ -70,7 +70,7 @@ export function usePrecificacao() {
     const { data, error } = await supabase
       .from(config.tabela as any)
       .select("*")
-      .order(config.keyField);
+      .order("created_at", { ascending: true });
     if (error) throw error;
     return data as any[];
   }, []);
