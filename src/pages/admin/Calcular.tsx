@@ -468,20 +468,27 @@ export default function CalcularPage() {
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <SelectField
-                  label="Motivo"
-                  value={form.motivo || "_none"}
-                  onChange={v => setField("motivo", v === "_none" ? "" : v)}
-                  options={MOTIVOS.map(m => m.value || "_none")}
-                  placeholder="Nenhum"
-                />
-                <SelectField
-                  label="Projeto Avaliado"
-                  value={form.projetoAvaliado ? "true" : "false"}
-                  onChange={v => setField("projetoAvaliado", v === "true")}
-                  options={["false", "true"]}
-                />
-              </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Motivo</Label>
+                  <Select value={form.motivo || "_none"} onValueChange={v => setField("motivo", v === "_none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MOTIVOS.map(m => (
+                        <SelectItem key={m.value || "_none"} value={m.value || "_none"}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
+                  <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">Auto Avaliação</SelectItem>
+                      <SelectItem value="true">Avaliado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </CardContent>
           </Card>
 
