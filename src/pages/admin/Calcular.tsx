@@ -4,7 +4,6 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +16,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
@@ -371,6 +369,75 @@ function BackupFields({ form, setField }: {
   );
 }
 
+// ── Result Sidebar ──
+
+function ResultPanel({ resultado, calculating, error }: {
+  resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string } | null;
+  calculating: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="lg:sticky lg:top-6 space-y-4">
+      <Card className={
+        resultado?.mensagem
+          ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20"
+          : resultado
+            ? "border-primary/30"
+            : ""
+      }>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Resultado
+            {calculating && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!resultado && !error && !calculating && (
+            <p className="text-sm text-muted-foreground">
+              Preencha o formulário para ver o resultado em tempo real.
+            </p>
+          )}
+
+          {resultado?.mensagem ? (
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-700 dark:text-amber-400 text-sm">Atenção</p>
+                <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">{resultado.mensagem}</p>
+              </div>
+            </div>
+          ) : resultado ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Valor Mínimo</p>
+                <p className="text-2xl font-bold tabular-nums tracking-tight mt-1">
+                  {formatBRL(resultado.valorMinimo, 4)}
+                </p>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">CAPEX</p>
+                  <p className="font-semibold tabular-nums">{formatBRL(resultado.valorCapex)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">OPEX</p>
+                  <p className="font-semibold tabular-nums">{formatBRL(resultado.valorOpex)}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {error && !calculating && (
+            <div className="text-sm text-destructive mt-2">{error}</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Main Page ──
 
 export default function CalcularPage() {
@@ -378,6 +445,24 @@ export default function CalcularPage() {
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { form, setField, setProduto, buildPayload, loadingData, options } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const initialLoadDone = useRef(false);
+
+  // Auto-calculate on form change (debounced 600ms)
+  useEffect(() => {
+    if (loadingData) return;
+    // Skip auto-calc on initial mount
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const payload = buildPayload();
+      calcular(payload as Parameters<typeof calcular>[0]);
+    }, 600);
+    return () => clearTimeout(debounceRef.current);
+  }, [form, loadingData, buildPayload, calcular]);
 
   if (authLoading || roleLoading) {
     return (
@@ -387,14 +472,6 @@ export default function CalcularPage() {
     );
   }
   if (!session || !isAdmin) return <Navigate to="/" replace />;
-
-  const handleCalcular = async () => {
-    const payload = buildPayload();
-    const result = await calcular(payload as Parameters<typeof calcular>[0]);
-    if (!result && error) {
-      toast({ title: "Erro no cálculo", description: error, variant: "destructive" });
-    }
-  };
 
   const renderProductFields = () => {
     const props = { form, setField, options };
@@ -410,14 +487,14 @@ export default function CalcularPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
-      <div>
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Calculator className="h-6 w-6" />
           Calculadora de Precificação
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Preencha os dados e calcule o valor mínimo do produto
+          O resultado atualiza automaticamente ao alterar os campos
         </p>
       </div>
 
@@ -426,138 +503,93 @@ export default function CalcularPage() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : (
-        <>
-          {/* Global fields */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">Dados Gerais</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <SelectField
-                  label="Produto"
-                  value={form.produto}
-                  onChange={v => setProduto(v as FormState["produto"])}
-                  options={[...PRODUTOS]}
-                />
-                <NumField
-                  label="Vigência (meses)"
-                  value={form.subproduto === "NT EVENTO" ? 1 : form.vigencia}
-                  onChange={v => setField("vigencia", v)}
-                  disabled={form.subproduto === "NT EVENTO"}
-                />
-                <NumField
-                  label="ROI Vigência (meses)"
-                  value={form.roiVigencia}
-                  onChange={v => setField("roiVigencia", v)}
-                />
-                <NumField
-                  label="Taxa de Instalação (R$)"
-                  value={form.taxaInstalacao}
-                  onChange={v => setField("taxaInstalacao", v)}
-                />
-                <NumField
-                  label="Custos Adicionais (R$)"
-                  value={form.custosMateriaisAdicionais}
-                  onChange={v => setField("custosMateriaisAdicionais", v)}
-                />
-                <NumField
-                  label="Valor Opex (R$)"
-                  value={form.valorOpex}
-                  onChange={v => setField("valorOpex", v)}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Motivo</Label>
-                  <Select value={form.motivo || "_none"} onValueChange={v => setField("motivo", v === "_none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MOTIVOS.map(m => (
-                        <SelectItem key={m.value || "_none"} value={m.value || "_none"}>{m.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
-                  <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="false">Auto Avaliação</SelectItem>
-                      <SelectItem value="true">Avaliado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Product-specific fields */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">
-                Campos — {form.produto}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderProductFields()}
-            </CardContent>
-          </Card>
-
-          {/* Calculate button */}
-          <div className="flex justify-center">
-            <Button
-              size="lg"
-              className="min-w-[200px] gap-2"
-              onClick={handleCalcular}
-              disabled={calculating}
-            >
-              {calculating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Calculator className="h-4 w-4" />
-              )}
-              Calcular
-            </Button>
+        <div className="flex flex-col-reverse lg:flex-row gap-6">
+          {/* Left — Result panel */}
+          <div className="lg:w-72 shrink-0">
+            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
           </div>
 
-          {/* Result */}
-          {resultado && (
-            <Card className={resultado.mensagem ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-primary/30"}>
-              <CardContent className="pt-6">
-                {resultado.mensagem ? (
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="font-semibold text-amber-700 dark:text-amber-400">Atenção</p>
-                      <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">{resultado.mensagem}</p>
-                    </div>
+          {/* Right — Form */}
+          <div className="flex-1 space-y-6 min-w-0">
+            {/* Global fields */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Dados Gerais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <SelectField
+                    label="Produto"
+                    value={form.produto}
+                    onChange={v => setProduto(v as FormState["produto"])}
+                    options={[...PRODUTOS]}
+                  />
+                  <NumField
+                    label="Vigência (meses)"
+                    value={form.subproduto === "NT EVENTO" ? 1 : form.vigencia}
+                    onChange={v => setField("vigencia", v)}
+                    disabled={form.subproduto === "NT EVENTO"}
+                  />
+                  <NumField
+                    label="ROI Vigência (meses)"
+                    value={form.roiVigencia}
+                    onChange={v => setField("roiVigencia", v)}
+                  />
+                  <NumField
+                    label="Taxa de Instalação (R$)"
+                    value={form.taxaInstalacao}
+                    onChange={v => setField("taxaInstalacao", v)}
+                  />
+                  <NumField
+                    label="Custos Adicionais (R$)"
+                    value={form.custosMateriaisAdicionais}
+                    onChange={v => setField("custosMateriaisAdicionais", v)}
+                  />
+                  <NumField
+                    label="Valor Opex (R$)"
+                    value={form.valorOpex}
+                    onChange={v => setField("valorOpex", v)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Motivo</Label>
+                    <Select value={form.motivo || "_none"} onValueChange={v => setField("motivo", v === "_none" ? "" : v)}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {MOTIVOS.map(m => (
+                          <SelectItem key={m.value || "_none"} value={m.value || "_none"}>{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                ) : (
-                  <div className="text-center space-y-3">
-                    <p className="text-sm text-muted-foreground font-medium">Valor Mínimo</p>
-                    <p className="text-3xl font-bold tabular-nums tracking-tight">
-                      {formatBRL(resultado.valorMinimo, 4)}
-                    </p>
-                    <div className="flex justify-center gap-8 pt-2 text-sm text-muted-foreground">
-                      <span>CAPEX: <span className="font-semibold text-foreground tabular-nums">{formatBRL(resultado.valorCapex)}</span></span>
-                      <span>OPEX: <span className="font-semibold text-foreground tabular-nums">{formatBRL(resultado.valorOpex)}</span></span>
-                    </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
+                    <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="false">Auto Avaliação</SelectItem>
+                        <SelectItem value="true">Avaliado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
-          )}
 
-          {error && !calculating && (
-            <Card className="border-destructive bg-destructive/5">
-              <CardContent className="pt-6 text-center text-sm text-destructive">
-                {error}
+            {/* Product-specific fields */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">
+                  Campos — {form.produto}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {renderProductFields()}
               </CardContent>
             </Card>
-          )}
-        </>
+          </div>
+        </div>
       )}
     </div>
   );
