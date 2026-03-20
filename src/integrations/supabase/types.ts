@@ -113,6 +113,117 @@ export type Database = {
         }
         Relationships: []
       }
+      custo_por_mega: {
+        Row: {
+          created_at: string | null
+          id: string
+          identificacao: string
+          updated_at: string | null
+          valor_l2l: number | null
+          valor_link: number | null
+          valor_link_empresa: number | null
+          valor_link_flex: number | null
+          valor_link_full: number | null
+          valor_ptt: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identificacao: string
+          updated_at?: string | null
+          valor_l2l?: number | null
+          valor_link?: number | null
+          valor_link_empresa?: number | null
+          valor_link_flex?: number | null
+          valor_link_full?: number | null
+          valor_ptt?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identificacao?: string
+          updated_at?: string | null
+          valor_l2l?: number | null
+          valor_link?: number | null
+          valor_link_empresa?: number | null
+          valor_link_flex?: number | null
+          valor_link_full?: number | null
+          valor_ptt?: number | null
+        }
+        Relationships: []
+      }
+      custo_voz_geral: {
+        Row: {
+          created_at: string | null
+          custo_minuto: number | null
+          descricao: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_minuto?: number | null
+          descricao: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_minuto?: number | null
+          descricao?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      custos_voz_pais: {
+        Row: {
+          created_at: string | null
+          custo_final: number | null
+          id: string
+          pais: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_final?: number | null
+          id?: string
+          pais: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_final?: number | null
+          id?: string
+          pais?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      equipamentos_valor: {
+        Row: {
+          created_at: string | null
+          equipamento: string
+          id: string
+          updated_at: string | null
+          valor_final: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          equipamento: string
+          id?: string
+          updated_at?: string | null
+          valor_final?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          equipamento?: string
+          id?: string
+          updated_at?: string | null
+          valor_final?: number | null
+        }
+        Relationships: []
+      }
       feasibility_queries: {
         Row: {
           calculated_distance_m: number | null
@@ -525,6 +636,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tabela_custos_pabx: {
+        Row: {
+          created_at: string | null
+          id: string
+          identificador: string
+          preco_final: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identificador: string
+          preco_final?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identificador?: string
+          preco_final?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      taxas_link: {
+        Row: {
+          created_at: string | null
+          id: string
+          identificacao: string
+          margem_lucro: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identificacao: string
+          margem_lucro?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identificacao?: string
+          margem_lucro?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -549,6 +708,30 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      valor_bloco_ip: {
+        Row: {
+          created_at: string | null
+          id: string
+          identificacao: string
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          identificacao: string
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          identificacao?: string
+          updated_at?: string | null
+          valor?: number | null
         }
         Relationships: []
       }
