@@ -101,11 +101,23 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
                 {config.valueFields.map(field => (
                   <TableCell key={field} className="p-1">
                     <Input
-                      type="number"
-                      step="0.000001"
+                      type="text"
+                      inputMode="decimal"
                       className="h-8 text-right text-sm tabular-nums"
-                      value={row[field] ?? 0}
-                      onChange={e => handleValueChange(idx, field, e.target.value)}
+                      value={String(row[field] ?? 0).replace('.', ',')}
+                      onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9,\-]/g, '');
+                        handleValueChange(idx, field, raw.replace(',', '.'));
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          const current = Number(row[field]) || 0;
+                          const step = 0.01;
+                          const next = e.key === 'ArrowUp' ? current + step : current - step;
+                          handleValueChange(idx, field, String(Math.round(next * 100) / 100));
+                        }
+                      }}
                     />
                   </TableCell>
                 ))}
