@@ -123,10 +123,10 @@ function ConectividadeFields({ form, setField, options }: {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField
-          label="Subproduto"
+          label="Produto Link IP"
           value={form.subproduto}
           onChange={v => setField("subproduto", v)}
-          options={SUBPRODUTOS}
+          options={PRODUTO_LINK_OPTIONS}
         />
         <SelectField
           label="Rede (Ponta A)"
