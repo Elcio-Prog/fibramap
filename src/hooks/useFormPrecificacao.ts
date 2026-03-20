@@ -95,6 +95,8 @@ const defaultSpecific: Partial<FormState> = {
   custoLastMile: 0,
   valorLastMile: 0,
   qtdFibrasDarkFiber: 0,
+  tecnologia: "GPON",
+  tecnologiaMeioFisico: "Fibra",
   modeloFirewall: "",
   marcaFirewall: "",
   modeloSwitch: "",
