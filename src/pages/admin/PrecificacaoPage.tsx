@@ -194,7 +194,7 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
 export default function PrecificacaoPage() {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const { exportarExcel, importarExcel, aplicarImport, loading } = usePrecificacao();
+  const { exportarExcel, importarArquivo, aplicarImport, loading } = usePrecificacao();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
 
@@ -206,12 +206,13 @@ export default function PrecificacaoPage() {
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.endsWith(".xlsx")) {
-      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx são aceitos.", variant: "destructive" });
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith(".xlsx") && !ext.endsWith(".csv")) {
+      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx ou .csv são aceitos.", variant: "destructive" });
       return;
     }
     try {
-      const changes = await importarExcel(file);
+      const changes = await importarArquivo(file);
       if (changes.length === 0) {
         toast({ title: "Nenhuma alteração", description: "Os valores no arquivo são iguais aos atuais." });
       } else {
@@ -247,9 +248,9 @@ export default function PrecificacaoPage() {
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={loading}>
-            <Upload className="h-4 w-4 mr-1" /> Importar Excel
+            <Upload className="h-4 w-4 mr-1" /> Importar
           </Button>
-          <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleImportFile} />
+          <input ref={fileInputRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={handleImportFile} />
         </div>
       </div>
 
