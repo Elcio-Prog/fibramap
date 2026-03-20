@@ -178,22 +178,28 @@ export type Database = {
       }
       custos_voz_pais: {
         Row: {
+          carga_tributaria: number | null
           created_at: string | null
           custo_final: number | null
+          custo_minuto: number | null
           id: string
           pais: string
           updated_at: string | null
         }
         Insert: {
+          carga_tributaria?: number | null
           created_at?: string | null
           custo_final?: number | null
+          custo_minuto?: number | null
           id?: string
           pais: string
           updated_at?: string | null
         }
         Update: {
+          carga_tributaria?: number | null
           created_at?: string | null
           custo_final?: number | null
+          custo_minuto?: number | null
           id?: string
           pais?: string
           updated_at?: string | null
