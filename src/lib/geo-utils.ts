@@ -391,7 +391,12 @@ export async function findBestConnectionPointByRoute(
     | null = null;
 
   for (const candidate of searchList) {
-    const route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    let route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    // Retry once if route failed (OSRM rate-limit or transient error)
+    if (!route) {
+      await new Promise(r => setTimeout(r, 800));
+      route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    }
     if (!route) continue;
 
     if (routeFilter) {
