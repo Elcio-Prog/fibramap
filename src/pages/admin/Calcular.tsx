@@ -117,7 +117,7 @@ function ConectividadeFields({ form, setField, options }: {
   const isDarkFiber = form.subproduto === "NT DARK FIBER";
   const isL2L = form.subproduto === "NT L2L";
   const isEvento = form.subproduto === "NT EVENTO";
-  const isMudanca = ["Mudança de endereço", "Mudança de ponto"].includes(form.motivo);
+  const isMudanca = ["Mudança de Endereço", "Mudança de Ponto"].includes(form.motivo);
 
   return (
     <div className="space-y-4">
