@@ -56,6 +56,13 @@ const adminSection: SidebarSection = {
   ],
 };
 
+const preViabilidadeSection: SidebarSection = {
+  title: "PRÉ VIABILIDADES",
+  links: [
+    { to: "/admin/precificacao", label: "Dados de Precificação", icon: Table2 },
+  ],
+};
+
 function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
   const name = displayName || fullName || email?.split("@")[0] || "?";
   return name
