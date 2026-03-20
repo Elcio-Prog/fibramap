@@ -129,19 +129,19 @@ function ConectividadeFields({ form, setField, options }: {
           options={PRODUTO_LINK_OPTIONS}
         />
         <SelectField
-          label="Rede (Ponta A)"
+          label="Cidade (Ponta A)"
           value={form.rede}
           onChange={v => setField("rede", v)}
           options={options.redes}
-          placeholder="Selecione a rede..."
+          placeholder="Selecione a cidade..."
         />
         {isL2L && (
           <SelectField
-            label="Rede (Ponta B)"
+            label="Cidade (Ponta B)"
             value={form.redePontaB}
             onChange={v => setField("redePontaB", v)}
             options={options.redes}
-            placeholder="Selecione a rede..."
+            placeholder="Selecione a cidade..."
           />
         )}
         {!isDarkFiber && (
