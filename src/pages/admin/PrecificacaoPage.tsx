@@ -198,22 +198,17 @@ export default function PrecificacaoPage() {
   const { exportarExcel, importarArquivo, aplicarImport, loading } = usePrecificacao();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvTabela, setCsvTabela] = useState("");
 
   if (authLoading || roleLoading) {
     return <div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
   }
   if (!session || !isAdmin) return <Navigate to="/" replace />;
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const ext = file.name.toLowerCase();
-    if (!ext.endsWith(".xlsx") && !ext.endsWith(".csv")) {
-      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx ou .csv são aceitos.", variant: "destructive" });
-      return;
-    }
+  const processImport = async (file: File, tabelaFilter?: string) => {
     try {
-      const changes = await importarArquivo(file);
+      const changes = await importarArquivo(file, tabelaFilter);
       if (changes.length === 0) {
         toast({ title: "Nenhuma alteração", description: "Os valores no arquivo são iguais aos atuais." });
       } else {
@@ -222,7 +217,31 @@ export default function PrecificacaoPage() {
     } catch (err: any) {
       toast({ title: "Erro ao ler arquivo", description: err.message, variant: "destructive" });
     }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith(".xlsx") && !ext.endsWith(".csv")) {
+      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx ou .csv são aceitos.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (ext.endsWith(".csv")) {
+      setCsvFile(file);
+      setCsvTabela("");
+    } else {
+      await processImport(file);
+    }
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCsvConfirm = async () => {
+    if (!csvFile || !csvTabela) return;
+    await processImport(csvFile, csvTabela);
+    setCsvFile(null);
+    setCsvTabela("");
   };
 
   const handleConfirmImport = async () => {
