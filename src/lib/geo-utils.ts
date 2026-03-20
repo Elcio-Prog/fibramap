@@ -391,7 +391,12 @@ export async function findBestConnectionPointByRoute(
     | null = null;
 
   for (const candidate of searchList) {
-    const route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    let route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    // Retry once if route failed (OSRM rate-limit or transient error)
+    if (!route) {
+      await new Promise(r => setTimeout(r, 800));
+      route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
+    }
     if (!route) continue;
 
     if (routeFilter) {
@@ -734,9 +739,11 @@ export async function getRouteDistance(
       if (result === undefined) result = null;
     }
 
-    // Cache the result
-    _osrmCache.set(cacheKey, result);
-    _osrmCacheTimestamps.set(cacheKey, Date.now());
+    // Only cache successful results — don't cache failures so retries can succeed
+    if (result) {
+      _osrmCache.set(cacheKey, result);
+      _osrmCacheTimestamps.set(cacheKey, Date.now());
+    }
 
     // Evict old entries if cache grows too large
     if (_osrmCache.size > 500) {
