@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
@@ -24,12 +25,6 @@ const SUBPRODUTOS = [
   "NT LINK DEDICADO", "NT PTT", "NT L2L", "NT LINK IP TRANSITO",
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
   "NT DARK FIBER", "NT EVENTO",
-];
-
-const MOTIVOS = [
-  { value: "", label: "Nenhum" },
-  { value: "Mudança de endereço", label: "Mudança de endereço" },
-  { value: "Mudança de ponto", label: "Mudança de ponto" },
 ];
 
 function formatBRL(v: number, decimais = 2) {

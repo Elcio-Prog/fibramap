@@ -88,7 +88,7 @@ const defaultSpecific: Partial<FormState> = {
   redePontaB: "",
   banda: 0,
   distancia: 0,
-  togDistancia: false,
+  togDistancia: true,
   blocoIp: "",
   custoLastMile: 0,
   valorLastMile: 0,
