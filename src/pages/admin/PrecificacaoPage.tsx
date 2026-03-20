@@ -147,13 +147,17 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
                         const raw = e.target.value.replace(/[^0-9,\-]/g, '');
                         handleValueChange(idx, field, raw.replace(',', '.'));
                       }}
+                      onBlur={() => {
+                        const num = Number(row[field]) || 0;
+                        handleValueChange(idx, field, num.toFixed(2));
+                      }}
                       onKeyDown={e => {
                         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                           e.preventDefault();
                           const current = Number(row[field]) || 0;
                           const step = 0.01;
                           const next = e.key === 'ArrowUp' ? current + step : current - step;
-                          handleValueChange(idx, field, String(Math.round(next * 100) / 100));
+                          handleValueChange(idx, field, (Math.round(next * 100) / 100).toFixed(2));
                         }
                       }}
                     />
