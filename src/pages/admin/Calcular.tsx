@@ -489,6 +489,7 @@ export default function CalcularPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
             </CardContent>
           </Card>
 
