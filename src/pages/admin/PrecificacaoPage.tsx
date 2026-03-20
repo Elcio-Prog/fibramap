@@ -11,6 +11,41 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Download, Upload, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+const CUSTO_POR_MEGA_ORDER = [
+  "Custo do Metro de rede",
+  "Custo do Metro Dark Fiber",
+  "Custo do Mega rede Normal",
+  "Custo do Mega uso de BGP",
+  "NT L2L",
+  "NT Transporte PTT",
+  "Piracicaba",
+  "Araras",
+  "Santos",
+  "Cubatão",
+  "Sorocaba",
+  "Cesario Lange",
+  "Bragança Paulista",
+  "Cordeiropolis",
+  "Indaiatuba",
+  "Itapira",
+  "Rio Claro",
+  "Mogi Guaçu",
+  "Circuito Existente",
+  "Custo Operacional por metro de Fibra Dark FIber",
+  "Rede Normal",
+];
+
+function sortByCustomOrder(rows: any[], keyField: string, order: string[]) {
+  return [...rows].sort((a, b) => {
+    const idxA = order.indexOf(a[keyField]);
+    const idxB = order.indexOf(b[keyField]);
+    if (idxA === -1 && idxB === -1) return 0;
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
+}
+
 function TabelaTab({ config }: { config: TabelaConfig }) {
   const { fetchTabela, upsertTabela, addRow, deleteRow, loading } = usePrecificacao();
   const [rows, setRows] = useState<any[]>([]);
@@ -21,7 +56,10 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   const load = useCallback(async () => {
     setFetching(true);
     try {
-      const data = await fetchTabela(config);
+      let data = await fetchTabela(config);
+      if (config.tabela === "custo_por_mega") {
+        data = sortByCustomOrder(data, config.keyField, CUSTO_POR_MEGA_ORDER);
+      }
       setRows(data);
     } catch { }
     setFetching(false);
