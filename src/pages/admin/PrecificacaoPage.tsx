@@ -194,7 +194,7 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
 export default function PrecificacaoPage() {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const { exportarExcel, importarExcel, aplicarImport, loading } = usePrecificacao();
+  const { exportarExcel, importarArquivo, aplicarImport, loading } = usePrecificacao();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
 
