@@ -210,7 +210,7 @@ function calcConectividade(input: CalcInput, db: DbCosts): CalcOutput {
   // Global costs
   const linkcustoCAC = db.taxasLink.get("Despesa de CAC") ?? 0;
   const linktaxaLink = db.taxasLink.get(subproduto) ?? 0;
-  const linkcustoONU = db.equipamentos.get("DM986414Q - ONU")?.valor_final ?? 0;
+  const linkcustoONU = db.equipamentos.get("DM986414Q - ONU")?.valor ?? 0;
   const pabxDespesaCAC = db.custosPabx.get("Despesa de CAC (SVA'") ?? 0;
   const custoMetroDarkFiber = db.custoPorMega.get("Custo do Metro Dark Fiber")?.valor_link ?? 0;
   const custoMetroRede = db.custoPorMega.get("Custo do Metro de rede")?.valor_link ?? 0;
