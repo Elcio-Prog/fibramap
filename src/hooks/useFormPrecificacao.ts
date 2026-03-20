@@ -17,6 +17,11 @@ interface PaisOption {
   pais: string;
 }
 
+interface VigenciaRoiOption {
+  meses: string;
+  roi: number | null;
+}
+
 export interface FormState {
   // Global
   produto: "Conectividade" | "Firewall" | "VOZ" | "Switch" | "Wifi" | "Backup";
@@ -132,6 +137,7 @@ export function useFormPrecificacao() {
   const [blocosIp, setBlocosIp] = useState<BlocoIpOption[]>([]);
   const [equipamentos, setEquipamentos] = useState<EquipamentoOption[]>([]);
   const [paises, setPaises] = useState<PaisOption[]>([]);
+  const [vigenciaRoi, setVigenciaRoi] = useState<VigenciaRoiOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -141,11 +147,13 @@ export function useFormPrecificacao() {
       supabase.from("valor_bloco_ip").select("identificacao"),
       supabase.from("equipamentos_valor").select("equipamento"),
       supabase.from("custos_voz_pais").select("pais"),
-    ]).then(([redesRes, blocosRes, eqRes, paisRes]) => {
+      supabase.from("vigencia_vs_roi").select("meses, roi").order("meses"),
+    ]).then(([redesRes, blocosRes, eqRes, paisRes, vigRes]) => {
       setRedes(redesRes.data ?? []);
       setBlocosIp(blocosRes.data ?? []);
       setEquipamentos((eqRes.data ?? []) as EquipamentoOption[]);
       setPaises(paisRes.data ?? []);
+      setVigenciaRoi((vigRes.data ?? []) as VigenciaRoiOption[]);
       setLoadingData(false);
     });
   }, []);
@@ -196,6 +204,13 @@ export function useFormPrecificacao() {
   const paisOptions = paises.map(p => p.pais);
 
   const blocoIpOptions = blocosIp.map(b => b.identificacao);
+
+  const vigenciaOptions = vigenciaRoi.map(v => v.meses);
+
+  const getRoiForVigencia = useCallback((meses: string): number | null => {
+    const match = vigenciaRoi.find(v => v.meses === meses);
+    return match?.roi ?? null;
+  }, [vigenciaRoi]);
 
   // Build payload for edge function
   const buildPayload = useCallback(() => {
@@ -272,9 +287,11 @@ export function useFormPrecificacao() {
     setProduto,
     buildPayload,
     loadingData,
+    getRoiForVigencia,
     options: {
       redes: redeOptions,
       blocosIp: blocoIpOptions,
+      vigencias: vigenciaOptions,
       firewallModelos,
       firewallMarcas,
       switchModelos,

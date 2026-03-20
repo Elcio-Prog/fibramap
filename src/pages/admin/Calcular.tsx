@@ -443,7 +443,7 @@ function ResultPanel({ resultado, calculating, error }: {
 export default function CalcularPage() {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const { form, setField, setProduto, buildPayload, loadingData, options } = useFormPrecificacao();
+  const { form, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const initialLoadDone = useRef(false);
@@ -524,12 +524,28 @@ export default function CalcularPage() {
                     onChange={v => setProduto(v as FormState["produto"])}
                     options={[...PRODUTOS]}
                   />
-                  <NumField
-                    label="Vigência (meses)"
-                    value={form.subproduto === "NT EVENTO" ? 1 : form.vigencia}
-                    onChange={v => setField("vigencia", v)}
-                    disabled={form.subproduto === "NT EVENTO"}
-                  />
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Vigência (meses)</Label>
+                    <Select
+                      value={form.subproduto === "NT EVENTO" ? "1" : String(form.vigencia)}
+                      onValueChange={v => {
+                        const num = Number(v) || 0;
+                        setField("vigencia", num);
+                        const roi = getRoiForVigencia(v);
+                        if (roi !== null) setField("roiVigencia", roi);
+                      }}
+                      disabled={form.subproduto === "NT EVENTO"}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.vigencias.map(m => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <NumField
                     label="ROI Vigência (meses)"
                     value={form.roiVigencia}
