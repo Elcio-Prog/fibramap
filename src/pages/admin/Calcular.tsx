@@ -128,26 +128,10 @@ function ConectividadeFields({ form, setField, options }: {
           onChange={v => setField("subproduto", v)}
           options={PRODUTO_LINK_OPTIONS}
         />
-        <SelectField
-          label="Cidade (Ponta A)"
-          value={form.rede}
-          onChange={v => setField("rede", v)}
-          options={options.redes}
-          placeholder="Selecione a cidade..."
-        />
-        {isL2L && (
-          <SelectField
-            label="Cidade (Ponta B)"
-            value={form.redePontaB}
-            onChange={v => setField("redePontaB", v)}
-            options={options.redes}
-            placeholder="Selecione a cidade..."
-          />
-        )}
-        {!isDarkFiber && (
-          <NumField label="Banda (Mbps)" value={form.banda} onChange={v => setField("banda", v)} />
-        )}
         <NumField label="Distância (m)" value={form.distancia} onChange={v => setField("distancia", v)} />
+        {!isDarkFiber && (
+          <NumField label="Velocidade do Link (MB)" value={form.banda} onChange={v => setField("banda", v)} />
+        )}
         {!isL2L && !isDarkFiber && (
           <SelectField
             label="Bloco IP"
@@ -157,11 +141,34 @@ function ConectividadeFields({ form, setField, options }: {
             placeholder="Selecione..."
           />
         )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
-        <NumField label="Mensalidade Last Mile (R$)" value={form.valorLastMile} onChange={v => setField("valorLastMile", v)} />
+        <SelectField
+          label="Tecnologia"
+          value={form.tecnologia}
+          onChange={v => setField("tecnologia", v)}
+          options={TECNOLOGIA_OPTIONS}
+        />
+        <SelectField
+          label="Tecnologia (Meio Físico)"
+          value={form.tecnologiaMeioFisico}
+          onChange={v => setField("tecnologiaMeioFisico", v)}
+          options={MEIO_FISICO_OPTIONS}
+        />
+        <SelectField
+          label="Cidade Ponta A"
+          value={form.rede}
+          onChange={v => setField("rede", v)}
+          options={options.redes}
+          placeholder="Selecione a cidade..."
+        />
+        {isL2L && (
+          <SelectField
+            label="Cidade Ponta B"
+            value={form.redePontaB}
+            onChange={v => setField("redePontaB", v)}
+            options={options.redes}
+            placeholder="Selecione a cidade..."
+          />
+        )}
         {isDarkFiber && (
           <NumField label="Qtd Fibras Dark Fiber" value={form.qtdFibrasDarkFiber} onChange={v => setField("qtdFibrasDarkFiber", v)} />
         )}
