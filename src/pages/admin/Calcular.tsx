@@ -412,7 +412,7 @@ function ResultPanel({ resultado, calculating, error }: {
               <div>
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Valor Mínimo</p>
                 <p className="text-2xl font-bold tabular-nums tracking-tight mt-1">
-                  {formatBRL(resultado.valorMinimo, 4)}
+                  {formatBRL(resultado.valorMinimo)}
                 </p>
               </div>
               <Separator />
