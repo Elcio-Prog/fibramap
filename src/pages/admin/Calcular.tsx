@@ -538,17 +538,12 @@ export default function CalcularPage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Motivo</Label>
-                    <Select value={form.motivo || "_none"} onValueChange={v => setField("motivo", v === "_none" ? "" : v)}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {MOTIVOS.map(m => (
-                          <SelectItem key={m.value || "_none"} value={m.value || "_none"}>{m.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <SelectField
+                    label="Tipo de Solicitação"
+                    value={form.motivo || "Nova Ativação"}
+                    onChange={v => setField("motivo", v)}
+                    options={TIPO_SOLICITACAO_OPTIONS}
+                  />
                   <div>
                     <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
                     <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
