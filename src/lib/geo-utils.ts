@@ -1,5 +1,6 @@
 import { kml } from "@tmcw/togeojson";
 import JSZip from "jszip";
+import { supabase } from "@/integrations/supabase/client";
 import { convertNumberWords, convertDigitsToWords } from "@/lib/number-words";
 
 export function parseKML(text: string): GeoJSON.FeatureCollection {
