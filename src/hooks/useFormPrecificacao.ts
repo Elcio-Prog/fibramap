@@ -180,7 +180,7 @@ export function useFormPrecificacao() {
 
   // Derived options
   const redeOptions = redes
-    .filter(r => !r.identificacao.startsWith("Custo do") && !r.identificacao.startsWith("Custo Operacional"))
+    .filter(r => !r.identificacao.startsWith("Custo do") && !r.identificacao.startsWith("Custo Operacional") && !r.identificacao.startsWith("NTT"))
     .map(r => r.identificacao);
 
   const firewallModelos = equipamentos
