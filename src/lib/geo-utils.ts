@@ -1,5 +1,6 @@
 import { kml } from "@tmcw/togeojson";
 import JSZip from "jszip";
+import { supabase } from "@/integrations/supabase/client";
 import { convertNumberWords, convertDigitsToWords } from "@/lib/number-words";
 
 export function parseKML(text: string): GeoJSON.FeatureCollection {
@@ -1081,55 +1082,30 @@ export interface OverpassFetchResult {
   success: boolean;
 }
 
-const OVERPASS_SERVERS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
 
 /** Fetch highways (motorway/trunk) and railways from OSM Overpass API within a bounding box.
  *  Retries on failure using fallback servers. Returns success flag to distinguish "no highways" from "API error". */
 async function fetchHighwaysAndRailwaysWithStatus(
   minLat: number, minLng: number, maxLat: number, maxLng: number
 ): Promise<OverpassFetchResult> {
-  const bbox = `${minLat},${minLng},${maxLat},${maxLng}`;
-  const query = `[out:json][timeout:15];(way["highway"~"^(motorway|trunk|motorway_link|trunk_link)$"](${bbox});way["railway"="rail"](${bbox}););out geom;`;
+  try {
+    const { data, error } = await supabase.functions.invoke("overpass-proxy", {
+      body: { minLat, minLng, maxLat, maxLng },
+    });
 
-  for (const server of OVERPASS_SERVERS) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(server, {
-        method: "POST",
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) {
-        console.warn(`Overpass server ${server} returned ${res.status}, trying next...`);
-        continue;
-      }
-      const data = await res.json();
-      const ways: OverpassWay[] = [];
-      for (const el of data.elements || []) {
-        if (el.type !== "way" || !el.geometry) continue;
-        const coords = el.geometry.map((g: any) => [g.lon, g.lat]);
-        if (coords.length < 2) continue;
-        const isRailway = el.tags?.railway === "rail";
-        const tag = isRailway ? el.tags.railway : el.tags.highway;
-        ways.push({ type: isRailway ? "railway" : "highway", tag, coords });
-      }
-      return { ways, success: true };
-    } catch (err) {
-      console.warn(`Overpass server ${server} failed:`, err);
-      continue;
+    if (error) {
+      console.error("overpass-proxy invoke failed:", error);
+      return { ways: [], success: false };
     }
-  }
 
-  // All servers failed
-  console.error("All Overpass servers failed - highway check will be fail-safe (blocked)");
-  return { ways: [], success: false };
+    return {
+      ways: Array.isArray(data?.ways) ? data.ways : [],
+      success: data?.success === true,
+    };
+  } catch (err) {
+    console.error("overpass-proxy unexpected failure:", err);
+    return { ways: [], success: false };
+  }
 }
 
 /** Legacy wrapper for backward compatibility */
