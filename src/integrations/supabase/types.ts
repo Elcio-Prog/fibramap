@@ -203,23 +203,35 @@ export type Database = {
       equipamentos_valor: {
         Row: {
           created_at: string | null
+          descricao: string | null
           equipamento: string
           id: string
+          imposto: number | null
           updated_at: string | null
+          valor: number | null
+          valor_dolar: number | null
           valor_final: number | null
         }
         Insert: {
           created_at?: string | null
+          descricao?: string | null
           equipamento: string
           id?: string
+          imposto?: number | null
           updated_at?: string | null
+          valor?: number | null
+          valor_dolar?: number | null
           valor_final?: number | null
         }
         Update: {
           created_at?: string | null
+          descricao?: string | null
           equipamento?: string
           id?: string
+          imposto?: number | null
           updated_at?: string | null
+          valor?: number | null
+          valor_dolar?: number | null
           valor_final?: number | null
         }
         Relationships: []
@@ -641,6 +653,8 @@ export type Database = {
           created_at: string | null
           id: string
           identificador: string
+          imposto: number | null
+          preco: number | null
           preco_final: number | null
           updated_at: string | null
         }
@@ -648,6 +662,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           identificador: string
+          imposto?: number | null
+          preco?: number | null
           preco_final?: number | null
           updated_at?: string | null
         }
@@ -655,6 +671,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           identificador?: string
+          imposto?: number | null
+          preco?: number | null
           preco_final?: number | null
           updated_at?: string | null
         }
