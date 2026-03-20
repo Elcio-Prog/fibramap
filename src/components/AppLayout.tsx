@@ -6,7 +6,7 @@ import { useNavigate, NavLink } from "react-router-dom";
 import {
   Map, Building2, Calculator, FileText, LogOut, Menu,
   Database, Users, Upload, Search, ClipboardList, Network,
-  Settings, History, ChevronLeft, ChevronRight, Wifi, BarChart3,
+  Settings, History, ChevronLeft, ChevronRight, Wifi, BarChart3, Table2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +56,13 @@ const adminSection: SidebarSection = {
   ],
 };
 
+const preViabilidadeSection: SidebarSection = {
+  title: "PRÉ VIABILIDADES",
+  links: [
+    { to: "/admin/precificacao", label: "Dados de Precificação", icon: Table2 },
+  ],
+};
+
 function getInitials(displayName?: string | null, fullName?: string | null, email?: string | null) {
   const name = displayName || fullName || email?.split("@")[0] || "?";
   return name
@@ -92,7 +99,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const profileDisplayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
 
-  const sections = [...baseSections, ...(isAdmin ? [adminSection] : [])];
+  const sections = [...baseSections, ...(isAdmin ? [preViabilidadeSection, adminSection] : [])];
 
   const handleSignOut = async () => {
     await signOut();
