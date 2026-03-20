@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
@@ -24,12 +25,6 @@ const SUBPRODUTOS = [
   "NT LINK DEDICADO", "NT PTT", "NT L2L", "NT LINK IP TRANSITO",
   "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
   "NT DARK FIBER", "NT EVENTO",
-];
-
-const MOTIVOS = [
-  { value: "", label: "Nenhum" },
-  { value: "Mudança de endereço", label: "Mudança de endereço" },
-  { value: "Mudança de ponto", label: "Mudança de ponto" },
 ];
 
 function formatBRL(v: number, decimais = 2) {
@@ -122,7 +117,7 @@ function ConectividadeFields({ form, setField, options }: {
   const isDarkFiber = form.subproduto === "NT DARK FIBER";
   const isL2L = form.subproduto === "NT L2L";
   const isEvento = form.subproduto === "NT EVENTO";
-  const isMudanca = ["Mudança de endereço", "Mudança de ponto"].includes(form.motivo);
+  const isMudanca = ["Mudança de Endereço", "Mudança de Ponto"].includes(form.motivo);
 
   return (
     <div className="space-y-4">
@@ -164,24 +159,14 @@ function ConectividadeFields({ form, setField, options }: {
             label="Bloco IP"
             value={form.blocoIp}
             onChange={v => setField("blocoIp", v)}
-            options={options.blocosIp}
+            options={BLOCO_IP_OPTIONS}
             placeholder="Selecione..."
           />
         )}
       </div>
 
-      <div className="flex items-center gap-3 pt-1">
-        <Switch
-          checked={form.togDistancia}
-          onCheckedChange={v => setField("togDistancia", v)}
-        />
-        <Label className="text-sm">Usar Regra de Distância</Label>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {form.togDistancia && (
-          <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
-        )}
+        <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
         <NumField label="Mensalidade Last Mile (R$)" value={form.valorLastMile} onChange={v => setField("valorLastMile", v)} />
         {isDarkFiber && (
           <NumField label="Qtd Fibras Dark Fiber" value={form.qtdFibrasDarkFiber} onChange={v => setField("qtdFibrasDarkFiber", v)} />
@@ -503,13 +488,8 @@ export default function CalcularPage() {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : (
-        <div className="flex flex-col-reverse lg:flex-row gap-6">
-          {/* Left — Result panel */}
-          <div className="lg:w-72 shrink-0">
-            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
-          </div>
-
-          {/* Right — Form */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left — Form */}
           <div className="flex-1 space-y-6 min-w-0">
             {/* Global fields */}
             <Card>
@@ -524,28 +504,18 @@ export default function CalcularPage() {
                     onChange={v => setProduto(v as FormState["produto"])}
                     options={[...PRODUTOS]}
                   />
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Vigência (meses)</Label>
-                    <Select
-                      value={form.subproduto === "NT EVENTO" ? "1" : String(form.vigencia)}
-                      onValueChange={v => {
-                        const num = Number(v) || 0;
-                        setField("vigencia", num);
-                        const roi = getRoiForVigencia(v);
-                        if (roi !== null) setField("roiVigencia", roi);
-                      }}
-                      disabled={form.subproduto === "NT EVENTO"}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {options.vigencias.map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <SelectField
+                    label="Vigência (meses)"
+                    value={form.subproduto === "NT EVENTO" ? "1" : String(form.vigencia)}
+                    onChange={v => {
+                      const num = Number(v) || 0;
+                      setField("vigencia", num);
+                      const roi = getRoiForVigencia(v);
+                      if (roi !== null) setField("roiVigencia", roi);
+                    }}
+                    options={VIGENCIA_OPTIONS}
+                    disabled={form.subproduto === "NT EVENTO"}
+                  />
                   <NumField
                     label="ROI Vigência (meses)"
                     value={form.roiVigencia}
@@ -568,17 +538,12 @@ export default function CalcularPage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Motivo</Label>
-                    <Select value={form.motivo || "_none"} onValueChange={v => setField("motivo", v === "_none" ? "" : v)}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {MOTIVOS.map(m => (
-                          <SelectItem key={m.value || "_none"} value={m.value || "_none"}>{m.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <SelectField
+                    label="Tipo de Solicitação"
+                    value={form.motivo || "Nova Ativação"}
+                    onChange={v => setField("motivo", v)}
+                    options={TIPO_SOLICITACAO_OPTIONS}
+                  />
                   <div>
                     <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
                     <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
@@ -604,6 +569,11 @@ export default function CalcularPage() {
                 {renderProductFields()}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Right — Result panel */}
+          <div className="lg:w-72 shrink-0">
+            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
           </div>
         </div>
       )}
