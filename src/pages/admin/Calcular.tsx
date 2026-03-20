@@ -570,6 +570,11 @@ export default function CalcularPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Right — Result panel */}
+          <div className="lg:w-72 shrink-0">
+            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
+          </div>
         </div>
       )}
     </div>
