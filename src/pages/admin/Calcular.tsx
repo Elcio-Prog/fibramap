@@ -165,18 +165,8 @@ function ConectividadeFields({ form, setField, options }: {
         )}
       </div>
 
-      <div className="flex items-center gap-3 pt-1">
-        <Switch
-          checked={form.togDistancia}
-          onCheckedChange={v => setField("togDistancia", v)}
-        />
-        <Label className="text-sm">Usar Regra de Distância</Label>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {form.togDistancia && (
-          <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
-        )}
+        <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
         <NumField label="Mensalidade Last Mile (R$)" value={form.valorLastMile} onChange={v => setField("valorLastMile", v)} />
         {isDarkFiber && (
           <NumField label="Qtd Fibras Dark Fiber" value={form.qtdFibrasDarkFiber} onChange={v => setField("qtdFibrasDarkFiber", v)} />
