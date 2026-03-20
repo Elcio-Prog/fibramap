@@ -146,6 +146,73 @@ export default function WsSingleSearch() {
     return null;
   };
 
+  const executeSearch = async (geo: { lat: number; lng: number; display: string }): Promise<{ options: SingleSearchOption[]; radiusResults: RadiusResult[] }> => {
+    // Resolve cidade/uf from available data
+    let cidadeResolved: string | null = null;
+    let ufResolved: string | null = null;
+    if (inputMode === "cep" && cepData) {
+      cidadeResolved = cepData.localidade;
+      ufResolved = cepData.uf;
+    } else {
+      try {
+        const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+        const revData = await revRes.json();
+        if (revData?.address) {
+          cidadeResolved = revData.address.city || revData.address.town || revData.address.municipality || null;
+          ufResolved = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
+          if (revData.address["ISO3166-2-lvl4"]) {
+            ufResolved = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
+          }
+        }
+      } catch {}
+    }
+
+    const wsItem: WsItemInput = {
+      id: `single-${Date.now()}`,
+      designacao: designacao || null,
+      cliente: cliente || null,
+      tipo_link: tipoLink || null,
+      velocidade_mbps: velocidade ? Number(velocidade) : null,
+      endereco_a: geo.display,
+      cidade_a: cidadeResolved,
+      uf_a: ufResolved,
+      lat_a: geo.lat,
+      lng_a: geo.lng,
+      endereco_b: null,
+      cidade_b: null,
+      uf_b: null,
+      lat_b: null,
+      lng_b: null,
+      prazo_ativacao: null,
+      is_l2l: false,
+      l2l_suffix: null,
+      l2l_pair_id: null,
+      row_number: 1,
+    };
+
+    const wsResult = await processWsSingleItem(
+      wsItem,
+      { lat: geo.lat, lng: geo.lng, source: inputMode === "coords" ? "coordenada" : "endereco" },
+      providers as any,
+      allGeoElements as any,
+      (allLpuItems || []) as any,
+      (comprasLM || []) as any,
+      preProvidersWithCities,
+    );
+
+    let radResults: RadiusResult[] = [];
+    if (comprasLM) {
+      const radiusM = radius * 1000;
+      radResults = comprasLM
+        .filter(c => c.lat != null && c.lng != null)
+        .map(c => ({ compra: c, distanceM: haversineDistance(geo.lat, geo.lng, c.lat!, c.lng!) }))
+        .filter(r => r.distanceM <= radiusM)
+        .sort((a, b) => a.distanceM - b.distanceM);
+    }
+
+    return { options: wsResult.all_options as SingleSearchOption[], radiusResults: radResults };
+  };
+
   const handleSearch = async () => {
     setLoading(true);
     setOptions([]);
@@ -188,80 +255,52 @@ export default function WsSingleSearch() {
         return;
       }
 
-      // Resolve cidade/uf from available data
-      let cidadeResolved: string | null = null;
-      let ufResolved: string | null = null;
-      if (inputMode === "cep" && cepData) {
-        cidadeResolved = cepData.localidade;
-        ufResolved = cepData.uf;
-      } else {
-        // Try to extract city from display_name (Nominatim format: "..., Cidade, Estado, ...")
-        // Also try reverse geocoding to get city
-        try {
-          const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
-          const revData = await revRes.json();
-          if (revData?.address) {
-            cidadeResolved = revData.address.city || revData.address.town || revData.address.municipality || null;
-            ufResolved = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
-            // Get proper 2-letter UF code from ISO
-            if (revData.address["ISO3166-2-lvl4"]) {
-              ufResolved = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
+      // First attempt
+      let result: { options: SingleSearchOption[]; radiusResults: RadiusResult[] };
+      try {
+        result = await executeSearch(geo);
+      } catch (firstErr: any) {
+        // Auto-retry once on network/fetch failures
+        console.warn("Busca unitária: primeira tentativa falhou, retentando...", firstErr?.message);
+        await new Promise(r => setTimeout(r, 1500));
+        result = await executeSearch(geo);
+      }
+
+      // Auto-retry if NTT own network wasn't found but should have been
+      // (indicates OSRM/Overpass transient failure on first pass)
+      const hasNttOption = result.options.some(o => o.is_own_network);
+      if (!hasNttOption && result.options.length >= 0) {
+        // Check if there are NTT elements nearby (straight-line) that should have been found
+        const netTurboProvider = providers?.find(p => p.name.toLowerCase().includes("net turbo"));
+        if (netTurboProvider) {
+          const nttElements = (allGeoElements || []).filter(el => el.provider_id === netTurboProvider.id);
+          const hasNearbyNttBox = nttElements.some(el => {
+            const elGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry as string) : el.geometry;
+            if (elGeo?.type !== "Point") return false;
+            const [eLng, eLat] = elGeo.coordinates;
+            return haversineDistance(geo.lat, geo.lng, eLat, eLng) <= netTurboProvider.max_lpu_distance_m;
+          });
+
+          if (hasNearbyNttBox) {
+            console.info("Busca unitária: caixas NTT próximas detectadas mas não encontradas na busca. Retentando...");
+            await new Promise(r => setTimeout(r, 1200));
+            const retryResult = await executeSearch(geo);
+            // Use retry result if it found NTT options or more total options
+            if (retryResult.options.some(o => o.is_own_network) || retryResult.options.length > result.options.length) {
+              result = retryResult;
             }
           }
-        } catch {}
+        }
       }
 
-      const wsItem: WsItemInput = {
-        id: `single-${Date.now()}`,
-        designacao: designacao || null,
-        cliente: cliente || null,
-        tipo_link: tipoLink || null,
-        velocidade_mbps: velocidade ? Number(velocidade) : null,
-        endereco_a: geo.display,
-        cidade_a: cidadeResolved,
-        uf_a: ufResolved,
-        lat_a: geo.lat,
-        lng_a: geo.lng,
-        endereco_b: null,
-        cidade_b: null,
-        uf_b: null,
-        lat_b: null,
-        lng_b: null,
-        prazo_ativacao: null,
-        is_l2l: false,
-        l2l_suffix: null,
-        l2l_pair_id: null,
-        row_number: 1,
-      };
+      setOptions(result.options);
+      setRadiusResults(result.radiusResults);
 
-      const wsResult = await processWsSingleItem(
-        wsItem,
-        { lat: geo.lat, lng: geo.lng, source: inputMode === "coords" ? "coordenada" : "endereco" },
-        providers as any,
-        allGeoElements as any,
-        (allLpuItems || []) as any,
-        (comprasLM || []) as any,
-        preProvidersWithCities,
-      );
-
-      setOptions(wsResult.all_options as SingleSearchOption[]);
-
-      // Radius search on LM base
-      if (comprasLM) {
-        const radiusM = radius * 1000;
-        const filtered: RadiusResult[] = comprasLM
-          .filter(c => c.lat != null && c.lng != null)
-          .map(c => ({ compra: c, distanceM: haversineDistance(geo.lat, geo.lng, c.lat!, c.lng!) }))
-          .filter(r => r.distanceM <= radiusM)
-          .sort((a, b) => a.distanceM - b.distanceM);
-        setRadiusResults(filtered);
-      }
-
-      if (wsResult.all_options.length === 0) {
+      if (result.options.length === 0) {
         toast({ title: "Nenhuma opção viável encontrada" });
       }
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
