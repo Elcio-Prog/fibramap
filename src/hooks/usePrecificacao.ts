@@ -53,7 +53,7 @@ export const TABELAS: TabelaConfig[] = [
   },
   {
     tabela: "custo_voz_geral",
-    label: "Voz Geral",
+    label: "Taxa de Voz",
     keyField: "descricao",
     valueFields: ["custo_minuto"],
     valueLabels: ["Custo/Minuto"],
