@@ -739,9 +739,11 @@ export async function getRouteDistance(
       if (result === undefined) result = null;
     }
 
-    // Cache the result
-    _osrmCache.set(cacheKey, result);
-    _osrmCacheTimestamps.set(cacheKey, Date.now());
+    // Only cache successful results — don't cache failures so retries can succeed
+    if (result) {
+      _osrmCache.set(cacheKey, result);
+      _osrmCacheTimestamps.set(cacheKey, Date.now());
+    }
 
     // Evict old entries if cache grows too large
     if (_osrmCache.size > 500) {
