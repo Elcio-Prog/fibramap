@@ -254,5 +254,5 @@ export function usePrecificacao() {
     }
   }, [fetchTabela]);
 
-  return { loading, fetchTabela, upsertTabela, addRow, deleteRow, exportarExcel, importarExcel, aplicarImport };
+  return { loading, fetchTabela, upsertTabela, addRow, deleteRow, exportarExcel, importarArquivo, aplicarImport };
 }

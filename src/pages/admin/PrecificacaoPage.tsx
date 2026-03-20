@@ -248,9 +248,9 @@ export default function PrecificacaoPage() {
             <Download className="h-4 w-4 mr-1" /> Exportar Excel
           </Button>
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={loading}>
-            <Upload className="h-4 w-4 mr-1" /> Importar Excel
+            <Upload className="h-4 w-4 mr-1" /> Importar
           </Button>
-          <input ref={fileInputRef} type="file" accept=".xlsx" className="hidden" onChange={handleImportFile} />
+          <input ref={fileInputRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={handleImportFile} />
         </div>
       </div>
 
