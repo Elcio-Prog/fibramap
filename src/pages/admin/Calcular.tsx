@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS, PRODUTO_LINK_OPTIONS } from "@/lib/field-options";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS } from "@/lib/field-options";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
