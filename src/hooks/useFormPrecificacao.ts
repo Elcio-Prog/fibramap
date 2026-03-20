@@ -44,6 +44,8 @@ export interface FormState {
   custoLastMile: number;
   valorLastMile: number;
   qtdFibrasDarkFiber: number;
+  tecnologia: string;
+  tecnologiaMeioFisico: string;
 
   // Firewall
   modeloFirewall: string;
@@ -93,6 +95,8 @@ const defaultSpecific: Partial<FormState> = {
   custoLastMile: 0,
   valorLastMile: 0,
   qtdFibrasDarkFiber: 0,
+  tecnologia: "GPON",
+  tecnologiaMeioFisico: "Fibra",
   modeloFirewall: "",
   marcaFirewall: "",
   modeloSwitch: "",
