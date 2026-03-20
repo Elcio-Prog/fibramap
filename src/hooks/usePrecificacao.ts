@@ -9,6 +9,8 @@ export interface TabelaConfig {
   keyField: string;
   valueFields: string[];
   valueLabels: string[];
+  textFields?: string[];
+  textLabels?: string[];
 }
 
 export const TABELAS: TabelaConfig[] = [
