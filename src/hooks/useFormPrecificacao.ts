@@ -44,6 +44,8 @@ export interface FormState {
   custoLastMile: number;
   valorLastMile: number;
   qtdFibrasDarkFiber: number;
+  tecnologia: string;
+  tecnologiaMeioFisico: string;
 
   // Firewall
   modeloFirewall: string;
