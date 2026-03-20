@@ -137,6 +137,7 @@ export function useFormPrecificacao() {
   const [blocosIp, setBlocosIp] = useState<BlocoIpOption[]>([]);
   const [equipamentos, setEquipamentos] = useState<EquipamentoOption[]>([]);
   const [paises, setPaises] = useState<PaisOption[]>([]);
+  const [vigenciaRoi, setVigenciaRoi] = useState<VigenciaRoiOption[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -146,11 +147,13 @@ export function useFormPrecificacao() {
       supabase.from("valor_bloco_ip").select("identificacao"),
       supabase.from("equipamentos_valor").select("equipamento"),
       supabase.from("custos_voz_pais").select("pais"),
-    ]).then(([redesRes, blocosRes, eqRes, paisRes]) => {
+      supabase.from("vigencia_vs_roi").select("meses, roi").order("meses"),
+    ]).then(([redesRes, blocosRes, eqRes, paisRes, vigRes]) => {
       setRedes(redesRes.data ?? []);
       setBlocosIp(blocosRes.data ?? []);
       setEquipamentos((eqRes.data ?? []) as EquipamentoOption[]);
       setPaises(paisRes.data ?? []);
+      setVigenciaRoi((vigRes.data ?? []) as VigenciaRoiOption[]);
       setLoadingData(false);
     });
   }, []);
