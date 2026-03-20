@@ -100,6 +100,7 @@ export function usePrecificacao() {
     try {
       const row: any = { [config.keyField]: keyValue };
       config.valueFields.forEach(f => row[f] = 0);
+      (config.textFields ?? []).forEach(f => row[f] = "");
       const { error } = await supabase.from(config.tabela as any).insert(row as any);
       if (error) throw error;
       toast({ title: "Registro adicionado" });
