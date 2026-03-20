@@ -36,6 +36,13 @@ export const TABELAS: TabelaConfig[] = [
     valueLabels: ["Valor"],
   },
   {
+    tabela: "vigencia_vs_roi",
+    label: "Vigência Vs ROI",
+    keyField: "meses",
+    valueFields: ["roi"],
+    valueLabels: ["ROI"],
+  },
+  {
     tabela: "equipamentos_valor",
     label: "Equipamentos",
     keyField: "equipamento",
