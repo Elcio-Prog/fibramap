@@ -177,7 +177,7 @@ export function usePrecificacao() {
   const importarArquivo = useCallback(async (file: File, csvTabelaFilter?: string): Promise<{ tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[]> => {
     const buffer = await file.arrayBuffer();
     const isCsv = file.name.toLowerCase().endsWith(".csv");
-    const wb = XLSX.read(buffer, { type: "array", ...(isCsv ? { raw: true } : {}) });
+    const wb = XLSX.read(buffer, { type: "array" });
     const allChanges: { tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[] = [];
 
     const processSheet = async (rows: any[][], config: TabelaConfig) => {
