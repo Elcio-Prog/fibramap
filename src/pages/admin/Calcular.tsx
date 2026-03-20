@@ -1,0 +1,556 @@
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
+import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
+
+const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
+
+const SUBPRODUTOS = [
+  "NT LINK DEDICADO", "NT PTT", "NT L2L", "NT LINK IP TRANSITO",
+  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
+  "NT DARK FIBER", "NT EVENTO",
+];
+
+const MOTIVOS = [
+  { value: "", label: "Nenhum" },
+  { value: "Mudança de endereço", label: "Mudança de endereço" },
+  { value: "Mudança de ponto", label: "Mudança de ponto" },
+];
+
+function formatBRL(v: number, decimais = 2) {
+  return v.toLocaleString("pt-BR", {
+    style: "currency", currency: "BRL",
+    minimumFractionDigits: decimais, maximumFractionDigits: decimais,
+  });
+}
+
+function NumField({
+  label, value, onChange, disabled, className,
+}: {
+  label: string; value: number; onChange: (v: number) => void;
+  disabled?: boolean; className?: string;
+}) {
+  const [display, setDisplay] = useState(String(value).replace(".", ","));
+
+  const handleBlur = () => {
+    const num = Number(display.replace(",", ".")) || 0;
+    onChange(num);
+    setDisplay(num.toString().replace(".", ","));
+  };
+
+  return (
+    <div className={className}>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        type="text"
+        inputMode="decimal"
+        disabled={disabled}
+        className="h-9 tabular-nums"
+        value={disabled ? String(value).replace(".", ",") : display}
+        onChange={e => {
+          const raw = e.target.value.replace(/[^0-9,.\-]/g, "");
+          setDisplay(raw);
+        }}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label, value, onChange, options, placeholder, disabled, className,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: string[]; placeholder?: string; disabled?: boolean; className?: string;
+}) {
+  return (
+    <div className={className}>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="h-9">
+          <SelectValue placeholder={placeholder ?? "Selecione..."} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(o => (
+            <SelectItem key={o} value={o}>{o}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function CollapsibleSection({ title, children, defaultOpen = true }: {
+  title: string; children: React.ReactNode; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
+        {title}
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2 pb-4">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+// ── Product-specific sections ──
+
+function ConectividadeFields({ form, setField, options }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  options: ReturnType<typeof useFormPrecificacao>["options"];
+}) {
+  const isDarkFiber = form.subproduto === "NT DARK FIBER";
+  const isL2L = form.subproduto === "NT L2L";
+  const isEvento = form.subproduto === "NT EVENTO";
+  const isMudanca = ["Mudança de endereço", "Mudança de ponto"].includes(form.motivo);
+
+  return (
+    <div className="space-y-4">
+      {isMudanca && (
+        <Badge variant="secondary" className="gap-1">
+          <Info className="h-3 w-3" /> Custo de banda zerado automaticamente
+        </Badge>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SelectField
+          label="Subproduto"
+          value={form.subproduto}
+          onChange={v => setField("subproduto", v)}
+          options={SUBPRODUTOS}
+        />
+        <SelectField
+          label="Rede (Ponta A)"
+          value={form.rede}
+          onChange={v => setField("rede", v)}
+          options={options.redes}
+          placeholder="Selecione a rede..."
+        />
+        {isL2L && (
+          <SelectField
+            label="Rede (Ponta B)"
+            value={form.redePontaB}
+            onChange={v => setField("redePontaB", v)}
+            options={options.redes}
+            placeholder="Selecione a rede..."
+          />
+        )}
+        {!isDarkFiber && (
+          <NumField label="Banda (Mbps)" value={form.banda} onChange={v => setField("banda", v)} />
+        )}
+        <NumField label="Distância (m)" value={form.distancia} onChange={v => setField("distancia", v)} />
+        {!isL2L && !isDarkFiber && (
+          <SelectField
+            label="Bloco IP"
+            value={form.blocoIp}
+            onChange={v => setField("blocoIp", v)}
+            options={options.blocosIp}
+            placeholder="Selecione..."
+          />
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <Switch
+          checked={form.togDistancia}
+          onCheckedChange={v => setField("togDistancia", v)}
+        />
+        <Label className="text-sm">Usar Regra de Distância</Label>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {form.togDistancia && (
+          <NumField label="Custo Last Mile (R$)" value={form.custoLastMile} onChange={v => setField("custoLastMile", v)} />
+        )}
+        <NumField label="Mensalidade Last Mile (R$)" value={form.valorLastMile} onChange={v => setField("valorLastMile", v)} />
+        {isDarkFiber && (
+          <NumField label="Qtd Fibras Dark Fiber" value={form.qtdFibrasDarkFiber} onChange={v => setField("qtdFibrasDarkFiber", v)} />
+        )}
+      </div>
+
+      {isEvento && (
+        <Badge variant="secondary" className="gap-1">
+          <Info className="h-3 w-3" /> Vigência forçada para 1 mês (NT EVENTO)
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+function FirewallFields({ form, setField, options }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  options: ReturnType<typeof useFormPrecificacao>["options"];
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <SelectField
+        label="Modelo Firewall"
+        value={form.modeloFirewall}
+        onChange={v => { setField("modeloFirewall", v); setField("marcaFirewall", ""); }}
+        options={options.firewallModelos}
+      />
+      <SelectField
+        label="Marca / Licença (ANUAL)"
+        value={form.marcaFirewall}
+        onChange={v => setField("marcaFirewall", v)}
+        options={options.firewallMarcas}
+      />
+      <NumField label="Qtd Equipamentos" value={form.qtdEquipamentos} onChange={v => setField("qtdEquipamentos", v)} />
+    </div>
+  );
+}
+
+function SwitchFields({ form, setField, options }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  options: ReturnType<typeof useFormPrecificacao>["options"];
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <SelectField
+        label="Modelo Switch"
+        value={form.modeloSwitch}
+        onChange={v => setField("modeloSwitch", v)}
+        options={options.switchModelos}
+      />
+      <NumField label="Qtd Equipamentos" value={form.qtdEquipamentos} onChange={v => setField("qtdEquipamentos", v)} />
+    </div>
+  );
+}
+
+function WifiFields({ form, setField, options }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  options: ReturnType<typeof useFormPrecificacao>["options"];
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <SelectField
+        label="Modelo Wifi"
+        value={form.modeloWifi}
+        onChange={v => setField("modeloWifi", v)}
+        options={options.wifiModelos}
+      />
+      <NumField label="Qtd Equipamentos" value={form.qtdEquipamentos} onChange={v => setField("qtdEquipamentos", v)} />
+    </div>
+  );
+}
+
+function VozFields({ form, setField, options }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  options: ReturnType<typeof useFormPrecificacao>["options"];
+}) {
+  return (
+    <div className="space-y-3">
+      {form.qtdCanais > 50 && (
+        <Badge variant="destructive" className="gap-1">
+          <AlertTriangle className="h-3 w-3" /> Projeto especial — consultar área técnica de Voz
+        </Badge>
+      )}
+
+      <CollapsibleSection title="Equipamentos">
+        <div className="space-y-3">
+          {[1, 2, 3].map(slot => {
+            const eqKey = `equipamentoVoz${slot}` as keyof FormState;
+            const qtdKey = `qtdEquipamentoVoz${slot}` as keyof FormState;
+            return (
+              <div key={slot} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <SelectField
+                  label={`Equipamento ${slot}`}
+                  value={form[eqKey] as string}
+                  onChange={v => setField(eqKey, v as never)}
+                  options={options.vozEquipamentos}
+                  placeholder="Selecione..."
+                />
+                <NumField
+                  label={`Qtd Equip. ${slot}`}
+                  value={form[qtdKey] as number}
+                  onChange={v => setField(qtdKey, v as never)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="Ramais e Canais">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={v => setField("qtdRamais", v)} />
+          <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={v => setField("qtdCanais", v)} />
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="Novas Linhas e Portabilidade">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NumField label="Qtd Novas Linhas" value={form.qtdNovasLinhas} onChange={v => setField("qtdNovasLinhas", v)} />
+          <NumField label="Qtd Portabilidades" value={form.qtdPortabilidades} onChange={v => setField("qtdPortabilidades", v)} />
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="Tráfego Fixo">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={v => setField("minFixoLocal", v)} />
+          <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={v => setField("minFixoLDN", v)} />
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="Tráfego Móvel">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={v => setField("minMovelLocal", v)} />
+          <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={v => setField("minMovelLDN", v)} />
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="0800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={v => setField("min0800Movel", v)} />
+          <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={v => setField("min0800Fixo", v)} />
+        </div>
+      </CollapsibleSection>
+
+      <Separator />
+
+      <CollapsibleSection title="Internacional">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SelectField
+            label="País"
+            value={form.paisInternacional}
+            onChange={v => setField("paisInternacional", v)}
+            options={options.paises}
+            placeholder="Selecione o país..."
+          />
+          <NumField label="Min Internacionais" value={form.minInternacional} onChange={v => setField("minInternacional", v)} />
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+}
+
+function BackupFields({ form, setField }: {
+  form: FormState;
+  setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+  return (
+    <div className="max-w-xs">
+      <NumField label="Qtd TB" value={form.qtdBackupTB} onChange={v => setField("qtdBackupTB", v)} />
+    </div>
+  );
+}
+
+// ── Main Page ──
+
+export default function CalcularPage() {
+  const { session, loading: authLoading } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { form, setField, setProduto, buildPayload, loadingData, options } = useFormPrecificacao();
+  const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  if (!session || !isAdmin) return <Navigate to="/" replace />;
+
+  const handleCalcular = async () => {
+    const payload = buildPayload();
+    const result = await calcular(payload as Parameters<typeof calcular>[0]);
+    if (!result && error) {
+      toast({ title: "Erro no cálculo", description: error, variant: "destructive" });
+    }
+  };
+
+  const renderProductFields = () => {
+    const props = { form, setField, options };
+    switch (form.produto) {
+      case "Conectividade": return <ConectividadeFields {...props} />;
+      case "Firewall": return <FirewallFields {...props} />;
+      case "Switch": return <SwitchFields {...props} />;
+      case "Wifi": return <WifiFields {...props} />;
+      case "VOZ": return <VozFields {...props} />;
+      case "Backup": return <BackupFields form={form} setField={setField} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <Calculator className="h-6 w-6" />
+          Calculadora de Precificação
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Preencha os dados e calcule o valor mínimo do produto
+        </p>
+      </div>
+
+      {loadingData ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      ) : (
+        <>
+          {/* Global fields */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Dados Gerais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <SelectField
+                  label="Produto"
+                  value={form.produto}
+                  onChange={v => setProduto(v as FormState["produto"])}
+                  options={[...PRODUTOS]}
+                />
+                <NumField
+                  label="Vigência (meses)"
+                  value={form.subproduto === "NT EVENTO" ? 1 : form.vigencia}
+                  onChange={v => setField("vigencia", v)}
+                  disabled={form.subproduto === "NT EVENTO"}
+                />
+                <NumField
+                  label="ROI Vigência (meses)"
+                  value={form.roiVigencia}
+                  onChange={v => setField("roiVigencia", v)}
+                />
+                <NumField
+                  label="Taxa de Instalação (R$)"
+                  value={form.taxaInstalacao}
+                  onChange={v => setField("taxaInstalacao", v)}
+                />
+                <NumField
+                  label="Custos Adicionais (R$)"
+                  value={form.custosMateriaisAdicionais}
+                  onChange={v => setField("custosMateriaisAdicionais", v)}
+                />
+                <NumField
+                  label="Valor Opex (R$)"
+                  value={form.valorOpex}
+                  onChange={v => setField("valorOpex", v)}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <SelectField
+                  label="Motivo"
+                  value={form.motivo || "_none"}
+                  onChange={v => setField("motivo", v === "_none" ? "" : v)}
+                  options={MOTIVOS.map(m => m.value || "_none")}
+                  placeholder="Nenhum"
+                />
+                <SelectField
+                  label="Projeto Avaliado"
+                  value={form.projetoAvaliado ? "true" : "false"}
+                  onChange={v => setField("projetoAvaliado", v === "true")}
+                  options={["false", "true"]}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Product-specific fields */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">
+                Campos — {form.produto}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderProductFields()}
+            </CardContent>
+          </Card>
+
+          {/* Calculate button */}
+          <div className="flex justify-center">
+            <Button
+              size="lg"
+              className="min-w-[200px] gap-2"
+              onClick={handleCalcular}
+              disabled={calculating}
+            >
+              {calculating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Calculator className="h-4 w-4" />
+              )}
+              Calcular
+            </Button>
+          </div>
+
+          {/* Result */}
+          {resultado && (
+            <Card className={resultado.mensagem ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-primary/30"}>
+              <CardContent className="pt-6">
+                {resultado.mensagem ? (
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-amber-700 dark:text-amber-400">Atenção</p>
+                      <p className="text-sm text-amber-600 dark:text-amber-300 mt-1">{resultado.mensagem}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-3">
+                    <p className="text-sm text-muted-foreground font-medium">Valor Mínimo</p>
+                    <p className="text-3xl font-bold tabular-nums tracking-tight">
+                      {formatBRL(resultado.valorMinimo, 4)}
+                    </p>
+                    <div className="flex justify-center gap-8 pt-2 text-sm text-muted-foreground">
+                      <span>CAPEX: <span className="font-semibold text-foreground tabular-nums">{formatBRL(resultado.valorCapex)}</span></span>
+                      <span>OPEX: <span className="font-semibold text-foreground tabular-nums">{formatBRL(resultado.valorOpex)}</span></span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {error && !calculating && (
+            <Card className="border-destructive bg-destructive/5">
+              <CardContent className="pt-6 text-center text-sm text-destructive">
+                {error}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
