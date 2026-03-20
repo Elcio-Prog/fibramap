@@ -62,8 +62,8 @@ export const TABELAS: TabelaConfig[] = [
     tabela: "custos_voz_pais",
     label: "Voz Internacional",
     keyField: "pais",
-    valueFields: ["custo_final"],
-    valueLabels: ["Custo Final"],
+    valueFields: ["custo_minuto", "carga_tributaria", "custo_final"],
+    valueLabels: ["Custo Minuto", "Carga Tributária", "Custo Final"],
   },
 ];
 
