@@ -80,6 +80,7 @@ function ProtectedRoutes() {
         <Route path="/account" element={<UserSettingsPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="/admin/precificacao" element={<PrecificacaoPage />} />
+        <Route path="/admin/precificacao/calcular" element={<CalcularPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
