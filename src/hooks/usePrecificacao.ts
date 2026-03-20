@@ -174,7 +174,7 @@ export function usePrecificacao() {
     }
   }, [fetchTabela]);
 
-  const importarArquivo = useCallback(async (file: File): Promise<{ tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[]> => {
+  const importarArquivo = useCallback(async (file: File, csvTabelaFilter?: string): Promise<{ tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[]> => {
     const buffer = await file.arrayBuffer();
     const isCsv = file.name.toLowerCase().endsWith(".csv");
     const wb = XLSX.read(buffer, { type: "array", ...(isCsv ? { raw: true } : {}) });
@@ -206,10 +206,12 @@ export function usePrecificacao() {
     };
 
     if (isCsv) {
-      // CSV: single sheet — try to match by first header or iterate all configs
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      for (const config of TABELAS) {
+      const targetConfigs = csvTabelaFilter
+        ? TABELAS.filter(t => t.tabela === csvTabelaFilter)
+        : TABELAS;
+      for (const config of targetConfigs) {
         await processSheet(rows, config);
       }
     } else {
