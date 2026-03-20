@@ -16,8 +16,8 @@ export const TABELAS: TabelaConfig[] = [
     tabela: "custo_por_mega",
     label: "Custo por Mega",
     keyField: "identificacao",
-    valueFields: ["valor_link", "valor_ptt", "valor_l2l", "valor_link_full", "valor_link_flex", "valor_link_empresa"],
-    valueLabels: ["Link", "PTT", "L2L", "Link Full", "Link Flex", "Link Empresa"],
+    valueFields: ["valor_link", "valor_link_full", "valor_link_flex", "valor_link_empresa", "valor_l2l", "valor_ptt"],
+    valueLabels: ["Valor Link", "Valor Link Full", "Valor Link Flex", "Valor Link Empresa", "Valor L2L", "Valor PTT"],
   },
   {
     tabela: "taxas_link",
