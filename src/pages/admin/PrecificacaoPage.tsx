@@ -206,12 +206,13 @@ export default function PrecificacaoPage() {
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.endsWith(".xlsx")) {
-      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx são aceitos.", variant: "destructive" });
+    const ext = file.name.toLowerCase();
+    if (!ext.endsWith(".xlsx") && !ext.endsWith(".csv")) {
+      toast({ title: "Formato inválido", description: "Apenas arquivos .xlsx ou .csv são aceitos.", variant: "destructive" });
       return;
     }
     try {
-      const changes = await importarExcel(file);
+      const changes = await importarArquivo(file);
       if (changes.length === 0) {
         toast({ title: "Nenhuma alteração", description: "Os valores no arquivo são iguais aos atuais." });
       } else {
