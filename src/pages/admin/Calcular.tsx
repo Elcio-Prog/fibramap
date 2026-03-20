@@ -443,7 +443,7 @@ function ResultPanel({ resultado, calculating, error }: {
 export default function CalcularPage() {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const { form, setField, setProduto, buildPayload, loadingData, options } = useFormPrecificacao();
+  const { form, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const initialLoadDone = useRef(false);
