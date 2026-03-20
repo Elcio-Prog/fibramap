@@ -186,17 +186,37 @@ export function usePrecificacao() {
       const currentMap = new Map(currentData.map((r: any) => [r[config.keyField], r]));
       const changes: { key: string; field: string; oldVal: number; newVal: number }[] = [];
 
+      // Map column headers to indices — match by valueLabels OR valueFields
+      const headerRow = (rows[0] || []).map((h: any) => String(h ?? "").trim());
+      const fieldColMap: { field: string; col: number }[] = [];
+      for (let f = 0; f < config.valueFields.length; f++) {
+        const label = config.valueLabels[f];
+        const fieldName = config.valueFields[f];
+        const col = headerRow.findIndex(h =>
+          h.toLowerCase() === label.toLowerCase() ||
+          h.toLowerCase() === fieldName.toLowerCase()
+        );
+        if (col >= 0) {
+          fieldColMap.push({ field: fieldName, col });
+        }
+      }
+
+      // Find key column (column 0 by default, or match by keyField name)
+      const keyCol = Math.max(0, headerRow.findIndex(h =>
+        h.toLowerCase() === config.keyField.toLowerCase()
+      ));
+
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
-        const key = String(row[0] ?? "").trim();
+        const key = String(row[keyCol] ?? "").trim();
         if (!key || !currentMap.has(key)) continue;
         const current = currentMap.get(key);
-        for (let j = 0; j < config.valueFields.length; j++) {
-          const rawVal = String(row[j + 1] ?? "0").replace(",", ".");
+        for (const { field, col } of fieldColMap) {
+          const rawVal = String(row[col] ?? "0").replace(",", ".");
           const newVal = Number(rawVal) || 0;
-          const oldVal = Number(current[config.valueFields[j]]) || 0;
+          const oldVal = Number(current[field]) || 0;
           if (Math.abs(newVal - oldVal) > 0.0000001) {
-            changes.push({ key, field: config.valueFields[j], oldVal, newVal });
+            changes.push({ key, field, oldVal, newVal });
           }
         }
       }
