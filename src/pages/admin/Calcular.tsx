@@ -485,72 +485,39 @@ export default function CalcularPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left — Form */}
           <div className="flex-1 space-y-6 min-w-0">
-            {/* Global fields */}
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base">Dados Gerais</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <SelectField
-                    label="Produto"
-                    value={form.produto}
-                    onChange={v => setProduto(v as FormState["produto"])}
-                    options={[...PRODUTOS]}
-                  />
-                  <SelectField
-                    label="Vigência (meses)"
-                    value={form.subproduto === "NT EVENTO" ? "1" : String(form.vigencia)}
-                    onChange={v => {
-                      const num = Number(v) || 0;
-                      setField("vigencia", num);
-                      const roi = getRoiForVigencia(v);
-                      if (roi !== null) setField("roiVigencia", roi);
-                    }}
-                    options={VIGENCIA_OPTIONS}
-                    disabled={form.subproduto === "NT EVENTO"}
-                  />
-                  <NumField
-                    label="ROI Vigência (meses)"
-                    value={form.roiVigencia}
-                    onChange={v => setField("roiVigencia", v)}
-                  />
-                  <NumField
-                    label="Taxa de Instalação (R$)"
-                    value={form.taxaInstalacao}
-                    onChange={v => setField("taxaInstalacao", v)}
-                  />
-                  <NumField
-                    label="Custos Adicionais (R$)"
-                    value={form.custosMateriaisAdicionais}
-                    onChange={v => setField("custosMateriaisAdicionais", v)}
-                  />
-                  <NumField
-                    label="Valor Opex (R$)"
-                    value={form.valorOpex}
-                    onChange={v => setField("valorOpex", v)}
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <SelectField
-                    label="Tipo de Solicitação"
-                    value={form.motivo || "Nova Ativação"}
-                    onChange={v => setField("motivo", v)}
-                    options={TIPO_SOLICITACAO_OPTIONS}
-                  />
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Projeto Avaliado</Label>
-                    <Select value={form.projetoAvaliado ? "true" : "false"} onValueChange={v => setField("projetoAvaliado", v === "true")}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="false">Auto Avaliação</SelectItem>
-                        <SelectItem value="true">Avaliado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+             {/* Global fields */}
+             <Card>
+               <CardHeader className="pb-4">
+                 <CardTitle className="text-base">Dados Gerais</CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                   <SelectField
+                     label="Categoria NT"
+                     value={form.produto}
+                     onChange={v => setProduto(v as FormState["produto"])}
+                     options={[...PRODUTOS]}
+                   />
+                   <SelectField
+                     label="Vigência"
+                     value={form.subproduto === "NT EVENTO" ? "1" : String(form.vigencia)}
+                     onChange={v => {
+                       const num = Number(v) || 0;
+                       setField("vigencia", num);
+                       const roi = getRoiForVigencia(v);
+                       if (roi !== null) setField("roiVigencia", roi);
+                     }}
+                     options={VIGENCIA_OPTIONS}
+                     disabled={form.subproduto === "NT EVENTO"}
+                   />
+                   <NumField
+                     label="Taxa de Instalação"
+                     value={form.taxaInstalacao}
+                     onChange={v => setField("taxaInstalacao", v)}
+                   />
+                 </div>
+               </CardContent>
+             </Card>
 
             {/* Product-specific fields */}
             <Card>
