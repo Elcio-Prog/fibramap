@@ -174,18 +174,14 @@ export function usePrecificacao() {
     }
   }, [fetchTabela]);
 
-  const importarExcel = useCallback(async (file: File): Promise<{ tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[]> => {
+  const importarArquivo = useCallback(async (file: File): Promise<{ tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[]> => {
     const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer, { type: "array" });
+    const isCsv = file.name.toLowerCase().endsWith(".csv");
+    const wb = XLSX.read(buffer, { type: "array", ...(isCsv ? { raw: true } : {}) });
     const allChanges: { tabela: string; label: string; changes: { key: string; field: string; oldVal: number; newVal: number }[] }[] = [];
 
-    for (const config of TABELAS) {
-      const sheetName = wb.SheetNames.find(s => s === config.label.substring(0, 31));
-      if (!sheetName) continue;
-      const ws = wb.Sheets[sheetName];
-      const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      if (rows.length < 2) continue;
-
+    const processSheet = async (rows: any[][], config: TabelaConfig) => {
+      if (rows.length < 2) return;
       const currentData = await fetchTabela(config);
       const currentMap = new Map(currentData.map((r: any) => [r[config.keyField], r]));
       const changes: { key: string; field: string; oldVal: number; newVal: number }[] = [];
@@ -196,7 +192,8 @@ export function usePrecificacao() {
         if (!key || !currentMap.has(key)) continue;
         const current = currentMap.get(key);
         for (let j = 0; j < config.valueFields.length; j++) {
-          const newVal = Number(row[j + 1]) || 0;
+          const rawVal = String(row[j + 1] ?? "0").replace(",", ".");
+          const newVal = Number(rawVal) || 0;
           const oldVal = Number(current[config.valueFields[j]]) || 0;
           if (Math.abs(newVal - oldVal) > 0.0000001) {
             changes.push({ key, field: config.valueFields[j], oldVal, newVal });
@@ -205,6 +202,23 @@ export function usePrecificacao() {
       }
       if (changes.length > 0) {
         allChanges.push({ tabela: config.tabela, label: config.label, changes });
+      }
+    };
+
+    if (isCsv) {
+      // CSV: single sheet — try to match by first header or iterate all configs
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      for (const config of TABELAS) {
+        await processSheet(rows, config);
+      }
+    } else {
+      for (const config of TABELAS) {
+        const sheetName = wb.SheetNames.find(s => s === config.label.substring(0, 31));
+        if (!sheetName) continue;
+        const ws = wb.Sheets[sheetName];
+        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        await processSheet(rows, config);
       }
     }
     return allChanges;
