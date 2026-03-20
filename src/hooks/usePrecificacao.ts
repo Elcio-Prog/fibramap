@@ -9,6 +9,8 @@ export interface TabelaConfig {
   keyField: string;
   valueFields: string[];
   valueLabels: string[];
+  textFields?: string[];
+  textLabels?: string[];
 }
 
 export const TABELAS: TabelaConfig[] = [
@@ -37,15 +39,17 @@ export const TABELAS: TabelaConfig[] = [
     tabela: "equipamentos_valor",
     label: "Equipamentos",
     keyField: "equipamento",
-    valueFields: ["valor_final"],
-    valueLabels: ["Valor Final"],
+    valueFields: ["valor_dolar", "valor", "imposto", "valor_final"],
+    valueLabels: ["Valor Dólar", "Valor", "Imposto", "Valor Final"],
+    textFields: ["descricao"],
+    textLabels: ["Descrição"],
   },
   {
     tabela: "tabela_custos_pabx",
     label: "Custos PABX",
     keyField: "identificador",
-    valueFields: ["preco_final"],
-    valueLabels: ["Preço Final"],
+    valueFields: ["preco", "imposto", "preco_final"],
+    valueLabels: ["Preço", "Imposto", "Preço Final"],
   },
   {
     tabela: "custo_voz_geral",

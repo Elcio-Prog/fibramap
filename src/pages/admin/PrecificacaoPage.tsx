@@ -124,6 +124,9 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[280px] font-semibold">{config.keyField}</TableHead>
+              {(config.textLabels ?? []).map((label, i) => (
+                <TableHead key={`t-${i}`} className="min-w-[200px] font-semibold">{label}</TableHead>
+              ))}
               {config.valueLabels.map((label, i) => (
                 <TableHead key={i} className="min-w-[140px] font-semibold text-right">{label}</TableHead>
               ))}
@@ -132,11 +135,21 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
-              <TableRow><TableCell colSpan={config.valueFields.length + 2} className="text-center text-muted-foreground py-8">Nenhum registro encontrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={(config.textFields?.length ?? 0) + config.valueFields.length + 2} className="text-center text-muted-foreground py-8">Nenhum registro encontrado</TableCell></TableRow>
             )}
             {rows.map((row, idx) => (
               <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                 <TableCell className="font-medium text-sm">{row[config.keyField]}</TableCell>
+                {(config.textFields ?? []).map(field => (
+                  <TableCell key={field} className="p-1">
+                    <Input
+                      type="text"
+                      className="h-8 text-sm"
+                      value={row[field] ?? ""}
+                      onChange={e => handleValueChange(idx, field, e.target.value)}
+                    />
+                  </TableCell>
+                ))}
                 {config.valueFields.map(field => (
                   <TableCell key={field} className="p-1">
                     <Input
