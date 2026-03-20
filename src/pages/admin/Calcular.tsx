@@ -159,7 +159,7 @@ function ConectividadeFields({ form, setField, options }: {
             label="Bloco IP"
             value={form.blocoIp}
             onChange={v => setField("blocoIp", v)}
-            options={options.blocosIp}
+            options={BLOCO_IP_OPTIONS}
             placeholder="Selecione..."
           />
         )}
