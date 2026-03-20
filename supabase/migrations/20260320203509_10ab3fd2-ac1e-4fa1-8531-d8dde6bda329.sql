@@ -1,0 +1,1 @@
+ALTER TABLE public.vigencia_vs_roi ADD CONSTRAINT vigencia_vs_roi_meses_key UNIQUE (meses);
