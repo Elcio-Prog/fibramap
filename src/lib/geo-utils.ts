@@ -1082,11 +1082,6 @@ export interface OverpassFetchResult {
   success: boolean;
 }
 
-const OVERPASS_SERVERS = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
 
 /** Fetch highways (motorway/trunk) and railways from OSM Overpass API within a bounding box.
  *  Retries on failure using fallback servers. Returns success flag to distinguish "no highways" from "API error". */
