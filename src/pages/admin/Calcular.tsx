@@ -17,15 +17,9 @@ import {
 } from "@/components/ui/collapsible";
 import { Calculator, ChevronDown, AlertTriangle, Info, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, TIPO_SOLICITACAO_OPTIONS, PRODUTO_LINK_OPTIONS } from "@/lib/field-options";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
-
-const SUBPRODUTOS = [
-  "NT LINK DEDICADO", "NT PTT", "NT L2L", "NT LINK IP TRANSITO",
-  "NT LINK DEDICADO FULL", "NT LINK DEDICADO FLEX", "NT LINK EMPRESA",
-  "NT DARK FIBER", "NT EVENTO",
-];
 
 function formatBRL(v: number, decimais = 2) {
   return v.toLocaleString("pt-BR", {
@@ -129,10 +123,10 @@ function ConectividadeFields({ form, setField, options }: {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField
-          label="Subproduto"
+          label="Produto Link IP"
           value={form.subproduto}
           onChange={v => setField("subproduto", v)}
-          options={SUBPRODUTOS}
+          options={PRODUTO_LINK_OPTIONS}
         />
         <SelectField
           label="Rede (Ponta A)"

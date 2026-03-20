@@ -83,7 +83,7 @@ export interface FormState {
 }
 
 const defaultSpecific: Partial<FormState> = {
-  subproduto: "NT LINK DEDICADO",
+  subproduto: "NT LINK DEDICADO FULL",
   rede: "",
   redePontaB: "",
   banda: 0,
