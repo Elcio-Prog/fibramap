@@ -759,6 +759,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vigencia_vs_roi: {
+        Row: {
+          created_at: string | null
+          id: string
+          meses: string
+          roi: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          meses: string
+          roi?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          meses?: string
+          roi?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ws_batches: {
         Row: {
           created_at: string
