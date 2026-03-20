@@ -36,6 +36,7 @@ import DrilldownComparativo from "@/pages/dashboard/DrilldownComparativo";
 import DrilldownProvedores from "@/pages/dashboard/DrilldownProvedores";
 import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
 import PrecificacaoPage from "@/pages/admin/PrecificacaoPage";
+import CalcularPage from "@/pages/admin/Calcular";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ function ProtectedRoutes() {
         <Route path="/account" element={<UserSettingsPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="/admin/precificacao" element={<PrecificacaoPage />} />
+        <Route path="/admin/precificacao/calcular" element={<CalcularPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
