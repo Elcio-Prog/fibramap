@@ -329,6 +329,30 @@ export default function PrecificacaoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CSV table selector dialog */}
+      <Dialog open={!!csvFile} onOpenChange={() => { setCsvFile(null); setCsvTabela(""); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Selecionar tabela</DialogTitle>
+            <DialogDescription>Escolha para qual tabela os dados do CSV serão importados.</DialogDescription>
+          </DialogHeader>
+          <Select value={csvTabela} onValueChange={setCsvTabela}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione a tabela..." />
+            </SelectTrigger>
+            <SelectContent>
+              {TABELAS.map(t => (
+                <SelectItem key={t.tabela} value={t.tabela}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCsvFile(null); setCsvTabela(""); }}>Cancelar</Button>
+            <Button onClick={handleCsvConfirm} disabled={!csvTabela || loading}>Importar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
