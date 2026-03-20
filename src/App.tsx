@@ -35,6 +35,7 @@ import DrilldownLoteUnitario from "@/pages/dashboard/DrilldownLoteUnitario";
 import DrilldownComparativo from "@/pages/dashboard/DrilldownComparativo";
 import DrilldownProvedores from "@/pages/dashboard/DrilldownProvedores";
 import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
+import PrecificacaoPage from "@/pages/admin/PrecificacaoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
