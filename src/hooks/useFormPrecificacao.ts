@@ -287,9 +287,11 @@ export function useFormPrecificacao() {
     setProduto,
     buildPayload,
     loadingData,
+    getRoiForVigencia,
     options: {
       redes: redeOptions,
       blocosIp: blocoIpOptions,
+      vigencias: vigenciaOptions,
       firewallModelos,
       firewallMarcas,
       switchModelos,
