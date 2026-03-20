@@ -17,6 +17,11 @@ interface PaisOption {
   pais: string;
 }
 
+interface VigenciaRoiOption {
+  meses: string;
+  roi: number | null;
+}
+
 export interface FormState {
   // Global
   produto: "Conectividade" | "Firewall" | "VOZ" | "Switch" | "Wifi" | "Backup";
