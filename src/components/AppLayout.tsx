@@ -99,7 +99,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const profileDisplayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
 
-  const sections = [...baseSections, ...(isAdmin ? [adminSection] : [])];
+  const sections = [...baseSections, ...(isAdmin ? [preViabilidadeSection, adminSection] : [])];
 
   const handleSignOut = async () => {
     await signOut();
