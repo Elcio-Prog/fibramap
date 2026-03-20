@@ -205,6 +205,13 @@ export function useFormPrecificacao() {
 
   const blocoIpOptions = blocosIp.map(b => b.identificacao);
 
+  const vigenciaOptions = vigenciaRoi.map(v => v.meses);
+
+  const getRoiForVigencia = useCallback((meses: string): number | null => {
+    const match = vigenciaRoi.find(v => v.meses === meses);
+    return match?.roi ?? null;
+  }, [vigenciaRoi]);
+
   // Build payload for edge function
   const buildPayload = useCallback(() => {
     const p = form;
