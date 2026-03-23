@@ -61,7 +61,6 @@ export function useCalcularPrecificacao() {
   const calcular = useCallback(async (input: CalcInput) => {
     setLoading(true);
     setError(null);
-    setData(null);
     try {
       const { data: result, error: fnError } = await supabase.functions.invoke(
         "calcular-precificacao",
