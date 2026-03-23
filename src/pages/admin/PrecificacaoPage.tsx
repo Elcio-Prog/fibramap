@@ -317,7 +317,7 @@ function SetupTab() {
   );
 }
 
-
+export default function PrecificacaoPage() {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
   const { exportarExcel, importarArquivo, aplicarImport, loading } = usePrecificacao();
