@@ -27,6 +27,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = 
   processing: { label: "Processando", color: "bg-primary/10 text-primary", icon: Loader2 },
   paused: { label: "Pausado", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400", icon: Pause },
   processed: { label: "Concluído", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
+  completed: { label: "Concluído", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
   failed: { label: "Falhou", color: "bg-destructive/10 text-destructive", icon: AlertTriangle },
 };
 
@@ -315,7 +316,7 @@ export default function WsSearchesPage() {
         const StatusIcon = statusInfo.icon;
         const canResume = ["processing", "paused", "uploaded"].includes(latest.status) &&
           latest.processed_items < latest.total_items;
-        const isComplete = latest.status === "processed";
+        const isComplete = latest.status === "processed" || latest.status === "completed";
 
         return (
           <Card key={parentId} className="overflow-hidden">
