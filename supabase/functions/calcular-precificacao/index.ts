@@ -307,7 +307,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
       subproduto !== "PTP" &&
       (distancia ?? 0) > 0;
 
-    if (!podeCalcular && !projetoAvaliado) {
+    if (regraProjetistaAtiva && !podeCalcular && !projetoAvaliado) {
       return {
         valorMinimo: 0,
         valorCapex,
