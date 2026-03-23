@@ -1024,6 +1024,18 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.codigo_smark || ""} onSave={(v) => updateInlineField(r.item.id, "codigo_smark", v)} width="w-[80px]" />
                         </td>
+                        {/* Valor Mínimo Previsto */}
+                        <td className="px-2 py-1 whitespace-nowrap text-[10px] font-medium">
+                          {(() => {
+                            const lpu = r.final_value ?? 0;
+                            const calc = rowValorMinimo[r.item.id] ?? 0;
+                            const total = lpu + calc;
+                            if (rowCalcLoading[r.item.id]) return <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />;
+                            return total > 0
+                              ? `R$${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : "—";
+                          })()}
+                        </td>
                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
                           {dbRow?.observacoes_system || r.notes || "—"}
                         </td>
