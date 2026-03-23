@@ -970,9 +970,14 @@ export default function WsSingleSearch() {
                       <td className="px-2 py-1 text-right font-semibold text-primary">
                         {isCalc ? (
                           <Loader2 className="h-3 w-3 animate-spin inline-block" />
-                        ) : valorMin != null ? (
-                          `R$${valorMin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        ) : "—"}
+                        ) : (() => {
+                          const lpu = o.final_value ?? 0;
+                          const calc = valorMin ?? 0;
+                          const total = lpu + calc;
+                          return total > 0
+                            ? `R$${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : "—";
+                        })()}
                       </td>
                       <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
                     </tr>
