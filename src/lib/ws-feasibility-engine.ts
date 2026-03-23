@@ -473,6 +473,7 @@ async function processItem(
           nearest_point: bestNearest.point,
           route_geometry: routeGeometry,
           snap_point: snapPoint,
+          dest_snap_point: destSnapPoint,
           has_cross_ntt: provider.has_cross_ntt,
         });
       }
