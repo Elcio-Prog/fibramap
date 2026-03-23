@@ -477,7 +477,7 @@ export default function FeasibilityPage() {
             lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
             finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
             routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
-            snapPoint,
+            snapPoint, destSnapPoint,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
