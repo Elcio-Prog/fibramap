@@ -295,7 +295,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
 
   // ── 3.2.5 Dark Fiber mínimo ──
   const valorMinimoDarkFiber =
-    (distancia ?? 0) * custoMetroDarkFiber * qtdFibrasDarkFiber * (1 + pabxDespesaCAC);
+    (distancia ?? 0) * custoMetroDarkFiber * qtdFibrasDarkFiber * (1 + linkcustoCAC);
 
   let valorMinimo: number;
 
