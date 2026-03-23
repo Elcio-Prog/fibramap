@@ -1501,3 +1501,41 @@ export async function prefetchHighwaysForArea(
 
 /** Export types for external use */
 export type { OverpassWay };
+
+// ── Reverse Geocoding with cache ──
+
+interface ReverseGeoResult {
+  cidade: string | null;
+  uf: string | null;
+}
+
+const reverseGeoCache = new Map<string, ReverseGeoResult>();
+
+function reverseGeoCacheKey(lat: number, lng: number): string {
+  // Round to ~1km grid to group nearby lookups
+  return `${(lat * 100).toFixed(0)},${(lng * 100).toFixed(0)}`;
+}
+
+export async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeoResult> {
+  const key = reverseGeoCacheKey(lat, lng);
+  const cached = reverseGeoCache.get(key);
+  if (cached) return cached;
+
+  const result: ReverseGeoResult = { cidade: null, uf: null };
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1&accept-language=pt-BR`
+    );
+    const data = await res.json();
+    if (data?.address) {
+      result.cidade = data.address.city || data.address.town || data.address.municipality || null;
+      result.uf = data.address.state ? data.address.state.substring(0, 2).toUpperCase() : null;
+      if (data.address["ISO3166-2-lvl4"]) {
+        result.uf = data.address["ISO3166-2-lvl4"].replace("BR-", "");
+      }
+    }
+  } catch {}
+
+  reverseGeoCache.set(key, result);
+  return result;
+}

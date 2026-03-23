@@ -16,6 +16,7 @@ import {
   closedLineToPolygon,
 } from "@/lib/geo-utils";
 import { processWsSingleItem, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
+import { reverseGeocode } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
