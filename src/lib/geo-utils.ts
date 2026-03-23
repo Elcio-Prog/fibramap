@@ -355,7 +355,7 @@ export async function findBestConnectionPointByRoute(
     candidate: ConnectionCandidate,
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
-): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any } | null> {
+): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
@@ -390,6 +390,8 @@ export async function findBestConnectionPointByRoute(
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any } }
     | null = null;
+  let routeFetchSucceeded = 0;
+  let routeFilterRejected = 0;
 
   for (const candidate of searchList) {
     let route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
@@ -399,10 +401,14 @@ export async function findBestConnectionPointByRoute(
       route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
     }
     if (!route) continue;
+    routeFetchSucceeded++;
 
     if (routeFilter) {
       const accepted = await routeFilter(candidate, route);
-      if (!accepted) continue;
+      if (!accepted) {
+        routeFilterRejected++;
+        continue;
+      }
     }
 
     if (!best || route.distance < best.route.distance) {
@@ -430,15 +436,20 @@ export async function findBestConnectionPointByRoute(
       },
       routeDistance: best.route.distance,
       routeGeometry: best.route.geometry,
+      verificationPending: false,
     };
   }
 
-  // With a route filter, not finding an accepted candidate means no viable route among searched candidates
-  if (routeFilter) return null;
+  // With a route filter, only return null when we actually managed to compute routes
+  // and all of them were rejected by technical rules. If routing was unavailable,
+  // fall back to nearest candidate and flag the result for revalidation instead of
+  // producing a false negative.
+  if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
   // If routing fails for all candidates, fallback to nearest candidate by straight-line
   const fallback = preFiltered[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
+  const verificationPending = routeFetchSucceeded === 0;
 
   return {
     taResult: {
@@ -456,6 +467,7 @@ export async function findBestConnectionPointByRoute(
     },
     routeDistance: fallback.distance,
     routeGeometry: null,
+    verificationPending,
   };
 }
 
