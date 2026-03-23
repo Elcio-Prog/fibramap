@@ -345,6 +345,7 @@ async function processItem(
               ta_info: taNote,
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
+              snap_point: cpByRoute.snapPoint,
               is_own_network: true,
               is_check_om: verificationPending,
             });
