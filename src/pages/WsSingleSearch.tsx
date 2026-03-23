@@ -50,7 +50,7 @@ interface RowPricingParams {
 
 const defaultRowPricing: RowPricingParams = {
   produto: "NT LINK DEDICADO FULL",
-  vigencia: "24",
+  vigencia: "",
   taxaInstalacao: "0",
   velocidade: "",
   blocoIp: "",
@@ -678,7 +678,7 @@ export default function WsSingleSearch() {
             </div>
             <div>
               <Label>Velocidade (Mbps)</Label>
-              <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
+              <Input type="number" min="0" placeholder="100" value={velocidade} onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setVelocidade(v); }} />
             </div>
           </div>
 
@@ -928,18 +928,20 @@ export default function WsSingleSearch() {
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Input
                           type="number"
+                          min="0"
                           className="h-6 text-[10px] w-[80px] border-dashed"
                           value={rp.taxaInstalacao}
-                          onChange={e => setRowField(i, "taxaInstalacao", e.target.value)}
+                          onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "taxaInstalacao", v); }}
                         />
                       </td>
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Input
                           type="number"
+                          min="0"
                           className="h-6 text-[10px] w-[70px] border-dashed"
                           value={rp.velocidade}
                           placeholder={velocidade || "MB"}
-                          onChange={e => setRowField(i, "velocidade", e.target.value)}
+                          onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "velocidade", v); }}
                         />
                       </td>
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
