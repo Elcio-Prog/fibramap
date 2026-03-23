@@ -159,6 +159,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       <NavLink
                         key={l.to}
                         to={l.to}
+                        end
                         onClick={() => setMobileOpen(false)}
                         className={({ isActive }) =>
                           cn(
