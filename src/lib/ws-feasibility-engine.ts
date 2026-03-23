@@ -287,6 +287,7 @@ async function processItem(
 
           if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
             const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
+            const verificationPending = !!cpByRoute.verificationPending;
             allOptions.push({
               stage: "Rede Própria",
               provider_name: netTurboProvider.name,
@@ -295,11 +296,14 @@ async function processItem(
               distance_m: Math.round(cpByRoute.routeDistance),
               lpu_value: null,
               final_value: null,
-              notes: `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
+              notes: verificationPending
+                ? `Caixa/TA próxima encontrada a ${Math.round(cpByRoute.routeDistance)}m em linha reta, mas a validação automática de rota ficou indisponível nesta tentativa. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`
+                : `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
               ta_info: taNote,
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
               is_own_network: true,
+              is_check_om: verificationPending,
             });
           } else if (lastBlockedMsg) {
             allOptions.push({

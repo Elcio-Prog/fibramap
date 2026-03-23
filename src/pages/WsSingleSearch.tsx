@@ -266,10 +266,13 @@ export default function WsSingleSearch() {
         result = await executeSearch(geo);
       }
 
-      // Auto-retry if NTT own network wasn't found but should have been
-      // (indicates OSRM/Overpass transient failure on first pass)
+      // Auto-retry if NTT own network wasn't found or if validation hit a transient service issue
       const hasNttOption = result.options.some(o => o.is_own_network);
-      if (!hasNttOption && result.options.length >= 0) {
+      const hasTransientOwnNetworkIssue = result.options.some(o =>
+        o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
+      );
+
+      if ((!hasNttOption || hasTransientOwnNetworkIssue) && result.options.length >= 0) {
         // Check if there are NTT elements nearby (straight-line) that should have been found
         const netTurboProvider = providers?.find(p => p.name.toLowerCase().includes("net turbo"));
         if (netTurboProvider) {
@@ -285,8 +288,15 @@ export default function WsSingleSearch() {
             console.info("Busca unitária: caixas NTT próximas detectadas mas não encontradas na busca. Retentando...");
             await new Promise(r => setTimeout(r, 1200));
             const retryResult = await executeSearch(geo);
-            // Use retry result if it found NTT options or more total options
-            if (retryResult.options.some(o => o.is_own_network) || retryResult.options.length > result.options.length) {
+            const retryResolvedTransientIssue = !retryResult.options.some(o =>
+              o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
+            );
+            // Use retry result if it found NTT options, improved the transient state, or has more total options
+            if (
+              retryResult.options.some(o => o.is_own_network) ||
+              retryResolvedTransientIssue ||
+              retryResult.options.length > result.options.length
+            ) {
               result = retryResult;
             }
           }
