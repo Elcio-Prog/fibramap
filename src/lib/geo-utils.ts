@@ -771,21 +771,29 @@ export async function getRouteDistance(
     return geometry;
   };
 
-  // Snap origin to nearest road to capture off-road offset (e.g. inside a building)
-  const snapped = await snapToRoad(fromLat, fromLng);
+  // Snap origin and destination to nearest road to capture off-road offsets
+  const [snapped, snappedDest] = await Promise.all([
+    snapToRoad(fromLat, fromLng),
+    snapToRoad(toLat, toLng),
+  ]);
   const snapLat = snapped?.lat ?? fromLat;
   const snapLng = snapped?.lng ?? fromLng;
   const snapOffsetMeters = snapped?.offsetMeters ?? 0;
-  // snapPoint is only set when there is a meaningful offset (> 1m)
   const snapPoint: [number, number] | undefined =
     snapped && snapOffsetMeters > 1 ? [snapped.lat, snapped.lng] : undefined;
 
-  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> => {
+  const destSnapLat = snappedDest?.lat ?? toLat;
+  const destSnapLng = snappedDest?.lng ?? toLng;
+  const destSnapOffsetMeters = snappedDest?.offsetMeters ?? 0;
+  const destSnapPoint: [number, number] | undefined =
+    snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
+
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
       const [forwardRoutes, reverseRoutes] = await Promise.all([
-        fetchDrivingAlternatives(snapLat, snapLng, toLat, toLng),
-        fetchDrivingAlternatives(toLat, toLng, snapLat, snapLng),
+        fetchDrivingAlternatives(snapLat, snapLng, destSnapLat, destSnapLng),
+        fetchDrivingAlternatives(destSnapLat, destSnapLng, snapLat, snapLng),
       ]);
 
       // null means rate-limited
@@ -801,8 +809,9 @@ export async function getRouteDistance(
       const best = normalized[0];
       return {
         ...best,
-        distance: best.distance + snapOffsetMeters,
+        distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
         snapPoint,
+        destSnapPoint,
       };
     } finally {
       _osrmRelease();
