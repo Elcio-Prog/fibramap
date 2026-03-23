@@ -878,9 +878,9 @@ export default function WsSingleSearch() {
                           type="radio"
                           name="viability-option"
                           checked={selectedOptionIdx === i}
-                          onChange={() => setSelectedOptionIdx(i)}
-                          
-                          className="h-3.5 w-3.5 accent-primary"
+                          onClick={() => setSelectedOptionIdx(selectedOptionIdx === i ? null : i)}
+                          readOnly
+                          className="h-3.5 w-3.5 accent-primary cursor-pointer"
                         />
                       </td>
                       <td className="px-2 py-1">{i + 1}</td>
