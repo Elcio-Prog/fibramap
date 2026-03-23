@@ -184,7 +184,7 @@ async function loadAllCosts(
 
 // ── Calculation per product ─────────────────────────────────────────────────
 
-function calcConectividade(input: CalcInput, db: DbCosts): CalcOutput {
+function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva = false): CalcOutput {
   const {
     subproduto = "",
     rede,
@@ -307,7 +307,7 @@ function calcConectividade(input: CalcInput, db: DbCosts): CalcOutput {
       subproduto !== "PTP" &&
       (distancia ?? 0) > 0;
 
-    if (!podeCalcular && !projetoAvaliado) {
+    if (regraProjetistaAtiva && !podeCalcular && !projetoAvaliado) {
       return {
         valorMinimo: 0,
         valorCapex,
@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
     let result: CalcOutput;
     switch (input.produto) {
       case "Conectividade":
-        result = calcConectividade(input, db);
+        result = calcConectividade(input, db, regraProjetistaAtiva);
         break;
       case "Firewall":
         result = calcFirewall(input, db);
