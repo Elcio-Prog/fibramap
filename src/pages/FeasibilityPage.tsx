@@ -80,6 +80,7 @@ interface FeasibilityResult {
   highwayMessage?: string;
   providerRules?: ProviderRules;
   checkOmBoxName?: string;
+  snapPoint?: [number, number]; // lat/lng of the snapped road point (off-road origin)
 }
 
 export default function FeasibilityPage() {
@@ -279,6 +280,7 @@ export default function FeasibilityPage() {
           let cpflMessage: string | undefined = undefined;
           let highwayBlocked = false;
           let highwayMessage: string | undefined = undefined;
+          let snapPoint: [number, number] | undefined = undefined;
 
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
@@ -331,6 +333,7 @@ export default function FeasibilityPage() {
               nearestPt = cpByRoute.taResult.point;
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
+              snapPoint = cpByRoute.snapPoint;
               isViableNT = distance <= maxDist;
             } else if (lastBlocked) {
               isViableNT = false;
@@ -370,7 +373,7 @@ export default function FeasibilityPage() {
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; }
+                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
                 else return null;
               } catch { return null; }
               // Also check highway/railway for fallback route using cached data
@@ -418,7 +421,7 @@ export default function FeasibilityPage() {
             status: isBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
-            highwayBlocked, highwayMessage, providerRules,
+            highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -452,9 +455,10 @@ export default function FeasibilityPage() {
           const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
           let distance = bestNearest.distance;
           let routeGeometry: any = null;
+          let snapPoint: [number, number] | undefined = undefined;
           try {
             const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-            if (route) { distance = route.distance; routeGeometry = route.geometry; }
+            if (route) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
           } catch {}
 
           const tooFar = distance > maxDist * 2;
@@ -469,6 +473,7 @@ export default function FeasibilityPage() {
             lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
             finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
             routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
+            snapPoint,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -807,6 +812,22 @@ function ResultCard({
 
     if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint && r.routeGeometry) {
       const routeColor = r.isOwnNetwork ? "#3b82f6" : r.status === "outside_viable" ? "#22c55e" : "#ef4444";
+
+      // Draw off-road segment: pin → snapped road point (gray dashed line)
+      if (r.snapPoint) {
+        L.polyline(
+          [
+            [r.lat, r.lng],
+            [r.snapPoint[0], r.snapPoint[1]],
+          ],
+          {
+            color: "#6b7280",
+            weight: 2,
+            opacity: 0.7,
+            dashArray: "4 6",
+          }
+        ).addTo(map);
+      }
 
       L.geoJSON(r.routeGeometry, {
         style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),

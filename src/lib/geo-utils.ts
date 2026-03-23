@@ -378,7 +378,7 @@ export async function findBestConnectionPointByRoute(
     candidate: ConnectionCandidate,
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
-): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean } | null> {
+): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; snapPoint?: [number, number] } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
@@ -411,7 +411,7 @@ export async function findBestConnectionPointByRoute(
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
   let best:
-    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any } }
+    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number] } }
     | null = null;
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
@@ -459,6 +459,7 @@ export async function findBestConnectionPointByRoute(
       },
       routeDistance: best.route.distance,
       routeGeometry: best.route.geometry,
+      snapPoint: best.route.snapPoint,
       verificationPending: false,
     };
   }
@@ -694,12 +695,41 @@ function _osrmRelease(): void {
   _osrmInFlight = Math.max(0, _osrmInFlight - 1);
 }
 
+/**
+ * Snaps a lat/lng point to the nearest road using OSRM nearest endpoint.
+ * Returns the snapped coordinates and distance (meters) from original to snapped point.
+ * Returns null on failure — callers must handle gracefully.
+ */
+async function snapToRoad(
+  lat: number,
+  lng: number
+): Promise<{ lat: number; lng: number; offsetMeters: number } | null> {
+  try {
+    const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.code === "Ok" && data.waypoints?.length > 0) {
+      const wp = data.waypoints[0];
+      const [snappedLng, snappedLat] = wp.location;
+      const offsetMeters: number = wp.distance ?? 0;
+      return { lat: snappedLat, lng: snappedLng, offsetMeters };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
-): Promise<{ distance: number; geometry: any } | null> {
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> {
   // Check cache first
   const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
   const cachedTs = _osrmCacheTimestamps.get(cacheKey);
@@ -741,12 +771,21 @@ export async function getRouteDistance(
     return geometry;
   };
 
-  const attemptFetch = async (): Promise<{ distance: number; geometry: any } | null> => {
+  // Snap origin to nearest road to capture off-road offset (e.g. inside a building)
+  const snapped = await snapToRoad(fromLat, fromLng);
+  const snapLat = snapped?.lat ?? fromLat;
+  const snapLng = snapped?.lng ?? fromLng;
+  const snapOffsetMeters = snapped?.offsetMeters ?? 0;
+  // snapPoint is only set when there is a meaningful offset (> 1m)
+  const snapPoint: [number, number] | undefined =
+    snapped && snapOffsetMeters > 1 ? [snapped.lat, snapped.lng] : undefined;
+
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
       const [forwardRoutes, reverseRoutes] = await Promise.all([
-        fetchDrivingAlternatives(fromLat, fromLng, toLat, toLng),
-        fetchDrivingAlternatives(toLat, toLng, fromLat, fromLng),
+        fetchDrivingAlternatives(snapLat, snapLng, toLat, toLng),
+        fetchDrivingAlternatives(toLat, toLng, snapLat, snapLng),
       ]);
 
       // null means rate-limited
@@ -759,7 +798,12 @@ export async function getRouteDistance(
 
       if (normalized.length === 0) return null;
       normalized.sort((a, b) => a.distance - b.distance);
-      return normalized[0];
+      const best = normalized[0];
+      return {
+        ...best,
+        distance: best.distance + snapOffsetMeters,
+        snapPoint,
+      };
     } finally {
       _osrmRelease();
     }
