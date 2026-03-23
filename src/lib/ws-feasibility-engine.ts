@@ -467,6 +467,7 @@ async function processItem(
           notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
           nearest_point: bestNearest.point,
           route_geometry: routeGeometry,
+          snap_point: snapPoint,
           has_cross_ntt: provider.has_cross_ntt,
         });
       }
