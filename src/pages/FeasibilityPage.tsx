@@ -373,7 +373,7 @@ export default function FeasibilityPage() {
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; }
+                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
                 else return null;
               } catch { return null; }
               // Also check highway/railway for fallback route using cached data
