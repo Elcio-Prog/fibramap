@@ -312,7 +312,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
         valorMinimo: 0,
         valorCapex,
         valorOpex: 0,
-        mensagem: "O valor mínimo depende da distância, favor aguarde a avaliação",
+        mensagem: "Favor aguarde a análise de um validador",
       };
     }
 
