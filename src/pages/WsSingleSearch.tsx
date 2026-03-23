@@ -851,7 +851,7 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-right">Distância</th>
                     <th className="px-2 py-1.5 text-right">Valor Final</th>
-                    <th className="px-2 py-1.5 text-left">TA/CE</th>
+                    
                     <th className="px-2 py-1.5 text-left min-w-[130px]">Produto Link IP</th>
                     <th className="px-2 py-1.5 text-left min-w-[80px]">Vigência</th>
                     <th className="px-2 py-1.5 text-left min-w-[90px]">Taxa Instal.</th>
@@ -871,8 +871,7 @@ export default function WsSingleSearch() {
                     return (
                     <tr
                       key={i}
-                      className={`border-t cursor-pointer ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
-                      onClick={() => setSelectedOptionIdx(selectedOptionIdx === i ? null : i)}
+                      className={`border-t ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
                     >
                       <td className="px-2 py-1 text-center">
                         <input
@@ -880,7 +879,7 @@ export default function WsSingleSearch() {
                           name="viability-option"
                           checked={selectedOptionIdx === i}
                           onChange={() => setSelectedOptionIdx(i)}
-                          onClick={(e) => e.stopPropagation()}
+                          
                           className="h-3.5 w-3.5 accent-primary"
                         />
                       </td>
@@ -899,7 +898,7 @@ export default function WsSingleSearch() {
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
                       <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
-                      <td className="px-2 py-1 max-w-[120px] truncate">{o.ta_info || "—"}</td>
+                      
                       {/* Pricing parameter columns */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.produto} onValueChange={v => setRowField(i, "produto", v)}>
