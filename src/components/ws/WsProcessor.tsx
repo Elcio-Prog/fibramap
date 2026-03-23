@@ -124,8 +124,74 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
   const { data: preProviders, isLoading: loadingPreProv } = usePreProviders();
   const { data: preProviderCities, isLoading: loadingPreCities } = useAllPreProviderCities();
+  const { options: formOptions } = useFormPrecificacao();
 
   const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities;
+
+  // Pricing calculation state per item
+  const [rowValorMinimo, setRowValorMinimo] = useState<Record<string, number | null>>({});
+  const [rowCalcLoading, setRowCalcLoading] = useState<Record<string, boolean>>({});
+  const calcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const calcularRowPricing = useCallback(async (itemId: string, dbRow: any, distanceM: number | null) => {
+    const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
+    const vigencia = dbRow?.vigencia ? Number(dbRow.vigencia) : 0;
+    const taxaInstalacao = dbRow?.taxa_instalacao ? Number(dbRow.taxa_instalacao) : 0;
+    const velocidade = dbRow?.velocidade_mbps ? Number(dbRow.velocidade_mbps) : 0;
+    const blocoIp = dbRow?.bloco_ip || undefined;
+    const tecnologia = dbRow?.tecnologia || "GPON";
+    const cidadePontaA = dbRow?.cidade_a || "";
+
+    if (!vigencia || !velocidade) {
+      setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+      return;
+    }
+
+    setRowCalcLoading(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const payload = {
+        produto: "Conectividade" as const,
+        subproduto: produto,
+        vigencia,
+        roiVigencia: 24,
+        taxaInstalacao,
+        custosMateriaisAdicionais: 0,
+        projetoAvaliado: false,
+        valorOpex: 0,
+        rede: cidadePontaA || undefined,
+        banda: velocidade,
+        distancia: distanceM ?? 0,
+        togDistancia: true,
+        blocoIp,
+        custoLastMile: 0,
+        valorLastMile: 0,
+        tecnologia,
+      };
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "calcular-precificacao",
+        { body: payload }
+      );
+      if (fnError || result?.error) {
+        setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+      } else {
+        setRowValorMinimo(prev => ({ ...prev, [itemId]: result.valorMinimo }));
+      }
+    } catch {
+      setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+    } finally {
+      setRowCalcLoading(prev => ({ ...prev, [itemId]: false }));
+    }
+  }, []);
+
+  // Trigger recalc when inline fields change
+  const triggerPricingRecalc = useCallback((itemId: string) => {
+    clearTimeout(calcTimers.current[itemId]);
+    calcTimers.current[itemId] = setTimeout(() => {
+      const dbRow = dbRows[itemId];
+      const r = results?.find(res => res.item.id === itemId);
+      calcularRowPricing(itemId, dbRow, r?.distance_m ?? null);
+    }, 600);
+  }, [dbRows, results, calcularRowPricing]);
 
   // Build pre-providers with cities for engine
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
