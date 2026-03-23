@@ -694,12 +694,41 @@ function _osrmRelease(): void {
   _osrmInFlight = Math.max(0, _osrmInFlight - 1);
 }
 
+/**
+ * Snaps a lat/lng point to the nearest road using OSRM nearest endpoint.
+ * Returns the snapped coordinates and distance (meters) from original to snapped point.
+ * Returns null on failure — callers must handle gracefully.
+ */
+async function snapToRoad(
+  lat: number,
+  lng: number
+): Promise<{ lat: number; lng: number; offsetMeters: number } | null> {
+  try {
+    const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.code === "Ok" && data.waypoints?.length > 0) {
+      const wp = data.waypoints[0];
+      const [snappedLng, snappedLat] = wp.location;
+      const offsetMeters: number = wp.distance ?? 0;
+      return { lat: snappedLat, lng: snappedLng, offsetMeters };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getRouteDistance(
   fromLat: number,
   fromLng: number,
   toLat: number,
   toLng: number
-): Promise<{ distance: number; geometry: any } | null> {
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> {
   // Check cache first
   const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
   const cachedTs = _osrmCacheTimestamps.get(cacheKey);
