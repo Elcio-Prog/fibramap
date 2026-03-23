@@ -797,7 +797,12 @@ export async function getRouteDistance(
 
       if (normalized.length === 0) return null;
       normalized.sort((a, b) => a.distance - b.distance);
-      return normalized[0];
+      const best = normalized[0];
+      return {
+        ...best,
+        distance: best.distance + snapOffsetMeters,
+        snapPoint,
+      };
     } finally {
       _osrmRelease();
     }
