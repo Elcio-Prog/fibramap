@@ -256,36 +256,68 @@ async function processItem(
           is_own_network: true,
         });
       } else {
-        // Tentar por rota
+        // === FASE 1: Pré-verificação por raio ===
+        // Verifica se QUALQUER elemento NTT (cabo, caixa, polígono) existe dentro de 5km.
+        // Se sim, confirma presença de rede e habilita retries agressivos na Fase 2.
+        const NTT_PRESCAN_RADIUS = 5000; // 5km
+        const nttNetworkNearby = hasNetworkInRadius(lat, lng, elMapped, NTT_PRESCAN_RADIUS);
+        const MAX_ATTEMPTS = nttNetworkNearby ? 3 : 1; // Retry agressivo se rede confirmada
+        
+        console.log(`[WS] NTT Phase 1: network within ${NTT_PRESCAN_RADIUS}m = ${nttNetworkNearby}. Will attempt up to ${MAX_ATTEMPTS} route searches.`);
+
+        // === FASE 2: Busca detalhada por rota com retries ===
         try {
           let lastBlockedMsg = "";
-          const cpByRoute = await findBestConnectionPointByRoute(
-            lat,
-            lng,
-            elMapped,
-            netTurboProvider.max_lpu_distance_m,
-            rules,
-            10,
-            async (_candidate, route) => {
-              if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
-                const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
-                if (cpflCheck.crosses) {
-                  lastBlockedMsg = cpflCheck.message || "Cruzamento CPFL";
-                  return false;
-                }
-              }
-
-              if (rules.regras_bloquear_cruzamento_rodovia && route.geometry && !highwayVerificationPending) {
-                const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
-                if (hwCheck.blocked) {
-                  lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
-                  return false;
-                }
-              }
-
-              return true;
+          let cpByRoute: Awaited<ReturnType<typeof findBestConnectionPointByRoute>> = null;
+          
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            if (attempt > 1) {
+              // Wait before retry — give OSRM time to recover
+              const delay = 1500 + (attempt - 1) * 1000; // 1.5s, 2.5s
+              console.log(`[WS] NTT Phase 2: retry attempt ${attempt}/${MAX_ATTEMPTS} after ${delay}ms delay...`);
+              await new Promise(r => setTimeout(r, delay));
             }
-          );
+            
+            lastBlockedMsg = "";
+            cpByRoute = await findBestConnectionPointByRoute(
+              lat,
+              lng,
+              elMapped,
+              netTurboProvider.max_lpu_distance_m,
+              rules,
+              10,
+              async (_candidate, route) => {
+                if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
+                  const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
+                  if (cpflCheck.crosses) {
+                    lastBlockedMsg = cpflCheck.message || "Cruzamento CPFL";
+                    return false;
+                  }
+                }
+
+                if (rules.regras_bloquear_cruzamento_rodovia && route.geometry && !highwayVerificationPending) {
+                  const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
+                  if (hwCheck.blocked) {
+                    lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
+                    return false;
+                  }
+                }
+
+                return true;
+              }
+            );
+
+            // Se encontrou resultado viável (com rota real, não fallback), pode parar
+            if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m && !cpByRoute.verificationPending) {
+              console.log(`[WS] NTT Phase 2: found viable box on attempt ${attempt} at ${Math.round(cpByRoute.routeDistance)}m`);
+              break;
+            }
+            
+            // Se é a última tentativa e tem verificationPending, aceita o fallback
+            if (attempt === MAX_ATTEMPTS) {
+              console.log(`[WS] NTT Phase 2: exhausted ${MAX_ATTEMPTS} attempts. Using best available result.`);
+            }
+          }
 
           if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
             const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
@@ -341,9 +373,25 @@ async function processItem(
                 distance_m: Math.round(nearestAnyBox.distance),
                 lpu_value: null,
                 final_value: null,
-                notes: `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma.`,
+                notes: nttNetworkNearby
+                  ? `Rede NTT confirmada na região (raio 5km), porém nenhuma caixa apta no raio técnico. Checar com O&M.`
+                  : `Caixa próxima ao cliente, porém indisponível. Checar com O&M a disponibilidade da mesma.`,
                 ta_info: `${nearestAnyBox.tipo}: ${nearestAnyBox.nome}`,
                 nearest_point: nearestAnyBox.point,
+                is_own_network: true,
+                is_check_om: true,
+              });
+            } else if (nttNetworkNearby) {
+              // Rede NTT confirmada no raio mas nenhuma caixa TA/CE encontrada
+              allOptions.push({
+                stage: "Rede Própria",
+                provider_name: netTurboProvider.name,
+                provider_id: netTurboProvider.id,
+                provider_color: netTurboProvider.color,
+                distance_m: netTurboProvider.max_lpu_distance_m,
+                lpu_value: null,
+                final_value: null,
+                notes: `Rede NTT confirmada na região (raio 5km), mas nenhuma caixa (TA/CE) disponível no raio técnico de ${netTurboProvider.max_lpu_distance_m}m. Checar com O&M a possibilidade de expansão.`,
                 is_own_network: true,
                 is_check_om: true,
               });
