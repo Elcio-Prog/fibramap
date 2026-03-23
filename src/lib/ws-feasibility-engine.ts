@@ -236,6 +236,7 @@ async function processItem(
       ]);
       const cachedWays = overpassResult.ways;
       const overpassFailed = !overpassResult.success;
+      const highwayVerificationPending = rules.regras_bloquear_cruzamento_rodovia && overpassFailed;
 
       if (inside) {
         const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
@@ -273,7 +274,7 @@ async function processItem(
                 }
               }
 
-              if (rules.regras_bloquear_cruzamento_rodovia && route.geometry) {
+              if (rules.regras_bloquear_cruzamento_rodovia && route.geometry && !highwayVerificationPending) {
                 const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
                 if (hwCheck.blocked) {
                   lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
@@ -287,7 +288,14 @@ async function processItem(
 
           if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
             const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
-            const verificationPending = !!cpByRoute.verificationPending;
+            const verificationPending = !!cpByRoute.verificationPending || highwayVerificationPending;
+            const pendingReasons = [
+              cpByRoute.verificationPending ? "a validação automática de rota ficou indisponível nesta tentativa" : null,
+              highwayVerificationPending ? "a verificação de cruzamento de rodovias/ferrovias ficou indisponível nesta tentativa" : null,
+            ].filter(Boolean).join(" e ");
+            const distanceLabel = cpByRoute.verificationPending
+              ? `${Math.round(cpByRoute.routeDistance)}m em linha reta`
+              : `${Math.round(cpByRoute.routeDistance)}m`;
             allOptions.push({
               stage: "Rede Própria",
               provider_name: netTurboProvider.name,
@@ -297,7 +305,7 @@ async function processItem(
               lpu_value: null,
               final_value: null,
               notes: verificationPending
-                ? `Caixa/TA próxima encontrada a ${Math.round(cpByRoute.routeDistance)}m em linha reta, mas a validação automática de rota ficou indisponível nesta tentativa. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`
+                ? `Caixa/TA próxima encontrada a ${distanceLabel}, mas ${pendingReasons}. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`
                 : `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
               ta_info: taNote,
               nearest_point: cpByRoute.taResult.point,
