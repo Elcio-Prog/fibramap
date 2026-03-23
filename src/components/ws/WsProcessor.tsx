@@ -639,7 +639,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   });
 
   const canResume = (batchStatus === "processing" || batchStatus === "paused" || batchStatus === "uploaded") && processedCount < totalItems;
-  const isComplete = batchStatus === "processed";
+  const isComplete = batchStatus === "processed" || batchStatus === "completed";
 
   // Selection helpers
   const selectableIds = useMemo(() => {
