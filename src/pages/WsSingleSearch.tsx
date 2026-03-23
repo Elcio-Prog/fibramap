@@ -871,8 +871,7 @@ export default function WsSingleSearch() {
                     return (
                     <tr
                       key={i}
-                      className={`border-t cursor-pointer ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
-                      onClick={() => setSelectedOptionIdx(selectedOptionIdx === i ? null : i)}
+                      className={`border-t ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
                     >
                       <td className="px-2 py-1 text-center">
                         <input
