@@ -16,7 +16,6 @@ import {
   closedLineToPolygon,
 } from "@/lib/geo-utils";
 import { processWsSingleItem, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
-import { reverseGeocode } from "@/lib/geo-utils";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -264,9 +263,15 @@ export default function WsSingleSearch() {
       ufResolved = cepData.uf;
     } else {
       try {
-        const revResult = await reverseGeocode(geo.lat, geo.lng);
-        cidadeResolved = revResult.cidade;
-        ufResolved = revResult.uf;
+        const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+        const revData = await revRes.json();
+        if (revData?.address) {
+          cidadeResolved = revData.address.city || revData.address.town || revData.address.municipality || null;
+          ufResolved = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
+          if (revData.address["ISO3166-2-lvl4"]) {
+            ufResolved = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
+          }
+        }
       } catch {}
     }
 
