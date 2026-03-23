@@ -290,12 +290,18 @@ export default function PrecificacaoPage() {
         </div>
       </div>
 
-      <Tabs defaultValue={TABELAS[0].tabela}>
+      <Tabs defaultValue="setup">
         <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="setup" className="text-xs sm:text-sm">
+            <Settings className="h-3.5 w-3.5 mr-1" /> Setup
+          </TabsTrigger>
           {TABELAS.map(t => (
             <TabsTrigger key={t.tabela} value={t.tabela} className="text-xs sm:text-sm">{t.label}</TabsTrigger>
           ))}
         </TabsList>
+        <TabsContent value="setup">
+          <SetupTab />
+        </TabsContent>
         {TABELAS.map(t => (
           <TabsContent key={t.tabela} value={t.tabela}>
             <TabelaTab config={t} />
