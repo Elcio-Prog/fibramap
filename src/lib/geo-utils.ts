@@ -378,7 +378,7 @@ export async function findBestConnectionPointByRoute(
     candidate: ConnectionCandidate,
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
-): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; snapPoint?: [number, number] } | null> {
+): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
@@ -411,7 +411,7 @@ export async function findBestConnectionPointByRoute(
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
   let best:
-    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number] } }
+    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
     | null = null;
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
@@ -460,6 +460,7 @@ export async function findBestConnectionPointByRoute(
       routeDistance: best.route.distance,
       routeGeometry: best.route.geometry,
       snapPoint: best.route.snapPoint,
+      destSnapPoint: best.route.destSnapPoint,
       verificationPending: false,
     };
   }
@@ -729,7 +730,7 @@ export async function getRouteDistance(
   fromLng: number,
   toLat: number,
   toLng: number
-): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> {
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   // Check cache first
   const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
   const cachedTs = _osrmCacheTimestamps.get(cacheKey);
@@ -771,21 +772,29 @@ export async function getRouteDistance(
     return geometry;
   };
 
-  // Snap origin to nearest road to capture off-road offset (e.g. inside a building)
-  const snapped = await snapToRoad(fromLat, fromLng);
+  // Snap origin and destination to nearest road to capture off-road offsets
+  const [snapped, snappedDest] = await Promise.all([
+    snapToRoad(fromLat, fromLng),
+    snapToRoad(toLat, toLng),
+  ]);
   const snapLat = snapped?.lat ?? fromLat;
   const snapLng = snapped?.lng ?? fromLng;
   const snapOffsetMeters = snapped?.offsetMeters ?? 0;
-  // snapPoint is only set when there is a meaningful offset (> 1m)
   const snapPoint: [number, number] | undefined =
     snapped && snapOffsetMeters > 1 ? [snapped.lat, snapped.lng] : undefined;
 
-  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> => {
+  const destSnapLat = snappedDest?.lat ?? toLat;
+  const destSnapLng = snappedDest?.lng ?? toLng;
+  const destSnapOffsetMeters = snappedDest?.offsetMeters ?? 0;
+  const destSnapPoint: [number, number] | undefined =
+    snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
+
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
       const [forwardRoutes, reverseRoutes] = await Promise.all([
-        fetchDrivingAlternatives(snapLat, snapLng, toLat, toLng),
-        fetchDrivingAlternatives(toLat, toLng, snapLat, snapLng),
+        fetchDrivingAlternatives(snapLat, snapLng, destSnapLat, destSnapLng),
+        fetchDrivingAlternatives(destSnapLat, destSnapLng, snapLat, snapLng),
       ]);
 
       // null means rate-limited
@@ -801,8 +810,9 @@ export async function getRouteDistance(
       const best = normalized[0];
       return {
         ...best,
-        distance: best.distance + snapOffsetMeters,
+        distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
         snapPoint,
+        destSnapPoint,
       };
     } finally {
       _osrmRelease();

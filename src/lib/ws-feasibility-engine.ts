@@ -69,6 +69,8 @@ export interface ViableOption {
   has_cross_ntt?: boolean;
   /** lat/lng of the snapped road point when origin is off-road */
   snap_point?: [number, number];
+  /** lat/lng of the snapped road point when destination (box) is off-road */
+  dest_snap_point?: [number, number];
   /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
   is_blocked?: boolean;
   /** True when NTT box is nearby but unavailable — needs O&M check */
@@ -346,6 +348,7 @@ async function processItem(
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
               snap_point: cpByRoute.snapPoint,
+              dest_snap_point: cpByRoute.destSnapPoint,
               is_own_network: true,
               is_check_om: verificationPending,
             });
@@ -446,12 +449,14 @@ async function processItem(
       let distance = bestNearest.distance;
       let routeGeometry: any = null;
       let snapPoint: [number, number] | undefined = undefined;
+      let destSnapPoint: [number, number] | undefined = undefined;
       try {
         const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
         if (route) {
           distance = route.distance;
           routeGeometry = route.geometry;
           snapPoint = route.snapPoint;
+          destSnapPoint = route.destSnapPoint;
         }
       } catch {}
 
@@ -468,6 +473,7 @@ async function processItem(
           nearest_point: bestNearest.point,
           route_geometry: routeGeometry,
           snap_point: snapPoint,
+          dest_snap_point: destSnapPoint,
           has_cross_ntt: provider.has_cross_ntt,
         });
       }

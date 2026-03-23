@@ -80,7 +80,8 @@ interface FeasibilityResult {
   highwayMessage?: string;
   providerRules?: ProviderRules;
   checkOmBoxName?: string;
-  snapPoint?: [number, number]; // lat/lng of the snapped road point (off-road origin)
+  snapPoint?: [number, number];
+  destSnapPoint?: [number, number]; // lat/lng of the snapped road point (off-road destination/box)
 }
 
 export default function FeasibilityPage() {
@@ -281,6 +282,7 @@ export default function FeasibilityPage() {
           let highwayBlocked = false;
           let highwayMessage: string | undefined = undefined;
           let snapPoint: [number, number] | undefined = undefined;
+          let destSnapPoint: [number, number] | undefined = undefined;
 
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
@@ -334,6 +336,7 @@ export default function FeasibilityPage() {
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
               snapPoint = cpByRoute.snapPoint;
+              destSnapPoint = cpByRoute.destSnapPoint;
               isViableNT = distance <= maxDist;
             } else if (lastBlocked) {
               isViableNT = false;
@@ -373,7 +376,7 @@ export default function FeasibilityPage() {
               nearestPt = nearest.point;
               try {
                 const route = await getRouteDistance(geo.lat, geo.lng, nearest.point[0], nearest.point[1]);
-                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
+                if (route?.geometry) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; destSnapPoint = route.destSnapPoint; }
                 else return null;
               } catch { return null; }
               // Also check highway/railway for fallback route using cached data
@@ -421,7 +424,7 @@ export default function FeasibilityPage() {
             status: isBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
-            highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined,
+            highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined, destSnapPoint: !insideNT ? destSnapPoint : undefined,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -456,9 +459,10 @@ export default function FeasibilityPage() {
           let distance = bestNearest.distance;
           let routeGeometry: any = null;
           let snapPoint: [number, number] | undefined = undefined;
+          let destSnapPoint: [number, number] | undefined = undefined;
           try {
             const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-            if (route) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
+            if (route) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; destSnapPoint = route.destSnapPoint; }
           } catch {}
 
           const tooFar = distance > maxDist * 2;
@@ -473,7 +477,7 @@ export default function FeasibilityPage() {
             lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
             finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
             routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
-            snapPoint,
+            snapPoint, destSnapPoint,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -832,6 +836,14 @@ function ResultCard({
       L.geoJSON(r.routeGeometry, {
         style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
       }).addTo(map);
+
+      // Draw off-road segment: box → snapped road point (gray dashed line)
+      if (r.destSnapPoint && r.nearestPoint) {
+        L.polyline(
+          [[r.nearestPoint[0], r.nearestPoint[1]], [r.destSnapPoint[0], r.destSnapPoint[1]]],
+          { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
+        ).addTo(map);
+      }
 
       const midLat = (r.lat + r.nearestPoint[0]) / 2;
       const midLng = (r.lng + r.nearestPoint[1]) / 2;
