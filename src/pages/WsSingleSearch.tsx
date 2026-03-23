@@ -151,7 +151,9 @@ export default function WsSingleSearch() {
   const calcularRow = useCallback(async (idx: number, params: RowPricingParams, distancia: number) => {
     setRowCalcLoading(prev => ({ ...prev, [idx]: true }));
     try {
-      const payload = {
+      const isDarkFiber = params.produto === "NT DARK FIBER";
+      const isL2L = params.produto === "NT L2L";
+      const payload: Record<string, any> = {
         produto: "Conectividade" as const,
         subproduto: params.produto,
         vigencia: Number(params.vigencia) || 24,
@@ -161,14 +163,20 @@ export default function WsSingleSearch() {
         projetoAvaliado: false,
         valorOpex: 0,
         rede: params.cidadePontaA || undefined,
-        banda: Number(params.velocidade) || 0,
+        banda: isDarkFiber ? 0 : (Number(params.velocidade) || 0),
         distancia: distancia,
         togDistancia: true,
-        blocoIp: params.blocoIp || undefined,
+        blocoIp: (isL2L || isDarkFiber) ? undefined : (params.blocoIp || undefined),
         custoLastMile: 0,
         valorLastMile: 0,
         tecnologia: params.tecnologia || "GPON",
       };
+      if (isDarkFiber) {
+        payload.qtdFibrasDarkFiber = Number(params.qtdFibrasDarkFiber) || 0;
+      }
+      if (isL2L) {
+        payload.redePontaB = params.cidadePontaB || undefined;
+      }
       const { data: result, error: fnError } = await supabase.functions.invoke(
         "calcular-precificacao",
         { body: payload }
