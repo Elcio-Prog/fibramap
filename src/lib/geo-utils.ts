@@ -411,7 +411,7 @@ export async function findBestConnectionPointByRoute(
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
   let best:
-    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any } }
+    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number] } }
     | null = null;
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
