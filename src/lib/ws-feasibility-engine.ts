@@ -17,6 +17,7 @@ import {
   checkRouteHighwayRailwayWithCache,
   prefetchHighwaysForArea,
   extractNttCables,
+  hasNetworkInRadius,
   type TAResult,
   type ProviderRules,
   type OverpassFetchResult,
