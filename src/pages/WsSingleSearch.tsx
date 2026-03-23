@@ -897,7 +897,7 @@ export default function WsSingleSearch() {
                         {o.has_cross_ntt && <Building2 className="h-3 w-3 text-muted-foreground" />}
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
-                      <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
+                      
                       
                       {/* Pricing parameter columns */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
