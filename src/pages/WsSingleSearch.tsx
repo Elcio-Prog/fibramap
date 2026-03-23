@@ -678,7 +678,7 @@ export default function WsSingleSearch() {
             </div>
             <div>
               <Label>Velocidade (Mbps)</Label>
-              <Input type="number" placeholder="100" value={velocidade} onChange={e => setVelocidade(e.target.value)} />
+              <Input type="number" min="0" placeholder="100" value={velocidade} onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setVelocidade(v); }} />
             </div>
           </div>
 
