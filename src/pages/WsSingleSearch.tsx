@@ -429,6 +429,13 @@ export default function WsSingleSearch() {
             }).addTo(layerGroup);
           } catch {}
         }
+        // Draw off-road segment: box → snapped road point (gray dashed line)
+        if (opt.dest_snap_point && opt.nearest_point) {
+          L.polyline(
+            [[opt.nearest_point[0], opt.nearest_point[1]], [opt.dest_snap_point[0], opt.dest_snap_point[1]]],
+            { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
+          ).addTo(layerGroup);
+        }
         // Connection point marker
         L.circleMarker(opt.nearest_point, { radius: 6, fillColor: routeColor, color: "#fff", weight: 2, fillOpacity: 0.9 })
           .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m<br/>${opt.ta_info || ""}`);
