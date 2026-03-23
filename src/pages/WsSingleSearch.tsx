@@ -852,11 +852,23 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-right">Distância</th>
                     <th className="px-2 py-1.5 text-right">Valor Final</th>
                     <th className="px-2 py-1.5 text-left">TA/CE</th>
+                    <th className="px-2 py-1.5 text-left min-w-[130px]">Produto Link IP</th>
+                    <th className="px-2 py-1.5 text-left min-w-[80px]">Vigência</th>
+                    <th className="px-2 py-1.5 text-left min-w-[90px]">Taxa Instal.</th>
+                    <th className="px-2 py-1.5 text-left min-w-[80px]">Velocidade</th>
+                    <th className="px-2 py-1.5 text-left min-w-[110px]">Bloco IP</th>
+                    <th className="px-2 py-1.5 text-left min-w-[80px]">Tecnologia</th>
+                    <th className="px-2 py-1.5 text-left min-w-[130px]">Cidade Ponta A</th>
+                    <th className="px-2 py-1.5 text-right min-w-[130px]">Valor Mínimo Previsto</th>
                     <th className="px-2 py-1.5 text-left">Notas</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {options.map((o, i) => (
+                  {options.map((o, i) => {
+                    const rp = getRowPricing(i);
+                    const valorMin = rowValorMinimo[i];
+                    const isCalc = rowCalcLoading[i];
+                    return (
                     <tr
                       key={i}
                       className={`border-t cursor-pointer ${selectedOptionIdx === i ? "bg-primary/10" : ""} ${o.is_check_om ? "bg-yellow-50 dark:bg-yellow-900/10" : o.is_blocked ? "bg-destructive/5" : ""}`}
@@ -888,9 +900,85 @@ export default function WsSingleSearch() {
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
                       <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
                       <td className="px-2 py-1 max-w-[120px] truncate">{o.ta_info || "—"}</td>
+                      {/* Pricing parameter columns */}
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Select value={rp.produto} onValueChange={v => setRowField(i, "produto", v)}>
+                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PRODUTO_LINK_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Select value={rp.vigencia} onValueChange={v => setRowField(i, "vigencia", v)}>
+                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[70px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {VIGENCIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Input
+                          type="number"
+                          className="h-6 text-[10px] w-[80px] border-dashed"
+                          value={rp.taxaInstalacao}
+                          onChange={e => setRowField(i, "taxaInstalacao", e.target.value)}
+                        />
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Input
+                          type="number"
+                          className="h-6 text-[10px] w-[70px] border-dashed"
+                          value={rp.velocidade}
+                          placeholder={velocidade || "MB"}
+                          onChange={e => setRowField(i, "velocidade", e.target.value)}
+                        />
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Select value={rp.blocoIp} onValueChange={v => setRowField(i, "blocoIp", v)}>
+                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[100px]">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Select value={rp.tecnologia} onValueChange={v => setRowField(i, "tecnologia", v)}>
+                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[70px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TECNOLOGIA_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                        <Select value={rp.cidadePontaA} onValueChange={v => setRowField(i, "cidadePontaA", v)}>
+                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[120px]">
+                            <SelectValue placeholder="Cidade..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formOptions.redes.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-2 py-1 text-right font-semibold text-primary">
+                        {isCalc ? (
+                          <Loader2 className="h-3 w-3 animate-spin inline-block" />
+                        ) : valorMin != null ? (
+                          `R$${valorMin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        ) : "—"}
+                      </td>
                       <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
