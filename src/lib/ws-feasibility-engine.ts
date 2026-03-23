@@ -449,12 +449,14 @@ async function processItem(
       let distance = bestNearest.distance;
       let routeGeometry: any = null;
       let snapPoint: [number, number] | undefined = undefined;
+      let destSnapPoint: [number, number] | undefined = undefined;
       try {
         const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
         if (route) {
           distance = route.distance;
           routeGeometry = route.geometry;
           snapPoint = route.snapPoint;
+          destSnapPoint = route.destSnapPoint;
         }
       } catch {}
 
