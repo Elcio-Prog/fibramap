@@ -378,7 +378,7 @@ export async function findBestConnectionPointByRoute(
     candidate: ConnectionCandidate,
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
-): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; snapPoint?: [number, number] } | null> {
+): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
