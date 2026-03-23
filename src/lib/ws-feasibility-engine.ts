@@ -67,6 +67,8 @@ export interface ViableOption {
   nearest_point?: [number, number];
   is_own_network?: boolean;
   has_cross_ntt?: boolean;
+  /** lat/lng of the snapped road point when origin is off-road */
+  snap_point?: [number, number];
   /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
   is_blocked?: boolean;
   /** True when NTT box is nearby but unavailable — needs O&M check */
