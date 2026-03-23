@@ -80,6 +80,7 @@ interface FeasibilityResult {
   highwayMessage?: string;
   providerRules?: ProviderRules;
   checkOmBoxName?: string;
+  snapPoint?: [number, number]; // lat/lng of the snapped road point (off-road origin)
 }
 
 export default function FeasibilityPage() {
