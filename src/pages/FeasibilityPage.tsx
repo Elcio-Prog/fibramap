@@ -333,6 +333,7 @@ export default function FeasibilityPage() {
               nearestPt = cpByRoute.taResult.point;
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
+              snapPoint = (cpByRoute as any).snapPoint;
               isViableNT = distance <= maxDist;
             } else if (lastBlocked) {
               isViableNT = false;
