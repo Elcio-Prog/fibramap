@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
     let result: CalcOutput;
     switch (input.produto) {
       case "Conectividade":
-        result = calcConectividade(input, db);
+        result = calcConectividade(input, db, regraProjetistaAtiva);
         break;
       case "Firewall":
         result = calcFirewall(input, db);
