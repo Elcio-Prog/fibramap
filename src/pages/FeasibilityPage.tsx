@@ -336,6 +336,7 @@ export default function FeasibilityPage() {
               distance = cpByRoute.routeDistance;
               routeGeometry = cpByRoute.routeGeometry;
               snapPoint = cpByRoute.snapPoint;
+              destSnapPoint = cpByRoute.destSnapPoint;
               isViableNT = distance <= maxDist;
             } else if (lastBlocked) {
               isViableNT = false;
