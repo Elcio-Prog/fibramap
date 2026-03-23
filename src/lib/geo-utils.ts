@@ -136,6 +136,29 @@ export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/**
+ * Fast radius scan: checks if ANY element (point, line, polygon) from a provider
+ * has at least one coordinate within `radiusMeters` of the given lat/lng.
+ * Used as Phase 1 pre-check to confirm network presence before expensive route queries.
+ */
+export function hasNetworkInRadius(
+  lat: number,
+  lng: number,
+  elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
+  radiusMeters: number,
+): boolean {
+  for (const el of elements) {
+    const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
+    if (!geo) continue;
+    const points = extractPoints(geo);
+    for (const p of points) {
+      const d = haversineDistance(lat, lng, p[1], p[0]);
+      if (d <= radiusMeters) return true;
+    }
+  }
+  return false;
+}
+
 /** Find the nearest point in a set of geo elements to a given lat/lng */
 export function findNearestPoint(
   lat: number,
