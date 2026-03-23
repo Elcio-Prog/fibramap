@@ -654,6 +654,22 @@ Deno.serve(async (req) => {
 
     const db = await loadAllCosts(supabase);
 
+    // Load setup config
+    let fatorAjuste = 1.0;
+    let regraProjetistaAtiva = false;
+    try {
+      const { data: setupRow } = await supabase
+        .from("configuracoes")
+        .select("valor")
+        .eq("chave", "setup_precificacao")
+        .maybeSingle();
+      if (setupRow?.valor) {
+        const setup = setupRow.valor as { fator_ajuste?: number; regra_projetista_ativa?: boolean };
+        fatorAjuste = (setup.fator_ajuste ?? 100) / 100;
+        regraProjetistaAtiva = setup.regra_projetista_ativa ?? false;
+      }
+    } catch { /* use defaults */ }
+
     let result: CalcOutput;
     switch (input.produto) {
       case "Conectividade":
@@ -676,6 +692,34 @@ Deno.serve(async (req) => {
         break;
       default:
         result = { valorMinimo: 0, valorCapex: 0, valorOpex: 0 };
+    }
+
+    // Apply fator de ajuste
+    if (fatorAjuste !== 1.0 && result.valorMinimo > 0 && !result.mensagem) {
+      result.valorMinimo = roundDown4(result.valorMinimo * fatorAjuste);
+    }
+
+    // Apply regra do projetista (only for Conectividade with togDistancia)
+    if (regraProjetistaAtiva && input.produto === "Conectividade" && !result.mensagem) {
+      const banda = input.banda ?? 0;
+      const distancia = input.distancia ?? 0;
+      const subproduto = input.subproduto ?? "";
+      const motivo = input.motivo ?? "";
+      const projetoAvaliado = input.projetoAvaliado ?? false;
+
+      const podeCalcular =
+        banda <= 500 &&
+        distancia <= 2000 &&
+        subproduto !== "PTP" &&
+        distancia > 0;
+
+      const isValidador = projetoAvaliado;
+      const motivoValido = motivo !== "" && motivo !== "Auto Avaliação";
+
+      if (!(podeCalcular || isValidador || motivoValido)) {
+        result.mensagem = "Favor aguarde a análise de um validador";
+        result.valorMinimo = 0;
+      }
     }
 
     return new Response(JSON.stringify(result), {
