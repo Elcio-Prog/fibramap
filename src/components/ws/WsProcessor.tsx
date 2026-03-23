@@ -1059,7 +1059,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                           <InlineEdit value={dbRow?.codigo_smark || ""} onSave={(v) => updateInlineField(r.item.id, "codigo_smark", v)} width="w-[80px]" />
                         </td>
                         {/* Valor Mínimo Previsto */}
-                        <td className="px-2 py-1 whitespace-nowrap text-[10px] font-medium">
+                        <td className="px-2 py-1 whitespace-nowrap text-[11px] font-semibold text-primary text-right">
                           {(() => {
                             const lpu = r.final_value ?? 0;
                             const calc = rowValorMinimo[r.item.id] ?? 0;
