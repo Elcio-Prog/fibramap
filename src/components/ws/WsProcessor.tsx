@@ -664,7 +664,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           velocidade_mbps: r.item.velocidade_mbps,
           velocidade_original: dbRow?.velocidade_original || "",
           distance_m: r.distance_m,
-          final_value: r.final_value,
+          final_value: (() => {
+            const lpu = r.final_value ?? 0;
+            const calc = rowValorMinimo[r.item.id] ?? 0;
+            const total = lpu + calc;
+            return total > 0 ? total : r.final_value;
+          })(),
           vigencia: dbRow?.vigencia || "",
           taxa_instalacao: dbRow?.taxa_instalacao,
           bloco_ip: dbRow?.bloco_ip || "",
