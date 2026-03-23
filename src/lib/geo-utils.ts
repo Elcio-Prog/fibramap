@@ -729,7 +729,7 @@ export async function getRouteDistance(
   fromLng: number,
   toLat: number,
   toLng: number
-): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> {
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   // Check cache first
   const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
   const cachedTs = _osrmCacheTimestamps.get(cacheKey);
