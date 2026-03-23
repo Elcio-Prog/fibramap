@@ -30,6 +30,33 @@ import {
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast as useToastSonner } from "@/hooks/use-toast";
+import { useFormPrecificacao } from "@/hooks/useFormPrecificacao";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
+
+// Per-row pricing parameters
+interface RowPricingParams {
+  produto: string;
+  vigencia: string;
+  taxaInstalacao: string;
+  velocidade: string;
+  blocoIp: string;
+  tecnologia: string;
+  cidadePontaA: string;
+}
+
+const defaultRowPricing: RowPricingParams = {
+  produto: "NT LINK DEDICADO FULL",
+  vigencia: "24",
+  taxaInstalacao: "0",
+  velocidade: "",
+  blocoIp: "",
+  tecnologia: "GPON",
+  cidadePontaA: "",
+};
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
