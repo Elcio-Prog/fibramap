@@ -261,7 +261,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
       setProcessedCount(doneCount || 0);
 
-      if (batch?.status === "processed") {
+      if (batch?.status === "processed" || batch?.status === "completed") {
         await loadResults();
       }
     } catch {
