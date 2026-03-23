@@ -21,6 +21,7 @@ import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
+import { useFormPrecificacao } from "@/hooks/useFormPrecificacao";
 
 import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
@@ -123,8 +124,74 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
   const { data: preProviders, isLoading: loadingPreProv } = usePreProviders();
   const { data: preProviderCities, isLoading: loadingPreCities } = useAllPreProviderCities();
+  const { options: formOptions } = useFormPrecificacao();
 
   const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities;
+
+  // Pricing calculation state per item
+  const [rowValorMinimo, setRowValorMinimo] = useState<Record<string, number | null>>({});
+  const [rowCalcLoading, setRowCalcLoading] = useState<Record<string, boolean>>({});
+  const calcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const calcularRowPricing = useCallback(async (itemId: string, dbRow: any, distanceM: number | null) => {
+    const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
+    const vigencia = dbRow?.vigencia ? Number(dbRow.vigencia) : 0;
+    const taxaInstalacao = dbRow?.taxa_instalacao ? Number(dbRow.taxa_instalacao) : 0;
+    const velocidade = dbRow?.velocidade_mbps ? Number(dbRow.velocidade_mbps) : 0;
+    const blocoIp = dbRow?.bloco_ip || undefined;
+    const tecnologia = dbRow?.tecnologia || "GPON";
+    const cidadePontaA = dbRow?.cidade_a || "";
+
+    if (!vigencia || !velocidade) {
+      setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+      return;
+    }
+
+    setRowCalcLoading(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const payload = {
+        produto: "Conectividade" as const,
+        subproduto: produto,
+        vigencia,
+        roiVigencia: 24,
+        taxaInstalacao,
+        custosMateriaisAdicionais: 0,
+        projetoAvaliado: false,
+        valorOpex: 0,
+        rede: cidadePontaA || undefined,
+        banda: velocidade,
+        distancia: distanceM ?? 0,
+        togDistancia: true,
+        blocoIp,
+        custoLastMile: 0,
+        valorLastMile: 0,
+        tecnologia,
+      };
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "calcular-precificacao",
+        { body: payload }
+      );
+      if (fnError || result?.error) {
+        setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+      } else {
+        setRowValorMinimo(prev => ({ ...prev, [itemId]: result.valorMinimo }));
+      }
+    } catch {
+      setRowValorMinimo(prev => ({ ...prev, [itemId]: null }));
+    } finally {
+      setRowCalcLoading(prev => ({ ...prev, [itemId]: false }));
+    }
+  }, []);
+
+  // Trigger recalc when inline fields change
+  const triggerPricingRecalc = useCallback((itemId: string) => {
+    clearTimeout(calcTimers.current[itemId]);
+    calcTimers.current[itemId] = setTimeout(() => {
+      const dbRow = dbRows[itemId];
+      const r = results?.find(res => res.item.id === itemId);
+      calcularRowPricing(itemId, dbRow, r?.distance_m ?? null);
+    }, 600);
+  }, [dbRows, results, calcularRowPricing]);
 
   // Build pre-providers with cities for engine
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
@@ -255,6 +322,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     debouncedSave(itemId, text);
   };
 
+  const PRICING_FIELDS = new Set(["produto", "vigencia", "taxa_instalacao", "velocidade_mbps", "bloco_ip", "tecnologia", "cidade_a"]);
+
   const updateInlineField = useCallback(async (itemId: string, field: string, value: any) => {
     setEditingFields(prev => ({
       ...prev,
@@ -270,7 +339,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     } catch {
       // silent
     }
-  }, []);
+    // Trigger pricing recalc if relevant field
+    if (PRICING_FIELDS.has(field)) {
+      // Need to recalc with updated dbRow
+      clearTimeout(calcTimers.current[itemId]);
+      calcTimers.current[itemId] = setTimeout(() => {
+        const updatedRow = { ...(dbRows[itemId] || {}), [field]: value };
+        const r = results?.find(res => res.item.id === itemId);
+        calcularRowPricing(itemId, updatedRow, r?.distance_m ?? null);
+      }, 600);
+    }
+  }, [dbRows, results, calcularRowPricing]);
 
   const startProcessing = async (resume = false) => {
     if (!providers?.length) {
@@ -585,7 +664,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
           velocidade_mbps: r.item.velocidade_mbps,
           velocidade_original: dbRow?.velocidade_original || "",
           distance_m: r.distance_m,
-          final_value: r.final_value,
+          final_value: (() => {
+            const lpu = r.final_value ?? 0;
+            const calc = rowValorMinimo[r.item.id] ?? 0;
+            const total = lpu + calc;
+            return total > 0 ? total : r.final_value;
+          })(),
           vigencia: dbRow?.vigencia || "",
           taxa_instalacao: dbRow?.taxa_instalacao,
           bloco_ip: dbRow?.bloco_ip || "",
@@ -758,7 +842,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
             {filteredResults && filteredResults.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">Nenhum item encontrado para o filtro selecionado.</p>
             )}
-            {filteredResults && filteredResults.length > 0 && <ScrollableTable totalScrollableColumns={21}>
+            {filteredResults && filteredResults.length > 0 && <ScrollableTable totalScrollableColumns={22}>
               <table className="text-xs w-max min-w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
@@ -794,6 +878,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">Tipo Sol.</th>
                     <th className="px-2 py-1.5 text-left">Vlr Venda</th>
                     <th className="px-2 py-1.5 text-left">Cód. Smark</th>
+                    <th className="px-2 py-1.5 text-left">Vlr Mín. Previsto</th>
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
                 </thead>
@@ -943,6 +1028,18 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                         {/* Cód. Smark - editable */}
                         <td className="px-1 py-0.5">
                           <InlineEdit value={dbRow?.codigo_smark || ""} onSave={(v) => updateInlineField(r.item.id, "codigo_smark", v)} width="w-[80px]" />
+                        </td>
+                        {/* Valor Mínimo Previsto */}
+                        <td className="px-2 py-1 whitespace-nowrap text-[10px] font-medium">
+                          {(() => {
+                            const lpu = r.final_value ?? 0;
+                            const calc = rowValorMinimo[r.item.id] ?? 0;
+                            const total = lpu + calc;
+                            if (rowCalcLoading[r.item.id]) return <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />;
+                            return total > 0
+                              ? `R$${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : "—";
+                          })()}
                         </td>
                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
                           {dbRow?.observacoes_system || r.notes || "—"}
