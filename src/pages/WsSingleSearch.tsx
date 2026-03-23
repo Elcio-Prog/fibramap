@@ -850,7 +850,7 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-right">Distância</th>
-                    <th className="px-2 py-1.5 text-right">Valor Final</th>
+                    
                     
                     <th className="px-2 py-1.5 text-left min-w-[130px]">Produto Link IP</th>
                     <th className="px-2 py-1.5 text-left min-w-[80px]">Vigência</th>
@@ -897,7 +897,7 @@ export default function WsSingleSearch() {
                         {o.has_cross_ntt && <Building2 className="h-3 w-3 text-muted-foreground" />}
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
-                      <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
+                      
                       
                       {/* Pricing parameter columns */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
@@ -970,9 +970,14 @@ export default function WsSingleSearch() {
                       <td className="px-2 py-1 text-right font-semibold text-primary">
                         {isCalc ? (
                           <Loader2 className="h-3 w-3 animate-spin inline-block" />
-                        ) : valorMin != null ? (
-                          `R$${valorMin.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        ) : "—"}
+                        ) : (() => {
+                          const lpu = o.final_value ?? 0;
+                          const calc = valorMin ?? 0;
+                          const total = lpu + calc;
+                          return total > 0
+                            ? `R$${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : "—";
+                        })()}
                       </td>
                       <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
                     </tr>
