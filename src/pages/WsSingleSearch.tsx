@@ -850,7 +850,7 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-right">Distância</th>
-                    <th className="px-2 py-1.5 text-right">Valor Final</th>
+                    
                     
                     <th className="px-2 py-1.5 text-left min-w-[130px]">Produto Link IP</th>
                     <th className="px-2 py-1.5 text-left min-w-[80px]">Vigência</th>
