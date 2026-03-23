@@ -46,6 +46,8 @@ interface RowPricingParams {
   blocoIp: string;
   tecnologia: string;
   cidadePontaA: string;
+  cidadePontaB: string;
+  qtdFibrasDarkFiber: string;
 }
 
 const defaultRowPricing: RowPricingParams = {
@@ -56,6 +58,8 @@ const defaultRowPricing: RowPricingParams = {
   blocoIp: "",
   tecnologia: "GPON",
   cidadePontaA: "",
+  cidadePontaB: "",
+  qtdFibrasDarkFiber: "0",
 };
 
 // Fix leaflet icons
