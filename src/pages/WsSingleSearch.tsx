@@ -125,6 +125,87 @@ export default function WsSingleSearch() {
   const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
 
+  // Pricing parameters per row
+  const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
+  const [rowPricing, setRowPricing] = useState<Record<number, RowPricingParams>>({});
+  const [rowValorMinimo, setRowValorMinimo] = useState<Record<number, number | null>>({});
+  const [rowCalcLoading, setRowCalcLoading] = useState<Record<number, boolean>>({});
+  const calcTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+
+  const getRowPricing = (idx: number): RowPricingParams => {
+    return rowPricing[idx] ?? { ...defaultRowPricing, velocidade: velocidade || "" };
+  };
+
+  const setRowField = (idx: number, field: keyof RowPricingParams, value: string) => {
+    setRowPricing(prev => ({
+      ...prev,
+      [idx]: { ...getRowPricing(idx), [field]: value },
+    }));
+  };
+
+  // Auto-calculate valor mínimo when row pricing params change
+  const calcularRow = useCallback(async (idx: number, params: RowPricingParams, distancia: number) => {
+    setRowCalcLoading(prev => ({ ...prev, [idx]: true }));
+    try {
+      const payload = {
+        produto: "Conectividade" as const,
+        subproduto: params.produto,
+        vigencia: Number(params.vigencia) || 24,
+        roiVigencia: 24,
+        taxaInstalacao: Number(params.taxaInstalacao) || 0,
+        custosMateriaisAdicionais: 0,
+        projetoAvaliado: false,
+        valorOpex: 0,
+        rede: params.cidadePontaA || undefined,
+        banda: Number(params.velocidade) || 0,
+        distancia: distancia,
+        togDistancia: true,
+        blocoIp: params.blocoIp || undefined,
+        custoLastMile: 0,
+        valorLastMile: 0,
+        tecnologia: params.tecnologia || "GPON",
+      };
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "calcular-precificacao",
+        { body: payload }
+      );
+      if (fnError || result?.error) {
+        setRowValorMinimo(prev => ({ ...prev, [idx]: null }));
+      } else {
+        setRowValorMinimo(prev => ({ ...prev, [idx]: result.valorMinimo }));
+      }
+    } catch {
+      setRowValorMinimo(prev => ({ ...prev, [idx]: null }));
+    } finally {
+      setRowCalcLoading(prev => ({ ...prev, [idx]: false }));
+    }
+  }, []);
+
+  // Trigger debounced recalc when rowPricing changes
+  useEffect(() => {
+    if (options.length === 0) return;
+    for (const idxStr of Object.keys(rowPricing)) {
+      const idx = Number(idxStr);
+      const params = rowPricing[idx];
+      const opt = options[idx];
+      if (!opt || !params) continue;
+      clearTimeout(calcTimers.current[idx]);
+      calcTimers.current[idx] = setTimeout(() => {
+        calcularRow(idx, params, opt.distance_m);
+      }, 600);
+    }
+    return () => {
+      Object.values(calcTimers.current).forEach(t => clearTimeout(t));
+    };
+  }, [rowPricing, options, calcularRow]);
+
+  // Reset pricing state when options change
+  useEffect(() => {
+    setRowPricing({});
+    setRowValorMinimo({});
+    setRowCalcLoading({});
+  }, [options]);
+
   const { addItems, isInCart, isSent } = useCart();
   // Map
   const mapRef = useRef<HTMLDivElement>(null);
