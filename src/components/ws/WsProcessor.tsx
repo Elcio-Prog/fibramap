@@ -21,6 +21,7 @@ import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
+import { useFormPrecificacao } from "@/hooks/useFormPrecificacao";
 
 import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
