@@ -348,6 +348,7 @@ async function processItem(
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
               snap_point: cpByRoute.snapPoint,
+              dest_snap_point: cpByRoute.destSnapPoint,
               is_own_network: true,
               is_check_om: verificationPending,
             });
