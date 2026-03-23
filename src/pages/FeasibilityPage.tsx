@@ -280,6 +280,7 @@ export default function FeasibilityPage() {
           let cpflMessage: string | undefined = undefined;
           let highwayBlocked = false;
           let highwayMessage: string | undefined = undefined;
+          let snapPoint: [number, number] | undefined = undefined;
 
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
