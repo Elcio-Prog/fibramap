@@ -316,7 +316,7 @@ export default function WsSearchesPage() {
         const StatusIcon = statusInfo.icon;
         const canResume = ["processing", "paused", "uploaded"].includes(latest.status) &&
           latest.processed_items < latest.total_items;
-        const isComplete = latest.status === "processed";
+        const isComplete = latest.status === "processed" || latest.status === "completed";
 
         return (
           <Card key={parentId} className="overflow-hidden">
