@@ -837,6 +837,14 @@ function ResultCard({
         style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
       }).addTo(map);
 
+      // Draw off-road segment: box → snapped road point (gray dashed line)
+      if (r.destSnapPoint && r.nearestPoint) {
+        L.polyline(
+          [[r.nearestPoint[0], r.nearestPoint[1]], [r.destSnapPoint[0], r.destSnapPoint[1]]],
+          { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
+        ).addTo(map);
+      }
+
       const midLat = (r.lat + r.nearestPoint[0]) / 2;
       const midLng = (r.lng + r.nearestPoint[1]) / 2;
       L.marker([midLat, midLng], {
