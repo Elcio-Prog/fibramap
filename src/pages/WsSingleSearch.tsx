@@ -858,7 +858,7 @@ export default function WsSingleSearch() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto border rounded-md">
+             <div className="overflow-x-auto border rounded-md">
               <table className="text-xs w-full">
                 <thead className="bg-muted">
                   <tr>
@@ -867,15 +867,30 @@ export default function WsSingleSearch() {
                     <th className="px-2 py-1.5 text-left">Etapa</th>
                     <th className="px-2 py-1.5 text-left">Provedor</th>
                     <th className="px-2 py-1.5 text-right">Distância</th>
-                    
-                    
                     <th className="px-2 py-1.5 text-left min-w-[130px]">Produto Link IP</th>
                     <th className="px-2 py-1.5 text-left min-w-[80px]">Vigência</th>
                     <th className="px-2 py-1.5 text-left min-w-[90px]">Taxa Instal.</th>
-                    <th className="px-2 py-1.5 text-left min-w-[80px]">Velocidade</th>
-                    <th className="px-2 py-1.5 text-left min-w-[110px]">Bloco IP</th>
                     <th className="px-2 py-1.5 text-left min-w-[80px]">Tecnologia</th>
                     <th className="px-2 py-1.5 text-left min-w-[130px]">Cidade Ponta A</th>
+                    {/* Dynamic columns header - render union of all row products */}
+                    {(() => {
+                      // Check all rows to see which dynamic columns to show
+                      const hasDarkFiber = options.some((_, i) => getRowPricing(i).produto === "NT DARK FIBER");
+                      const hasL2L = options.some((_, i) => getRowPricing(i).produto === "NT L2L");
+                      const hasNonDarkFiber = options.some((_, i) => getRowPricing(i).produto !== "NT DARK FIBER");
+                      const hasNonL2LNonDF = options.some((_, i) => {
+                        const p = getRowPricing(i).produto;
+                        return p !== "NT L2L" && p !== "NT DARK FIBER";
+                      });
+                      return (
+                        <>
+                          {hasNonDarkFiber && <th className="px-2 py-1.5 text-left min-w-[80px]">Velocidade</th>}
+                          {hasNonL2LNonDF && <th className="px-2 py-1.5 text-left min-w-[110px]">Bloco IP</th>}
+                          {hasDarkFiber && <th className="px-2 py-1.5 text-left min-w-[80px]">Qtd Fibras</th>}
+                          {hasL2L && <th className="px-2 py-1.5 text-left min-w-[130px]">Cidade Ponta B</th>}
+                        </>
+                      );
+                    })()}
                     <th className="px-2 py-1.5 text-right min-w-[130px]">Valor Mínimo Previsto</th>
                     <th className="px-2 py-1.5 text-left">Notas</th>
                   </tr>
@@ -885,6 +900,18 @@ export default function WsSingleSearch() {
                     const rp = getRowPricing(i);
                     const valorMin = rowValorMinimo[i];
                     const isCalc = rowCalcLoading[i];
+                    const isDarkFiber = rp.produto === "NT DARK FIBER";
+                    const isL2L = rp.produto === "NT L2L";
+
+                    // Check union flags for dynamic columns
+                    const hasDarkFiber = options.some((_, j) => getRowPricing(j).produto === "NT DARK FIBER");
+                    const hasL2L = options.some((_, j) => getRowPricing(j).produto === "NT L2L");
+                    const hasNonDarkFiber = options.some((_, j) => getRowPricing(j).produto !== "NT DARK FIBER");
+                    const hasNonL2LNonDF = options.some((_, j) => {
+                      const p = getRowPricing(j).produto;
+                      return p !== "NT L2L" && p !== "NT DARK FIBER";
+                    });
+
                     return (
                     <tr
                       key={i}
@@ -914,9 +941,8 @@ export default function WsSingleSearch() {
                         {o.has_cross_ntt && <Building2 className="h-3 w-3 text-muted-foreground" />}
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
-                      
-                      
-                      {/* Pricing parameter columns */}
+
+                      {/* Produto */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.produto} onValueChange={v => setRowField(i, "produto", v)}>
                           <SelectTrigger className="h-6 text-[10px] border-dashed w-[120px]">
@@ -927,6 +953,8 @@ export default function WsSingleSearch() {
                           </SelectContent>
                         </Select>
                       </td>
+
+                      {/* Vigência */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.vigencia} onValueChange={v => setRowField(i, "vigencia", v)}>
                           <SelectTrigger className="h-6 text-[10px] border-dashed w-[70px]">
@@ -937,6 +965,8 @@ export default function WsSingleSearch() {
                           </SelectContent>
                         </Select>
                       </td>
+
+                      {/* Taxa Instalação */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Input
                           type="number"
@@ -946,26 +976,8 @@ export default function WsSingleSearch() {
                           onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "taxaInstalacao", v); }}
                         />
                       </td>
-                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
-                        <Input
-                          type="number"
-                          min="0"
-                          className="h-6 text-[10px] w-[70px] border-dashed"
-                          value={rp.velocidade}
-                          placeholder={velocidade || "MB"}
-                          onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "velocidade", v); }}
-                        />
-                      </td>
-                      <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
-                        <Select value={rp.blocoIp} onValueChange={v => setRowField(i, "blocoIp", v)}>
-                          <SelectTrigger className="h-6 text-[10px] border-dashed w-[100px]">
-                            <SelectValue placeholder="—" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </td>
+
+                      {/* Tecnologia */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.tecnologia} onValueChange={v => setRowField(i, "tecnologia", v)}>
                           <SelectTrigger className="h-6 text-[10px] border-dashed w-[70px]">
@@ -976,6 +988,8 @@ export default function WsSingleSearch() {
                           </SelectContent>
                         </Select>
                       </td>
+
+                      {/* Cidade Ponta A */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.cidadePontaA} onValueChange={v => setRowField(i, "cidadePontaA", v)}>
                           <SelectTrigger className="h-6 text-[10px] border-dashed w-[120px]">
@@ -986,6 +1000,80 @@ export default function WsSingleSearch() {
                           </SelectContent>
                         </Select>
                       </td>
+
+                      {/* Dynamic: Velocidade (hidden for Dark Fiber) */}
+                      {hasNonDarkFiber && (
+                        <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                          {isDarkFiber ? (
+                            <span className="text-[10px] text-muted-foreground px-1">—</span>
+                          ) : (
+                            <Input
+                              type="number"
+                              min="0"
+                              className="h-6 text-[10px] w-[70px] border-dashed"
+                              value={rp.velocidade}
+                              placeholder={velocidade || "MB"}
+                              onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "velocidade", v); }}
+                            />
+                          )}
+                        </td>
+                      )}
+
+                      {/* Dynamic: Bloco IP (hidden for L2L and Dark Fiber) */}
+                      {hasNonL2LNonDF && (
+                        <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                          {(isL2L || isDarkFiber) ? (
+                            <span className="text-[10px] text-muted-foreground px-1">—</span>
+                          ) : (
+                            <Select value={rp.blocoIp} onValueChange={v => setRowField(i, "blocoIp", v)}>
+                              <SelectTrigger className="h-6 text-[10px] border-dashed w-[100px]">
+                                <SelectValue placeholder="—" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BLOCO_IP_OPTIONS.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Dynamic: Qtd Fibras (only for Dark Fiber rows) */}
+                      {hasDarkFiber && (
+                        <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                          {isDarkFiber ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              className="h-6 text-[10px] w-[70px] border-dashed"
+                              value={rp.qtdFibrasDarkFiber}
+                              placeholder="Qtd"
+                              onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "qtdFibrasDarkFiber", v); }}
+                            />
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground px-1">—</span>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Dynamic: Cidade Ponta B (only for L2L rows) */}
+                      {hasL2L && (
+                        <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
+                          {isL2L ? (
+                            <Select value={rp.cidadePontaB} onValueChange={v => setRowField(i, "cidadePontaB", v)}>
+                              <SelectTrigger className="h-6 text-[10px] border-dashed w-[120px]">
+                                <SelectValue placeholder="Cidade B..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {formOptions.redes.map(o => <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground px-1">—</span>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Valor Mínimo Previsto */}
                       <td className="px-2 py-1 text-right font-semibold text-primary">
                         {isCalc ? (
                           <Loader2 className="h-3 w-3 animate-spin inline-block" />
