@@ -898,7 +898,7 @@ export default function WsSingleSearch() {
                       </td>
                       <td className="px-2 py-1 text-right">{o.distance_m}m</td>
                       <td className="px-2 py-1 text-right font-semibold">{o.final_value != null ? `R$${o.final_value}` : "—"}</td>
-                      <td className="px-2 py-1 max-w-[120px] truncate">{o.ta_info || "—"}</td>
+                      
                       {/* Pricing parameter columns */}
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Select value={rp.produto} onValueChange={v => setRowField(i, "produto", v)}>
