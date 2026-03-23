@@ -821,7 +821,7 @@ export default function WsSingleSearch() {
                       vigencia: rp.vigencia || "",
                       taxa_instalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : null,
                       bloco_ip: rp.blocoIp || "",
-                      tipo_solicitacao: "",
+                      tipo_solicitacao: "Nova Ativação",
                       valor_a_ser_vendido: null,
                       codigo_smark: "",
                       observacoes_user: [o.notes, obsSystem].filter(Boolean).join("\n\n"),
