@@ -813,6 +813,22 @@ function ResultCard({
     if ((r.status !== "inside" || r.isOwnNetwork) && r.nearestPoint && r.routeGeometry) {
       const routeColor = r.isOwnNetwork ? "#3b82f6" : r.status === "outside_viable" ? "#22c55e" : "#ef4444";
 
+      // Draw off-road segment: pin → snapped road point (gray dashed line)
+      if (r.snapPoint) {
+        L.polyline(
+          [
+            [r.lat, r.lng],
+            [r.snapPoint[0], r.snapPoint[1]],
+          ],
+          {
+            color: "#6b7280",
+            weight: 2,
+            opacity: 0.7,
+            dashArray: "4 6",
+          }
+        ).addTo(map);
+      }
+
       L.geoJSON(r.routeGeometry, {
         style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
       }).addTo(map);
