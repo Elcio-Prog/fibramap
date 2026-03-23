@@ -879,7 +879,7 @@ export default function WsSingleSearch() {
                           name="viability-option"
                           checked={selectedOptionIdx === i}
                           onChange={() => setSelectedOptionIdx(i)}
-                          onClick={(e) => e.stopPropagation()}
+                          
                           className="h-3.5 w-3.5 accent-primary"
                         />
                       </td>
