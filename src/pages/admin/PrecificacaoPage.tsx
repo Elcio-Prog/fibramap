@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Download, Upload, Save, Plus, Trash2 } from "lucide-react";
+import { Download, Upload, Save, Plus, Trash2, Settings } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 const CUSTO_POR_MEGA_ORDER = [
   "Custo do Metro de rede",
