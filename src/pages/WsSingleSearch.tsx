@@ -928,9 +928,10 @@ export default function WsSingleSearch() {
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                         <Input
                           type="number"
+                          min="0"
                           className="h-6 text-[10px] w-[80px] border-dashed"
                           value={rp.taxaInstalacao}
-                          onChange={e => setRowField(i, "taxaInstalacao", e.target.value)}
+                          onChange={e => { const v = e.target.value; if (v === "" || Number(v) >= 0) setRowField(i, "taxaInstalacao", v); }}
                         />
                       </td>
                       <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
