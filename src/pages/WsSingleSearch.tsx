@@ -793,6 +793,11 @@ export default function WsSingleSearch() {
                       obsSystem += "Base LM no Raio:\n" + lmLines.join("\n");
                     }
 
+                    const rp = getRowPricing(selectedOptionIdx);
+                    const lpu = o.final_value ?? 0;
+                    const calc = rowValorMinimo[selectedOptionIdx] ?? 0;
+                    const totalValorMinimo = lpu + calc;
+
                     const newItem: CartItem = {
                       id: cartId,
                       batchId: "single-search",
@@ -801,7 +806,7 @@ export default function WsSingleSearch() {
                       cliente: cliente || "",
                       cnpj_cliente: "",
                       endereco: geoResult.display,
-                      cidade: "",
+                      cidade: rp.cidadePontaA || "",
                       uf: "",
                       lat: geoResult.lat,
                       lng: geoResult.lng,
@@ -809,21 +814,21 @@ export default function WsSingleSearch() {
                       is_check_om: o.is_check_om,
                       stage: o.stage,
                       provider_name: o.provider_name,
-                      velocidade_mbps: velocidade ? Number(velocidade) : null,
-                      velocidade_original: velocidade || "",
+                      velocidade_mbps: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : null),
+                      velocidade_original: rp.velocidade || velocidade || "",
                       distance_m: o.distance_m,
-                      final_value: o.final_value ?? null,
-                      vigencia: "",
-                      taxa_instalacao: null,
-                      bloco_ip: "",
+                      final_value: totalValorMinimo > 0 ? totalValorMinimo : (o.final_value ?? null),
+                      vigencia: rp.vigencia || "",
+                      taxa_instalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : null,
+                      bloco_ip: rp.blocoIp || "",
                       tipo_solicitacao: "",
                       valor_a_ser_vendido: null,
                       codigo_smark: "",
                       observacoes_user: [o.notes, obsSystem].filter(Boolean).join("\n\n"),
                       observacoes_system: "",
                       created_at: new Date().toISOString(),
-                      produto: "NT LINK DEDICADO FULL",
-                      tecnologia: "GPON",
+                      produto: rp.produto || "NT LINK DEDICADO FULL",
+                      tecnologia: rp.tecnologia || "GPON",
                       tecnologia_meio_fisico: "Fibra",
                       coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
                     };
