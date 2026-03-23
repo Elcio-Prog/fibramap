@@ -411,6 +411,13 @@ export default function WsSingleSearch() {
     for (const opt of options) {
       if (opt.nearest_point) {
         const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
+        // Draw off-road segment: pin → snapped road point (gray dashed line)
+        if (opt.snap_point) {
+          L.polyline(
+            [[geoResult.lat, geoResult.lng], [opt.snap_point[0], opt.snap_point[1]]],
+            { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
+          ).addTo(layerGroup);
+        }
         // Draw route line only when we have real road geometry
         if (opt.route_geometry) {
           try {

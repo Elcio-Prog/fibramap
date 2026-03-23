@@ -67,6 +67,8 @@ export interface ViableOption {
   nearest_point?: [number, number];
   is_own_network?: boolean;
   has_cross_ntt?: boolean;
+  /** lat/lng of the snapped road point when origin is off-road */
+  snap_point?: [number, number];
   /** True when NTT was found nearby but blocked by technical rule (CPFL, highway, etc.) */
   is_blocked?: boolean;
   /** True when NTT box is nearby but unavailable — needs O&M check */
@@ -343,6 +345,7 @@ async function processItem(
               ta_info: taNote,
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
+              snap_point: cpByRoute.snapPoint,
               is_own_network: true,
               is_check_om: verificationPending,
             });
@@ -442,11 +445,13 @@ async function processItem(
 
       let distance = bestNearest.distance;
       let routeGeometry: any = null;
+      let snapPoint: [number, number] | undefined = undefined;
       try {
         const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
         if (route) {
           distance = route.distance;
           routeGeometry = route.geometry;
+          snapPoint = route.snapPoint;
         }
       } catch {}
 
@@ -462,6 +467,7 @@ async function processItem(
           notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
           nearest_point: bestNearest.point,
           route_geometry: routeGeometry,
+          snap_point: snapPoint,
           has_cross_ntt: provider.has_cross_ntt,
         });
       }
