@@ -455,9 +455,10 @@ export default function FeasibilityPage() {
           const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
           let distance = bestNearest.distance;
           let routeGeometry: any = null;
+          let snapPoint: [number, number] | undefined = undefined;
           try {
             const route = await getRouteDistance(geo.lat, geo.lng, bestNearest.point[0], bestNearest.point[1]);
-            if (route) { distance = route.distance; routeGeometry = route.geometry; }
+            if (route) { distance = route.distance; routeGeometry = route.geometry; snapPoint = route.snapPoint; }
           } catch {}
 
           const tooFar = distance > maxDist * 2;
