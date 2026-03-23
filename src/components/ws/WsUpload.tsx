@@ -411,7 +411,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
           taxa_instalacao: item.taxa_instalacao ?? null,
           bloco_ip: item.bloco_ip || null,
           cnpj_cliente: item.cnpj_cliente || null,
-          tipo_solicitacao: item.tipo_solicitacao || null,
+          tipo_solicitacao: item.tipo_solicitacao || 'Nova Ativação',
           valor_a_ser_vendido: item.valor_a_ser_vendido ?? null,
           codigo_smark: item.codigo_smark || null,
           produto: item.produto || 'NT LINK DEDICADO FULL',
