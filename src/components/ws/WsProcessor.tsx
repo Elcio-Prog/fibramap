@@ -322,6 +322,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     debouncedSave(itemId, text);
   };
 
+  const PRICING_FIELDS = new Set(["produto", "vigencia", "taxa_instalacao", "velocidade_mbps", "bloco_ip", "tecnologia", "cidade_a"]);
+
   const updateInlineField = useCallback(async (itemId: string, field: string, value: any) => {
     setEditingFields(prev => ({
       ...prev,
@@ -337,7 +339,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     } catch {
       // silent
     }
-  }, []);
+    // Trigger pricing recalc if relevant field
+    if (PRICING_FIELDS.has(field)) {
+      // Need to recalc with updated dbRow
+      clearTimeout(calcTimers.current[itemId]);
+      calcTimers.current[itemId] = setTimeout(() => {
+        const updatedRow = { ...(dbRows[itemId] || {}), [field]: value };
+        const r = results?.find(res => res.item.id === itemId);
+        calcularRowPricing(itemId, updatedRow, r?.distance_m ?? null);
+      }, 600);
+    }
+  }, [dbRows, results, calcularRowPricing]);
 
   const startProcessing = async (resume = false) => {
     if (!providers?.length) {
