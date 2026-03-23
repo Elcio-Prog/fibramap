@@ -460,6 +460,7 @@ export async function findBestConnectionPointByRoute(
       routeDistance: best.route.distance,
       routeGeometry: best.route.geometry,
       snapPoint: best.route.snapPoint,
+      destSnapPoint: best.route.destSnapPoint,
       verificationPending: false,
     };
   }
