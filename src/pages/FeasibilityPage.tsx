@@ -421,7 +421,7 @@ export default function FeasibilityPage() {
             status: isBlocked ? "outside_not_viable" : insideNT ? "inside" : isViableNT ? "outside_viable" : "outside_not_viable",
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
-            highwayBlocked, highwayMessage, providerRules,
+            highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
