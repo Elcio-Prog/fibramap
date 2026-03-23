@@ -184,7 +184,7 @@ async function loadAllCosts(
 
 // ── Calculation per product ─────────────────────────────────────────────────
 
-function calcConectividade(input: CalcInput, db: DbCosts): CalcOutput {
+function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva = false): CalcOutput {
   const {
     subproduto = "",
     rede,
