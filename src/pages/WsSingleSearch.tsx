@@ -50,7 +50,7 @@ interface RowPricingParams {
 
 const defaultRowPricing: RowPricingParams = {
   produto: "NT LINK DEDICADO FULL",
-  vigencia: "24",
+  vigencia: "",
   taxaInstalacao: "0",
   velocidade: "",
   blocoIp: "",
