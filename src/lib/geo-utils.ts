@@ -770,12 +770,21 @@ export async function getRouteDistance(
     return geometry;
   };
 
-  const attemptFetch = async (): Promise<{ distance: number; geometry: any } | null> => {
+  // Snap origin to nearest road to capture off-road offset (e.g. inside a building)
+  const snapped = await snapToRoad(fromLat, fromLng);
+  const snapLat = snapped?.lat ?? fromLat;
+  const snapLng = snapped?.lng ?? fromLng;
+  const snapOffsetMeters = snapped?.offsetMeters ?? 0;
+  // snapPoint is only set when there is a meaningful offset (> 1m)
+  const snapPoint: [number, number] | undefined =
+    snapped && snapOffsetMeters > 1 ? [snapped.lat, snapped.lng] : undefined;
+
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
       const [forwardRoutes, reverseRoutes] = await Promise.all([
-        fetchDrivingAlternatives(fromLat, fromLng, toLat, toLng),
-        fetchDrivingAlternatives(toLat, toLng, fromLat, fromLng),
+        fetchDrivingAlternatives(snapLat, snapLng, toLat, toLng),
+        fetchDrivingAlternatives(toLat, toLng, snapLat, snapLng),
       ]);
 
       // null means rate-limited
