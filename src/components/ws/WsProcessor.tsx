@@ -193,6 +193,35 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     }, 600);
   }, [dbRows, results, calcularRowPricing]);
 
+  // Auto-calculate pricing for all rows when results are loaded
+  const initialCalcDone = useRef(false);
+  useEffect(() => {
+    if (!results || results.length === 0 || Object.keys(dbRows).length === 0) return;
+    if (initialCalcDone.current) return;
+    initialCalcDone.current = true;
+
+    // Batch calculate for rows that have enough data
+    const itemsToCalc = results.filter(r => {
+      const db = dbRows[r.item.id];
+      if (!db) return false;
+      const vig = db.vigencia ? Number(db.vigencia) : 0;
+      const vel = db.velocidade_mbps ? Number(db.velocidade_mbps) : 0;
+      return vig > 0 && vel > 0;
+    });
+
+    // Stagger calls to avoid overwhelming the edge function
+    itemsToCalc.forEach((r, i) => {
+      setTimeout(() => {
+        calcularRowPricing(r.item.id, dbRows[r.item.id], r.distance_m ?? null);
+      }, i * 200);
+    });
+  }, [results, dbRows, calcularRowPricing]);
+
+  // Reset initial calc flag when batch changes
+  useEffect(() => {
+    initialCalcDone.current = false;
+  }, [batchId]);
+
   // Build pre-providers with cities for engine
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
     .filter(pp => pp.status === "pre_cadastro")
