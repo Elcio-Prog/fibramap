@@ -16,9 +16,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS } from "@/lib/field-options";
+import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
+
+const STEPS = [
+  { number: 1, label: "Precificação simples" },
+  { number: 2, label: "Dados da solicitação" },
+  { number: 3, label: "Validação" },
+  { number: 4, label: "BKO" },
+];
 
 interface Props {
   item: PreViabilidade | null;
