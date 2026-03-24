@@ -230,6 +230,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
+  const [valorCapex, setValorCapex] = useState<number>(0);
   const initialLoadDone = useRef(false);
 
   // Extra editable fields (non-calculator)
@@ -256,6 +257,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   useEffect(() => {
     if (!item) return;
     setValorMinimo(item.valor_minimo ?? null);
+    setValorCapex((item.dados_precificacao as any)?.valorCapex ?? 0);
     initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
@@ -343,6 +345,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (result?.valorMinimo != null) {
         setValorMinimo(result.valorMinimo);
       }
+      if (result?.valorCapex != null) {
+        setValorCapex(result.valorCapex);
+      }
     }, 600);
     return () => clearTimeout(timer);
   }, [calcForm, open, buildPayload, calcular]);
@@ -395,6 +400,14 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       paisInternacional: f.paisInternacional,
       minInternacional: f.minInternacional,
       qtdBackupTB: f.qtdBackupTB,
+      // Resultado da precificação (usado no cálculo de ROI)
+      valorCapex: valorCapex,
+      // Campos futuros para ROI (default 0 até serem implementados)
+      media_mensalidade_lm: (item?.dados_precificacao as any)?.media_mensalidade_lm ?? 0,
+      custo_radio: (item?.dados_precificacao as any)?.custo_radio ?? 0,
+      valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
+      usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
+      campanha_comercial_meses: (item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0,
     };
   };
 
