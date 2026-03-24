@@ -399,6 +399,14 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       paisInternacional: f.paisInternacional,
       minInternacional: f.minInternacional,
       qtdBackupTB: f.qtdBackupTB,
+      // Resultado da precificação (usado no cálculo de ROI)
+      valorCapex: valorCapex,
+      // Campos futuros para ROI (default 0 até serem implementados)
+      media_mensalidade_lm: (item?.dados_precificacao as any)?.media_mensalidade_lm ?? 0,
+      custo_radio: (item?.dados_precificacao as any)?.custo_radio ?? 0,
+      valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
+      usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
+      campanha_comercial_meses: (item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0,
     };
   };
 
