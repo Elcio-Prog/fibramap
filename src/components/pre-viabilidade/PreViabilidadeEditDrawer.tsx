@@ -401,7 +401,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         updates: {
           status: meta.status || null,
           produto_nt: calcForm.produto || null,
-          vigencia: calcForm.vigencia || null,
+          valor_minimo: valorMinimo,
           nome_cliente: meta.nome_cliente || null,
           tipo_solicitacao: meta.tipo_solicitacao || null,
           viabilidade: meta.viabilidade || null,
