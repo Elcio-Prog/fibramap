@@ -37,6 +37,7 @@ import DrilldownProvedores from "@/pages/dashboard/DrilldownProvedores";
 import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
 import PrecificacaoPage from "@/pages/admin/PrecificacaoPage";
 import CalcularPage from "@/pages/admin/Calcular";
+import PreViabilidadePage from "@/pages/PreViabilidadePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,7 @@ function ProtectedRoutes() {
         <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="/admin/precificacao" element={<PrecificacaoPage />} />
         <Route path="/admin/precificacao/calcular" element={<CalcularPage />} />
+        <Route path="/pre-viabilidade" element={<PreViabilidadePage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
@@ -111,6 +113,7 @@ function WsRoutes() {
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
+        <Route path="/pre-viabilidade" element={<PreViabilidadePage />} />
         <Route path="/account" element={<UserSettingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
