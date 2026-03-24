@@ -510,6 +510,162 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
   if (!item) return null;
 
+  const renderStep1 = () => (
+    <div className="space-y-4">
+      {loadingData ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SelectField label="Categoria NT" value={calcForm.produto}
+              onChange={v => setProduto(v as FormState["produto"])} options={[...PRODUTOS]} />
+            <SelectField label="Vigência"
+              value={calcForm.subproduto === "NT EVENTO" ? "1" : String(calcForm.vigencia)}
+              onChange={v => {
+                const num = Number(v) || 0;
+                setField("vigencia", num);
+                const roi = getRoiForVigencia(v);
+                if (roi !== null) setField("roiVigencia", roi);
+              }}
+              options={VIGENCIA_OPTIONS}
+              disabled={calcForm.subproduto === "NT EVENTO"} />
+            <NumField label="Taxa de Instalação" value={calcForm.taxaInstalacao}
+              onChange={v => setField("taxaInstalacao", v)} />
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Campos — {calcForm.produto}</CardTitle>
+            </CardHeader>
+            <CardContent>{renderProductFields()}</CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="sm:col-span-2">
+          <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
+          <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
+        </div>
+        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
+          onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} />
+        <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal}
+          onChange={setMetaNum("ticket_mensal")} />
+        <div>
+          <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
+          <Input className="h-9 mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Código Oportunidade SMARK</Label>
+          <Input className="h-9 mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Coordenadas</Label>
+          <Input className="h-9 mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">ID GuardaChuva</Label>
+          <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
+        </div>
+        <div className="sm:col-span-2 lg:col-span-3">
+          <Label className="text-xs text-muted-foreground">Endereço</Label>
+          <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
+        </div>
+        <div className="sm:col-span-2 lg:col-span-3">
+          <Label className="text-xs text-muted-foreground">Observações</Label>
+          <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SelectField label="Status" value={meta.status}
+          onChange={v => setMeta(f => ({ ...f, status: v }))}
+          options={["Aberto", "Aberto/Reavaliar", "Fechado", "Fechado - Auto Avaliação"]} />
+        <div>
+          <Label className="text-xs text-muted-foreground">OPEX</Label>
+          <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(calcForm.valorOpex)} disabled />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">CAPEX</Label>
+          <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(valorCapex)} disabled />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Projetista</Label>
+          <Input className="h-9 mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
+        </div>
+        <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
+          onChange={v => setField("custosMateriaisAdicionais", v)} />
+        <div>
+          <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
+          <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Viabilidade</Label>
+          <Input className="h-9 mt-1" value={meta.viabilidade} onChange={setMetaField("viabilidade")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Status de Viabilidade</Label>
+          <Input className="h-9 mt-1" value={meta.status_viabilidade} onChange={setMetaField("status_viabilidade")} />
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs text-muted-foreground">Observação Validação</Label>
+        <Textarea className="mt-1" rows={4} value={meta.observacao_validacao} onChange={setMetaField("observacao_validacao")} />
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <Label className="text-xs text-muted-foreground">Campanha Comercial</Label>
+          <Input className="h-9 mt-1" value={meta.campanha_comercial} onChange={setMetaField("campanha_comercial")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Motivo Solicitação</Label>
+          <Input className="h-9 mt-1" value={meta.motivo_solicitacao} onChange={setMetaField("motivo_solicitacao")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Aprovado por</Label>
+          <Input className="h-9 mt-1" value={meta.aprovado_por} onChange={setMetaField("aprovado_por")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Status Aprovação</Label>
+          <Input className="h-9 mt-1" value={meta.status_aprovacao} onChange={setMetaField("status_aprovacao")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Criado por</Label>
+          <Input className="h-9 mt-1" value={meta.criado_por} onChange={setMetaField("criado_por")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Protocolo</Label>
+          <Input className="h-9 mt-1" value={meta.protocolo} onChange={setMetaField("protocolo")} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">Comentários do Aprovador</Label>
+          <Textarea className="mt-1" rows={3} value={meta.comentarios_aprovador} onChange={setMetaField("comentarios_aprovador")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Observação Validação</Label>
+          <Textarea className="mt-1" rows={3} value={meta.observacao_validacao} onChange={setMetaField("observacao_validacao")} />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -520,179 +676,67 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </DialogDescription>
         </DialogHeader>
 
-        {/* Valor Mínimo — auto-calculated */}
-        <div>
-          <Label className="text-xs text-muted-foreground">Valor Mínimo {calculating && "(recalculando...)"}</Label>
-          <div className="mt-1 px-3 py-2 rounded-md border border-input bg-muted/50 text-sm min-h-[40px] flex items-center font-semibold">
-            {formatCurrency(valorMinimo)}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Meta fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div>
-            <Label className="text-xs">Status</Label>
-            <Select value={meta.status} onValueChange={(v) => setMeta(f => ({ ...f, status: v }))}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Aberto">Aberto</SelectItem>
-                <SelectItem value="Aberto/Reavaliar">Aberto/Reavaliar</SelectItem>
-                <SelectItem value="Fechado">Fechado</SelectItem>
-                <SelectItem value="Fechado - Auto Avaliação">Fechado - Auto Avaliação</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">Nome do Cliente</Label>
-            <Input className="mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
-          </div>
-          <div>
-            <Label className="text-xs">Viabilidade</Label>
-            <Input className="mt-1" value={meta.viabilidade} onChange={setMetaField("viabilidade")} />
-          </div>
-          <div>
-            <Label className="text-xs">Tipo de Solicitação</Label>
-            <Input className="mt-1" value={meta.tipo_solicitacao} onChange={setMetaField("tipo_solicitacao")} />
-          </div>
-          <div>
-            <Label className="text-xs">Código SMARK</Label>
-            <Input className="mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} />
-          </div>
-          <div>
-            <Label className="text-xs">ID GuardaChuva</Label>
-            <Input className="mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
-          </div>
-          <div>
-            <Label className="text-xs">Criado por</Label>
-            <Input className="mt-1" value={meta.criado_por} onChange={setMetaField("criado_por")} />
-          </div>
-          <div>
-            <Label className="text-xs">Status Aprovação</Label>
-            <Input className="mt-1" value={meta.status_aprovacao} onChange={setMetaField("status_aprovacao")} />
-          </div>
-          <div>
-            <Label className="text-xs">Aprovado por</Label>
-            <Input className="mt-1" value={meta.aprovado_por} onChange={setMetaField("aprovado_por")} />
-          </div>
-          <div>
-            <Label className="text-xs">Projetista</Label>
-            <Input className="mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
-          </div>
-          <div>
-            <Label className="text-xs">Status de Viabilidade</Label>
-            <Input className="mt-1" value={meta.status_viabilidade} onChange={setMetaField("status_viabilidade")} />
-          </div>
-          <NumField label="Ticket Mensal" value={meta.ticket_mensal} onChange={setMetaNum("ticket_mensal")} />
-          <div>
-            <Label className="text-xs">CNPJ Cliente</Label>
-            <Input className="mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
-          </div>
-          <div>
-            <Label className="text-xs">Protocolo</Label>
-            <Input className="mt-1" value={meta.protocolo} onChange={setMetaField("protocolo")} />
-          </div>
-          <div>
-            <Label className="text-xs">Coordenadas</Label>
-            <Input className="mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
-          </div>
-          <div className="sm:col-span-2 lg:col-span-3">
-            <Label className="text-xs">Endereço</Label>
-            <Input className="mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Calculator fields */}
-        {loadingData ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Calculator className="h-4 w-4" />
-                  Dados de Precificação
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <SelectField
-                    label="Categoria NT"
-                    value={calcForm.produto}
-                    onChange={v => setProduto(v as FormState["produto"])}
-                    options={[...PRODUTOS]}
-                  />
-                  <SelectField
-                    label="Vigência"
-                    value={calcForm.subproduto === "NT EVENTO" ? "1" : String(calcForm.vigencia)}
-                    onChange={v => {
-                      const num = Number(v) || 0;
-                      setField("vigencia", num);
-                      const roi = getRoiForVigencia(v);
-                      if (roi !== null) setField("roiVigencia", roi);
-                    }}
-                    options={VIGENCIA_OPTIONS}
-                    disabled={calcForm.subproduto === "NT EVENTO"}
-                  />
-                  <NumField
-                    label="Taxa de Instalação"
-                    value={calcForm.taxaInstalacao}
-                    onChange={v => setField("taxaInstalacao", v)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Campos — {calcForm.produto}</CardTitle>
-              </CardHeader>
-              <CardContent>{renderProductFields()}</CardContent>
-            </Card>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Text areas */}
-        <div className="space-y-4">
-          <div>
-            <Label className="text-xs">Motivo Solicitação</Label>
-            <Textarea className="mt-1" rows={2} value={meta.motivo_solicitacao} onChange={setMetaField("motivo_solicitacao")} />
-          </div>
-          <div>
-            <Label className="text-xs">Inviabilidade Técnica</Label>
-            <Textarea className="mt-1" rows={2} value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Comentários do Aprovador</Label>
-              <Textarea className="mt-1" rows={3} value={meta.comentarios_aprovador} onChange={setMetaField("comentarios_aprovador")} />
+        {/* Step indicator */}
+        <div className="flex items-center gap-1 py-2">
+          {STEPS.map((s, i) => (
+            <div key={s.number} className="flex items-center gap-1">
+              <button
+                onClick={() => setStep(s.number)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  step === s.number
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-current">
+                  {s.number}
+                </span>
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+              {i < STEPS.length - 1 && <div className="w-4 h-px bg-border" />}
             </div>
-            <div>
-              <Label className="text-xs">Observação Validação</Label>
-              <Textarea className="mt-1" rows={3} value={meta.observacao_validacao} onChange={setMetaField("observacao_validacao")} />
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs">Observações</Label>
-            <Textarea className="mt-1" rows={14} value={meta.observacoes} onChange={setMetaField("observacoes")} />
-          </div>
+          ))}
         </div>
 
-        <div className="flex gap-2 pt-2 justify-between">
-          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
-            <Trash2 className="h-4 w-4" />
-            Excluir
-          </Button>
+        <Separator />
+
+        {/* Step content */}
+        <div className="min-h-[300px]">
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderStep4()}
+        </div>
+
+        {/* Valor Mínimo footer */}
+        <div className="rounded-md border border-input bg-muted/30 px-4 py-2 flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Valor Mínimo: <span className="font-semibold text-foreground">{formatCurrency(valorMinimo)}</span>
+          </span>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex justify-between pt-2">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
+            <Button variant="outline" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
+              className="gap-2">
+              <ChevronLeft className="h-4 w-4" />
+              {step === 1 ? "Cancelar" : "Voltar"}
+            </Button>
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
+              <Trash2 className="h-4 w-4" />
+              Excluir
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            {step < 4 && (
+              <Button onClick={() => setStep(step + 1)} className="gap-2">
+                Próximo
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"
+              variant={step === 4 ? "default" : "outline"}>
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar
             </Button>
