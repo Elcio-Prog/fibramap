@@ -4,7 +4,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import PreViabilidadeTable from "@/components/pre-viabilidade/PreViabilidadeTable";
 import PreViabilidadeFilters from "@/components/pre-viabilidade/PreViabilidadeFilters";
 import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidadeEditDrawer";
-import { Loader2, FileCheck, X } from "lucide-react";
+import PreViabilidadeCreateDialog from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
+import { Loader2, FileCheck, X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -15,17 +16,24 @@ export default function PreViabilidadePage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
   const [guardaChuvaFilter, setGuardaChuvaFilter] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <FileCheck className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-xl font-bold">Pré Viabilidade</h1>
-          <p className="text-sm text-muted-foreground">
-            {isAdmin ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileCheck className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-xl font-bold">Pré Viabilidade</h1>
+            <p className="text-sm text-muted-foreground">
+              {isAdmin ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
+            </p>
+          </div>
         </div>
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Criar Pré Viabilidade
+        </Button>
       </div>
 
       <PreViabilidadeFilters
@@ -68,6 +76,8 @@ export default function PreViabilidadePage() {
           onOpenChange={(open) => !open && setEditItem(null)}
         />
       )}
+
+      <PreViabilidadeCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
