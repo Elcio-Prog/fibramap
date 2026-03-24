@@ -245,7 +245,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         cnpj_cliente: "", codigo_smark: "", coordenadas: "",
         id_guardachuva: "", endereco: "", observacoes: "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
-        observacao_validacao: "", campanha_comercial: "",
+        observacao_validacao: "", data_reavaliacao: "", campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
         criado_por: user?.email || "", protocolo: "",
       });
