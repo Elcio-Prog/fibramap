@@ -223,6 +223,7 @@ function BackupFields({ form, setField }: any) {
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const updateMutation = useUpdatePreViabilidade();
+  const deleteMutation = useDeletePreViabilidade();
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
