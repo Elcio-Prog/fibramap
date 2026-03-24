@@ -59,13 +59,13 @@ function NumField({ label, value, onChange, disabled, className, required }: {
   );
 }
 
-function SelectField({ label, value, onChange, options, placeholder, disabled, className }: {
+function SelectField({ label, value, onChange, options, placeholder, disabled, className, required }: {
   label: string; value: string; onChange: (v: string) => void;
-  options: string[]; placeholder?: string; disabled?: boolean; className?: string;
+  options: string[]; placeholder?: string; disabled?: boolean; className?: string; required?: boolean;
 }) {
   return (
     <div className={className}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder={placeholder ?? "Selecione..."} /></SelectTrigger>
         <SelectContent>
