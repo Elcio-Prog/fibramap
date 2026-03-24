@@ -224,6 +224,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     aprovado_por: "",
     status_aprovacao: "",
     criado_por: "",
+    protocolo: "",
   });
 
   // Reset form when dialog opens
