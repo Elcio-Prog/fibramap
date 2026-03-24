@@ -189,7 +189,7 @@ export function useBulkExport() {
           nome_cliente: item.cliente || null,
           motivo_solicitacao: null,
           codigo_smark: item.codigo_smark || null,
-          status: "Ativa",
+          status: "Aberto",
         }));
         await supabase.from("pre_viabilidades" as any).insert(preViabPayloads as any);
       } catch (preViabErr) {
