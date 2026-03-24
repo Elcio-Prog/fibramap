@@ -6,7 +6,7 @@ import { useNavigate, NavLink } from "react-router-dom";
 import {
   Map, Building2, Calculator, FileText, LogOut, Menu,
   Database, Users, Upload, Search, ClipboardList, Network,
-  Settings, History, ChevronLeft, ChevronRight, Wifi, BarChart3, Table2,
+  Settings, History, ChevronLeft, ChevronRight, Wifi, BarChart3, Table2, FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
