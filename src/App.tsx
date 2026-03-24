@@ -82,6 +82,7 @@ function ProtectedRoutes() {
         <Route path="/send-history" element={<SendHistoryPage />} />
         <Route path="/admin/precificacao" element={<PrecificacaoPage />} />
         <Route path="/admin/precificacao/calcular" element={<CalcularPage />} />
+        <Route path="/pre-viabilidade" element={<PreViabilidadePage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
