@@ -129,8 +129,8 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
             ) : (
               paged.map((row) => (
                 <tr key={row.id} className="border-t hover:bg-muted/30 transition-colors cursor-pointer" onDoubleClick={() => isAdmin && onEdit(row)}>
-                  <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background">
-                    #{row.id.slice(0, 4).toUpperCase()}
+                  <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background font-semibold">
+                    #{row.numero}
                   </td>
                   {isAdmin && (
                     <td className="px-2 py-1.5">
