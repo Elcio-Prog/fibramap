@@ -441,6 +441,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     }
   };
 
+  const renderProductFields = () => {
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
       case "Conectividade": return <ConectividadeFields {...props} />;
