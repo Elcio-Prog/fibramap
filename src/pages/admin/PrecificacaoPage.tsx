@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Download, Upload, Save, Plus, Trash2, Settings } from "lucide-react";
+import { Download, Upload, Save, Plus, Trash2, Settings, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -213,22 +214,41 @@ function SetupTab() {
   const [regraProjetista, setRegraProjetista] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
+  const [newProjetista, setNewProjetista] = useState("");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("configuracoes" as any)
-        .select("valor")
-        .eq("chave", "setup_precificacao")
-        .maybeSingle();
-      if (data) {
-        const val = (data as any).valor;
+      const [setupRes, projRes] = await Promise.all([
+        supabase.from("configuracoes" as any).select("valor").eq("chave", "setup_precificacao").maybeSingle(),
+        supabase.from("configuracoes" as any).select("valor").eq("chave", "projetistas").maybeSingle(),
+      ]);
+      if (setupRes.data) {
+        const val = (setupRes.data as any).valor;
         setFatorAjuste(val?.fator_ajuste ?? 100);
         setRegraProjetista(val?.regra_projetista_ativa ?? false);
+      }
+      if (projRes.data) {
+        const val = (projRes.data as any).valor;
+        if (Array.isArray(val)) setProjetistaOptions(val);
       }
       setLoading(false);
     })();
   }, []);
+
+  const addProjetista = async () => {
+    const name = newProjetista.trim();
+    if (!name || projetistaOptions.includes(name)) return;
+    const updated = [...projetistaOptions, name].sort();
+    const { error } = await supabase.from("configuracoes" as any).upsert({ chave: "projetistas", valor: updated } as any, { onConflict: "chave" });
+    if (!error) { setProjetistaOptions(updated); setNewProjetista(""); }
+  };
+
+  const removeProjetista = async (name: string) => {
+    const updated = projetistaOptions.filter(p => p !== name);
+    await supabase.from("configuracoes" as any).upsert({ chave: "projetistas", valor: updated } as any, { onConflict: "chave" });
+    setProjetistaOptions(updated);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -312,6 +332,33 @@ function SetupTab() {
         <Button onClick={handleSave} disabled={saving} size="sm">
           <Save className="h-4 w-4 mr-1" /> Salvar Setup
         </Button>
+      </div>
+
+      {/* Gerenciar Projetistas */}
+      <div className="rounded-lg border bg-card p-6 space-y-4">
+        <div>
+          <h3 className="text-base font-semibold mb-1">Gerenciar Projetistas</h3>
+          <p className="text-xs text-muted-foreground">Adicione ou remova opções de projetistas disponíveis no formulário de pré viabilidade.</p>
+        </div>
+        <div className="flex gap-2">
+          <Input className="h-9" placeholder="Nome do projetista" value={newProjetista}
+            onChange={e => setNewProjetista(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addProjetista())} />
+          <Button type="button" size="sm" className="gap-1 h-9" onClick={addProjetista}>
+            <Plus className="h-3.5 w-3.5" /> Adicionar
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {projetistaOptions.map(p => (
+            <Badge key={p} variant="secondary" className="gap-1 text-xs">
+              {p}
+              <button type="button" onClick={() => removeProjetista(p)} className="ml-0.5 hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          {projetistaOptions.length === 0 && <span className="text-xs text-muted-foreground">Nenhum projetista cadastrado</span>}
+        </div>
       </div>
     </div>
   );
