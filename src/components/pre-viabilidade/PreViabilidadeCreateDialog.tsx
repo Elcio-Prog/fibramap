@@ -208,6 +208,30 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
+  const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
+  const [newProjetista, setNewProjetista] = useState("");
+
+  // Load projetista options from configuracoes
+  useEffect(() => {
+    supabase.from("configuracoes").select("valor").eq("chave", "projetistas").single()
+      .then(({ data }) => {
+        if (data?.valor && Array.isArray(data.valor)) setProjetistaOptions(data.valor as string[]);
+      });
+  }, []);
+
+  const addProjetista = async () => {
+    const name = newProjetista.trim();
+    if (!name || projetistaOptions.includes(name)) return;
+    const updated = [...projetistaOptions, name].sort();
+    const { error } = await supabase.from("configuracoes").upsert({ chave: "projetistas", valor: updated as any }, { onConflict: "chave" });
+    if (!error) { setProjetistaOptions(updated); setNewProjetista(""); }
+  };
+
+  const removeProjetista = async (name: string) => {
+    const updated = projetistaOptions.filter(p => p !== name);
+    await supabase.from("configuracoes").upsert({ chave: "projetistas", valor: updated as any }, { onConflict: "chave" });
+    setProjetistaOptions(updated);
+  };
 
   const [meta, setMeta] = useState({
     nome_cliente: "",
