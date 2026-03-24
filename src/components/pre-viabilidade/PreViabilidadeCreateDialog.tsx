@@ -382,15 +382,6 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
             <CardContent>{renderProductFields()}</CardContent>
           </Card>
 
-          <div className="rounded-md border border-input bg-muted/50 p-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Calculator className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Valor Mínimo:</span>
-              <span className="font-semibold">
-                {calculating ? <Loader2 className="h-4 w-4 animate-spin inline" /> : formatCurrency(valorMinimo)}
-              </span>
-            </div>
-          </div>
         </>
       )}
     </div>
