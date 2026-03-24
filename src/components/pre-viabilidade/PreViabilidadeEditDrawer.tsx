@@ -385,6 +385,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       endereco: (item as any).endereco || "",
       protocolo: (item as any).protocolo || "",
       campanha_comercial: "",
+      data_reavaliacao: (item as any).data_reavaliacao || "",
     });
   }, [item]);
 
