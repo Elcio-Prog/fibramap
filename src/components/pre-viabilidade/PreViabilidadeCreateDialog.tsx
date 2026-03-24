@@ -241,7 +241,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
         observacao_validacao: "", campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
-        criado_por: user?.email || "",
+        criado_por: user?.email || "", protocolo: "",
       });
       setProduto("Conectividade");
       setTimeout(() => { initialLoadDone.current = true; }, 300);
