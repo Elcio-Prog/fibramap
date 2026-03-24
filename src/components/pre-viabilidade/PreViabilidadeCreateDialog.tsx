@@ -382,6 +382,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         endereco: meta.endereco || null,
         protocolo: meta.protocolo || null,
         dados_precificacao: buildDadosPrecificacao(),
+        data_reavaliacao: meta.data_reavaliacao || null,
         viabilidade: null,
         status_viabilidade: null,
         previsao_roi: null,
