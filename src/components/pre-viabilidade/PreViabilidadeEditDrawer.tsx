@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PreViabilidade, useUpdatePreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
