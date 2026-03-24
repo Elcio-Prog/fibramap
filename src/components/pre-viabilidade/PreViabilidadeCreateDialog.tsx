@@ -396,9 +396,9 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SelectField label="Categoria NT" value={calcForm.produto}
+            <SelectField label="Categoria NT" value={calcForm.produto} required
               onChange={v => setProduto(v as FormState["produto"])} options={[...PRODUTOS]} />
-            <SelectField label="Vigência"
+            <SelectField label="Vigência" required
               value={calcForm.subproduto === "NT EVENTO" ? "1" : String(calcForm.vigencia)}
               onChange={v => {
                 const num = Number(v) || 0;
@@ -408,7 +408,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
               }}
               options={VIGENCIA_OPTIONS}
               disabled={calcForm.subproduto === "NT EVENTO"} />
-            <NumField label="Taxa de Instalação" value={calcForm.taxaInstalacao}
+            <NumField label="Taxa de Instalação" value={calcForm.taxaInstalacao} required
               onChange={v => setField("taxaInstalacao", v)} />
           </div>
 
