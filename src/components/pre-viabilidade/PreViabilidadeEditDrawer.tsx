@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { PreViabilidade, useUpdatePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
+import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,7 +223,10 @@ function BackupFields({ form, setField }: any) {
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const updateMutation = useUpdatePreViabilidade();
-  const { form: calcForm, setField, setProduto, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
+  const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
+  const { calcular, loading: calculating } = useCalcularPrecificacao();
+  const [valorMinimo, setValorMinimo] = useState<number | null>(null);
+  const initialLoadDone = useRef(false);
 
   // Extra editable fields (non-calculator)
   const [meta, setMeta] = useState({
@@ -244,9 +248,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     observacoes: "",
   });
 
-  // Populate form when item changes
+  // Initialize valor_minimo from item
   useEffect(() => {
     if (!item) return;
+    setValorMinimo(item.valor_minimo ?? null);
+    initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
     const dp = item.dados_precificacao || {};
@@ -299,8 +305,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.minInternacional != null) setField("minInternacional", dp.minInternacional);
       // Backup
       if (dp.qtdBackupTB != null) setField("qtdBackupTB", dp.qtdBackupTB);
+      // Mark initial load will be done after setTimeout fires
+      setTimeout(() => { initialLoadDone.current = true; }, 200);
     }, 50);
-
     // Set meta fields
     setMeta({
       status: item.status || "Aberto",
@@ -321,6 +328,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       observacoes: item.observacoes || "",
     });
   }, [item]);
+
+  // Auto-recalculate valor_minimo when pricing fields change
+  useEffect(() => {
+    if (!initialLoadDone.current || !open) return;
+    const timer = setTimeout(async () => {
+      const payload = buildPayload();
+      const result = await calcular(payload);
+      if (result?.valorMinimo != null) {
+        setValorMinimo(result.valorMinimo);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [calcForm, open, buildPayload, calcular]);
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
@@ -381,6 +401,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         updates: {
           status: meta.status || null,
           produto_nt: calcForm.produto || null,
+          valor_minimo: valorMinimo,
           vigencia: calcForm.vigencia || null,
           nome_cliente: meta.nome_cliente || null,
           tipo_solicitacao: meta.tipo_solicitacao || null,
@@ -432,11 +453,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </DialogDescription>
         </DialogHeader>
 
-        {/* Valor Mínimo — read-only */}
+        {/* Valor Mínimo — auto-calculated */}
         <div>
-          <Label className="text-xs text-muted-foreground">Valor Mínimo (somente leitura)</Label>
+          <Label className="text-xs text-muted-foreground">Valor Mínimo {calculating && "(recalculando...)"}</Label>
           <div className="mt-1 px-3 py-2 rounded-md border border-input bg-muted/50 text-sm min-h-[40px] flex items-center font-semibold">
-            {formatCurrency(item.valor_minimo)}
+            {formatCurrency(valorMinimo)}
           </div>
         </div>
 
