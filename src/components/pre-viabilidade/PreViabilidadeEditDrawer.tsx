@@ -344,6 +344,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (result?.valorMinimo != null) {
         setValorMinimo(result.valorMinimo);
       }
+      if (result?.valorCapex != null) {
+        setValorCapex(result.valorCapex);
+      }
     }, 600);
     return () => clearTimeout(timer);
   }, [calcForm, open, buildPayload, calcular]);
