@@ -260,6 +260,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
     // Load calculator state from dados_precificacao
     const dp = item.dados_precificacao || {};
+    const savedVigencia = item.vigencia ?? dp.vigencia ?? 12;
     const produto = (PRODUTOS as readonly string[]).includes(dp.produto) ? dp.produto : "Conectividade";
     setProduto(produto as FormState["produto"]);
 
@@ -273,7 +274,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.tecnologiaMeioFisico) setField("tecnologiaMeioFisico", dp.tecnologiaMeioFisico);
       if (dp.rede) setField("rede", dp.rede);
       if (dp.redePontaB) setField("redePontaB", dp.redePontaB);
-      if (dp.vigencia != null) setField("vigencia", dp.vigencia);
+      if (savedVigencia != null) setField("vigencia", savedVigencia);
       if (dp.taxaInstalacao != null) setField("taxaInstalacao", dp.taxaInstalacao);
       if (dp.roiVigencia != null) setField("roiVigencia", dp.roiVigencia);
       if (dp.custoLastMile != null) setField("custoLastMile", dp.custoLastMile);
