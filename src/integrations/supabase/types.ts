@@ -543,6 +543,7 @@ export type Database = {
           inviabilidade_tecnica: string | null
           motivo_solicitacao: string | null
           nome_cliente: string | null
+          numero: number
           observacao_validacao: string | null
           observacoes: string | null
           origem: string | null
@@ -571,6 +572,7 @@ export type Database = {
           inviabilidade_tecnica?: string | null
           motivo_solicitacao?: string | null
           nome_cliente?: string | null
+          numero?: number
           observacao_validacao?: string | null
           observacoes?: string | null
           origem?: string | null
@@ -599,6 +601,7 @@ export type Database = {
           inviabilidade_tecnica?: string | null
           motivo_solicitacao?: string | null
           nome_cliente?: string | null
+          numero?: number
           observacao_validacao?: string | null
           observacoes?: string | null
           origem?: string | null

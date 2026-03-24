@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 export interface PreViabilidade {
   id: string;
+  numero: number;
   user_id: string;
   criado_por: string | null;
   status: string | null;

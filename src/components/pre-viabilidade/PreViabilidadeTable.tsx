@@ -41,7 +41,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
       list = list.filter((r) =>
         (r.nome_cliente || "").toLowerCase().includes(q) ||
         (r.viabilidade || "").toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q)
+        String(r.numero).includes(q)
       );
     }
     list = [...list].sort((a, b) => {
@@ -90,7 +90,9 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
         <table className="text-xs w-max min-w-full">
           <thead className="sticky top-0 bg-muted z-10">
             <tr>
-              <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted min-w-[70px]">ID</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted min-w-[50px] cursor-pointer select-none" onClick={() => toggleSort("numero" as SortKey)}>
+                <span className="flex items-center gap-1">Nº <ArrowUpDown className="h-3 w-3" /></span>
+              </th>
               {isAdmin && <Th>Editar</Th>}
               <SortHeader field="criado_por">Criado por</SortHeader>
               <SortHeader field="status">Status</SortHeader>
@@ -127,8 +129,8 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
             ) : (
               paged.map((row) => (
                 <tr key={row.id} className="border-t hover:bg-muted/30 transition-colors cursor-pointer" onDoubleClick={() => isAdmin && onEdit(row)}>
-                  <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background">
-                    #{row.id.slice(0, 4).toUpperCase()}
+                  <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background font-semibold">
+                    #{row.numero}
                   </td>
                   {isAdmin && (
                     <td className="px-2 py-1.5">
