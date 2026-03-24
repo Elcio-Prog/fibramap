@@ -431,6 +431,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           vigencia: calcForm.vigencia || null,
           nome_cliente: meta.nome_cliente || null,
           tipo_solicitacao: meta.tipo_solicitacao || null,
+          ticket_mensal: meta.ticket_mensal || null,
           viabilidade: meta.viabilidade || null,
           motivo_solicitacao: meta.motivo_solicitacao || null,
           observacoes: meta.observacoes || null,
@@ -445,6 +446,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           comentarios_aprovador: meta.comentarios_aprovador || null,
           observacao_validacao: meta.observacao_validacao || null,
           modificado_por: user?.email || null,
+          cnpj_cliente: meta.cnpj_cliente || null,
+          coordenadas: meta.coordenadas || null,
+          endereco: meta.endereco || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
