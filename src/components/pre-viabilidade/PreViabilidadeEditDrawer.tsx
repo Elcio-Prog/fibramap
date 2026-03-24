@@ -223,7 +223,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </div>
           <div>
             <Label className="text-xs">Observações</Label>
-            <Textarea className="mt-1" rows={3} value={form.observacoes} onChange={set("observacoes")} />
+            <Textarea className="mt-1" rows={6} value={form.observacoes} onChange={set("observacoes")} />
           </div>
         </div>
 
