@@ -555,6 +555,7 @@ export type Database = {
           previsao_roi: number | null
           produto_nt: string | null
           projetista: string | null
+          protocolo: string | null
           roi_global: number | null
           status: string | null
           status_aprovacao: string | null
@@ -589,6 +590,7 @@ export type Database = {
           previsao_roi?: number | null
           produto_nt?: string | null
           projetista?: string | null
+          protocolo?: string | null
           roi_global?: number | null
           status?: string | null
           status_aprovacao?: string | null
@@ -623,6 +625,7 @@ export type Database = {
           previsao_roi?: number | null
           produto_nt?: string | null
           projetista?: string | null
+          protocolo?: string | null
           roi_global?: number | null
           status?: string | null
           status_aprovacao?: string | null
