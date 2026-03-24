@@ -3,6 +3,7 @@ import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade } from
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -429,9 +430,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     }
   };
 
-  const handleDelete = async () => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteConfirm = async () => {
     if (!item) return;
-    if (!confirm(`Excluir registro #${item.numero}? Esta ação não pode ser desfeita.`)) return;
     try {
       await deleteMutation.mutateAsync(item.id);
       toast({ title: "Registro excluído com sucesso!" });
@@ -439,6 +441,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     } catch (e: any) {
       toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
+    setShowDeleteDialog(false);
   };
 
   const renderProductFields = () => {
@@ -615,8 +618,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         </div>
 
         <div className="flex gap-2 pt-2 justify-between">
-          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending} className="gap-2">
-            {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
+            <Trash2 className="h-4 w-4" />
             Excluir
           </Button>
           <div className="flex gap-2">
@@ -628,6 +631,23 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </div>
         </div>
       </DialogContent>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir registro #{item?.numero}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
