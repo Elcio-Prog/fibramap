@@ -422,6 +422,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           inviabilidade_tecnica: meta.inviabilidade_tecnica || null,
           comentarios_aprovador: meta.comentarios_aprovador || null,
           observacao_validacao: meta.observacao_validacao || null,
+          modificado_por: user?.email || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
