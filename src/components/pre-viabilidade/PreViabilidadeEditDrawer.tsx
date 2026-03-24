@@ -329,6 +329,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     });
   }, [item]);
 
+  // Auto-recalculate valor_minimo when pricing fields change
+  useEffect(() => {
+    if (!initialLoadDone.current || !open) return;
+    const timer = setTimeout(async () => {
+      const payload = buildPayload();
+      const result = await calcular(payload);
+      if (result?.valorMinimo != null) {
+        setValorMinimo(result.valorMinimo);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [calcForm, open, buildPayload, calcular]);
+
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
 
