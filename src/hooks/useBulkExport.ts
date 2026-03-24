@@ -190,6 +190,18 @@ export function useBulkExport() {
           motivo_solicitacao: null,
           codigo_smark: item.codigo_smark || null,
           status: "Aberto",
+          dados_precificacao: {
+            produto: item.produto || "Conectividade",
+            subproduto: item.produto || "NT LINK DEDICADO FULL",
+            banda: item.velocidade_mbps ?? 0,
+            distancia: item.distance_m ?? 0,
+            blocoIp: item.bloco_ip || "",
+            tecnologia: item.tecnologia || "GPON",
+            tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
+            rede: item.cidade || "",
+            vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
+            taxaInstalacao: item.taxa_instalacao ?? 0,
+          },
         }));
         await supabase.from("pre_viabilidades" as any).insert(preViabPayloads as any);
       } catch (preViabErr) {

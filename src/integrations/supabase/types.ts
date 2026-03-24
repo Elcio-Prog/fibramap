@@ -538,6 +538,7 @@ export type Database = {
           comentarios_aprovador: string | null
           created_at: string | null
           criado_por: string | null
+          dados_precificacao: Json | null
           id: string
           id_guardachuva: string | null
           inviabilidade_tecnica: string | null
@@ -567,6 +568,7 @@ export type Database = {
           comentarios_aprovador?: string | null
           created_at?: string | null
           criado_por?: string | null
+          dados_precificacao?: Json | null
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null
@@ -596,6 +598,7 @@ export type Database = {
           comentarios_aprovador?: string | null
           created_at?: string | null
           criado_por?: string | null
+          dados_precificacao?: Json | null
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null

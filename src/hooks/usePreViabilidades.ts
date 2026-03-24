@@ -30,6 +30,7 @@ export interface PreViabilidade {
   comentarios_aprovador: string | null;
   observacao_validacao: string | null;
   origem: string | null;
+  dados_precificacao: Record<string, any> | null;
   created_at: string;
 }
 

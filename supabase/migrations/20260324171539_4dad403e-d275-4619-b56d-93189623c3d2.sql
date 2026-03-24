@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_viabilidades ADD COLUMN dados_precificacao jsonb DEFAULT '{}'::jsonb;
