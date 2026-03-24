@@ -183,12 +183,15 @@ export function useBulkExport() {
           viabilidade: item.designacao || null,
           ticket_mensal: item.valor_a_ser_vendido ?? null,
           observacoes: item.observacoes_user || null,
-          valor_minimo: item.final_value ?? null, // from pricing engine
+          valor_minimo: item.final_value ?? null,
           origem: "fibramap",
           tipo_solicitacao: item.tipo_solicitacao || null,
           nome_cliente: item.cliente || null,
           motivo_solicitacao: null,
           codigo_smark: item.codigo_smark || null,
+          cnpj_cliente: (item as any).cnpj_cliente || null,
+          endereco: item.endereco_a || null,
+          coordenadas: item.lat_a && item.lng_a ? `${item.lat_a}, ${item.lng_a}` : null,
           status: "Aberto",
           dados_precificacao: {
             produto: item.produto || "Conectividade",
