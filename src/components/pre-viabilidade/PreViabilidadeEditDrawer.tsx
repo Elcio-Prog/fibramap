@@ -186,10 +186,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
               <Input className="mt-1" value={form.criado_por} onChange={set("criado_por")} />
             </div>
             <div>
-              <Label className="text-xs">Origem</Label>
-              <Input className="mt-1" value={form.origem} onChange={set("origem")} />
-            </div>
-            <div>
               <Label className="text-xs">Status Aprovação</Label>
               <Input className="mt-1" value={form.status_aprovacao} onChange={set("status_aprovacao")} />
             </div>
