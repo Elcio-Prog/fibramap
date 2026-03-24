@@ -13,9 +13,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
+import { supabase } from "@/integrations/supabase/client";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
@@ -202,10 +208,34 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
+  const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
+  const [newProjetista, setNewProjetista] = useState("");
+
+  // Load projetista options from configuracoes
+  useEffect(() => {
+    supabase.from("configuracoes").select("valor").eq("chave", "projetistas").single()
+      .then(({ data }) => {
+        if (data?.valor && Array.isArray(data.valor)) setProjetistaOptions(data.valor as string[]);
+      });
+  }, []);
+
+  const addProjetista = async () => {
+    const name = newProjetista.trim();
+    if (!name || projetistaOptions.includes(name)) return;
+    const updated = [...projetistaOptions, name].sort();
+    const { error } = await supabase.from("configuracoes").upsert({ chave: "projetistas", valor: updated as any }, { onConflict: "chave" });
+    if (!error) { setProjetistaOptions(updated); setNewProjetista(""); }
+  };
+
+  const removeProjetista = async (name: string) => {
+    const updated = projetistaOptions.filter(p => p !== name);
+    await supabase.from("configuracoes").upsert({ chave: "projetistas", valor: updated as any }, { onConflict: "chave" });
+    setProjetistaOptions(updated);
+  };
 
   const [meta, setMeta] = useState({
     nome_cliente: "",
-    tipo_solicitacao: "",
+    tipo_solicitacao: "Nova Ativação",
     ticket_mensal: 0,
     cnpj_cliente: "",
     codigo_smark: "",
@@ -218,6 +248,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     projetista: "",
     inviabilidade_tecnica: "",
     observacao_validacao: "",
+    data_reavaliacao: "",
     // Step 4 - BKO
     campanha_comercial: "",
     motivo_solicitacao: "",
@@ -235,11 +266,11 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       setValorCapex(0);
       initialLoadDone.current = false;
       setMeta({
-        nome_cliente: "", tipo_solicitacao: "", ticket_mensal: 0,
+        nome_cliente: "", tipo_solicitacao: "Nova Ativação", ticket_mensal: 0,
         cnpj_cliente: "", codigo_smark: "", coordenadas: "",
         id_guardachuva: "", endereco: "", observacoes: "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
-        observacao_validacao: "", campanha_comercial: "",
+        observacao_validacao: "", data_reavaliacao: "", campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
         criado_por: user?.email || "", protocolo: "",
       });
@@ -351,6 +382,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         endereco: meta.endereco || null,
         protocolo: meta.protocolo || null,
         dados_precificacao: buildDadosPrecificacao(),
+        data_reavaliacao: meta.data_reavaliacao || null,
         viabilidade: null,
         status_viabilidade: null,
         previsao_roi: null,
@@ -424,6 +456,34 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
             <CardContent>{renderProductFields()}</CardContent>
           </Card>
 
+          {/* Projetista options manager */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Gerenciar Projetistas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2 mb-2">
+                <Input className="h-9" placeholder="Nome do projetista" value={newProjetista}
+                  onChange={e => setNewProjetista(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addProjetista())} />
+                <Button type="button" size="sm" className="gap-1 h-9" onClick={addProjetista}>
+                  <Plus className="h-3.5 w-3.5" /> Adicionar
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {projetistaOptions.map(p => (
+                  <Badge key={p} variant="secondary" className="gap-1 text-xs">
+                    {p}
+                    <button type="button" onClick={() => removeProjetista(p)} className="ml-0.5 hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                {projetistaOptions.length === 0 && <span className="text-xs text-muted-foreground">Nenhum projetista cadastrado</span>}
+              </div>
+            </CardContent>
+          </Card>
+
         </>
       )}
     </div>
@@ -474,23 +534,42 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         <SelectField label="Status" value={meta.status}
           onChange={v => setMeta(f => ({ ...f, status: v }))}
           options={["Aberto", "Aberto/Reavaliar", "Fechado", "Fechado - Auto Avaliação"]} />
-        <div>
-          <Label className="text-xs text-muted-foreground">OPEX</Label>
-          <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(calcForm.valorOpex)} disabled />
-        </div>
+        <NumField label="OPEX" value={calcForm.valorOpex}
+          onChange={v => setField("valorOpex", v)} />
         <div>
           <Label className="text-xs text-muted-foreground">CAPEX</Label>
           <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(valorCapex)} disabled />
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Projetista</Label>
-          <Input className="h-9 mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
-        </div>
+        {projetistaOptions.length > 0 ? (
+          <SelectField label="Projetista" value={meta.projetista}
+            onChange={v => setMeta(f => ({ ...f, projetista: v }))} options={projetistaOptions} placeholder="Selecione..." />
+        ) : (
+          <div>
+            <Label className="text-xs text-muted-foreground">Projetista</Label>
+            <Input className="h-9 mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
+          </div>
+        )}
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
           <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Data de Reavaliação</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("h-9 mt-1 w-full justify-start text-left font-normal", !meta.data_reavaliacao && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {meta.data_reavaliacao ? format(new Date(meta.data_reavaliacao), "dd/MM/yyyy") : "Selecione..."}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" className="p-3 pointer-events-auto"
+                selected={meta.data_reavaliacao ? new Date(meta.data_reavaliacao) : undefined}
+                onSelect={d => setMeta(f => ({ ...f, data_reavaliacao: d ? format(d, "yyyy-MM-dd") : "" }))} />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       <div>

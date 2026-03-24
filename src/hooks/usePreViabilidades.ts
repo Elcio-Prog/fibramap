@@ -36,6 +36,7 @@ export interface PreViabilidade {
   coordenadas: string | null;
   endereco: string | null;
   protocolo: string | null;
+  data_reavaliacao: string | null;
   created_at: string;
 }
 

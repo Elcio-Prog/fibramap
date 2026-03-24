@@ -541,6 +541,7 @@ export type Database = {
           created_at: string | null
           criado_por: string | null
           dados_precificacao: Json | null
+          data_reavaliacao: string | null
           endereco: string | null
           id: string
           id_guardachuva: string | null
@@ -576,6 +577,7 @@ export type Database = {
           created_at?: string | null
           criado_por?: string | null
           dados_precificacao?: Json | null
+          data_reavaliacao?: string | null
           endereco?: string | null
           id?: string
           id_guardachuva?: string | null
@@ -611,6 +613,7 @@ export type Database = {
           created_at?: string | null
           criado_por?: string | null
           dados_precificacao?: Json | null
+          data_reavaliacao?: string | null
           endereco?: string | null
           id?: string
           id_guardachuva?: string | null
