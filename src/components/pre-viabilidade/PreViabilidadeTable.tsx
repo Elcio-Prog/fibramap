@@ -36,7 +36,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const { isAdmin } = useUserRole();
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortKey, setSortKey] = useState<SortKey>("numero");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -173,6 +173,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <Th>Coment. Aprovador</Th>
               <Th>Obs. Validação</Th>
               <SortHeader field="created_at">Data Criação</SortHeader>
+              <SortHeader field="modificado_por">Modificado por</SortHeader>
             </tr>
           </thead>
           <tbody>
@@ -227,6 +228,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
                       </td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.modificado_por} /></td>
                     </tr>
                   </ContextMenuTrigger>
                   {isAdmin && (

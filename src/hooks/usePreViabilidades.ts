@@ -31,6 +31,7 @@ export interface PreViabilidade {
   observacao_validacao: string | null;
   origem: string | null;
   dados_precificacao: Record<string, any> | null;
+  modificado_por: string | null;
   created_at: string;
 }
 

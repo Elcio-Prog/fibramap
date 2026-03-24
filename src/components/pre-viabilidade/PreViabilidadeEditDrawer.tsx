@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
+import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -223,6 +224,7 @@ function BackupFields({ form, setField }: any) {
 
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const updateMutation = useUpdatePreViabilidade();
   const deleteMutation = useDeletePreViabilidade();
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
@@ -420,6 +422,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           inviabilidade_tecnica: meta.inviabilidade_tecnica || null,
           comentarios_aprovador: meta.comentarios_aprovador || null,
           observacao_validacao: meta.observacao_validacao || null,
+          modificado_por: user?.email || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });

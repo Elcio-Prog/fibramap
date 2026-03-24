@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_viabilidades ADD COLUMN modificado_por text DEFAULT NULL;
