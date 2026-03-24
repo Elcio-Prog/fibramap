@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
-import { PreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Link2 } from "lucide-react";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ArrowUpDown, Pencil, Link2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   data: PreViabilidade[];
@@ -31,10 +33,22 @@ const PAGE_OPTIONS = [10, 25, 50];
 
 export default function PreViabilidadeTable({ data, search, statusFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
   const { isAdmin } = useUserRole();
+  const { toast } = useToast();
+  const deleteMutation = useDeletePreViabilidade();
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+
+  const handleDelete = async (row: PreViabilidade) => {
+    if (!confirm(`Excluir registro #${row.numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteMutation.mutateAsync(row.id);
+      toast({ title: "Registro excluído com sucesso!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  };
 
   // Count how many records share the same id_guardachuva
   const guardaChuvaCountMap = useMemo(() => {
@@ -166,45 +180,59 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               </tr>
             ) : (
               paged.map((row) => (
-                <tr key={row.id} className="border-t hover:bg-muted/30 transition-colors cursor-pointer" onDoubleClick={() => isAdmin && onEdit(row)}>
-                  <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background font-semibold">
-                    #{row.numero}
-                  </td>
+                <ContextMenu key={row.id}>
+                  <ContextMenuTrigger asChild>
+                    <tr className="border-t hover:bg-muted/30 transition-colors cursor-pointer" onDoubleClick={() => isAdmin && onEdit(row)}>
+                      <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background font-semibold">
+                        #{row.numero}
+                      </td>
+                      {isAdmin && (
+                        <td className="px-2 py-1.5">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(row)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </td>
+                      )}
+                      <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
+                      <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.produto_nt} /></td>
+                      <td className="px-2 py-1.5">{row.vigencia != null ? `${row.vigencia} meses` : "—"}</td>
+                      <td className={cn("px-2 py-1.5 font-medium", row.status_viabilidade?.includes("ABAIXO") ? "bg-red-100 text-red-700" : "")}>
+                        {formatCurrency(row.valor_minimo)}
+                      </td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.viabilidade} max={100} /></td>
+                      <td className="px-2 py-1.5">{formatCurrency(row.ticket_mensal)}</td>
+                      <td className="px-2 py-1.5"><StatusBadge value={row.status_aprovacao} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.aprovado_por} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.nome_cliente} /></td>
+                      <td className="px-2 py-1.5 text-muted-foreground">{row.previsao_roi ?? "—"}</td>
+                      <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
+                      <td className="px-2 py-1.5"><StatusBadge value={row.status_viabilidade} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.projetista} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.motivo_solicitacao} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.observacoes} max={80} /></td>
+                      <td className="px-2 py-1.5"><GuardaChuvaCell value={row.id_guardachuva} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.codigo_smark} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.inviabilidade_tecnica} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.comentarios_aprovador} max={80} /></td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.observacao_validacao} max={80} /></td>
+                      <td className="px-2 py-1.5 whitespace-nowrap">
+                        {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
+                      </td>
+                    </tr>
+                  </ContextMenuTrigger>
                   {isAdmin && (
-                    <td className="px-2 py-1.5">
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(row)}>
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    </td>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
+                        <Pencil className="h-3.5 w-3.5" /> Editar
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => handleDelete(row)} className="gap-2 text-destructive focus:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5" /> Excluir
+                      </ContextMenuItem>
+                    </ContextMenuContent>
                   )}
-                  <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
-                  <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.produto_nt} /></td>
-                  <td className="px-2 py-1.5">{row.vigencia != null ? `${row.vigencia} meses` : "—"}</td>
-                  <td className={cn("px-2 py-1.5 font-medium", row.status_viabilidade?.includes("ABAIXO") ? "bg-red-100 text-red-700" : "")}>
-                    {formatCurrency(row.valor_minimo)}
-                  </td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.viabilidade} max={100} /></td>
-                  <td className="px-2 py-1.5">{formatCurrency(row.ticket_mensal)}</td>
-                  <td className="px-2 py-1.5"><StatusBadge value={row.status_aprovacao} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.aprovado_por} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.nome_cliente} /></td>
-                  <td className="px-2 py-1.5 text-muted-foreground">{row.previsao_roi ?? "—"}</td>
-                  <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
-                  <td className="px-2 py-1.5"><StatusBadge value={row.status_viabilidade} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.projetista} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.motivo_solicitacao} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.observacoes} max={80} /></td>
-                  <td className="px-2 py-1.5"><GuardaChuvaCell value={row.id_guardachuva} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.codigo_smark} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.inviabilidade_tecnica} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.comentarios_aprovador} max={80} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.observacao_validacao} max={80} /></td>
-                  <td className="px-2 py-1.5 whitespace-nowrap">
-                    {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
-                  </td>
-                </tr>
+                </ContextMenu>
               ))
             )}
           </tbody>

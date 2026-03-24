@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { PreViabilidade, useUpdatePreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS } from "@/lib/field-options";
 
@@ -223,6 +223,7 @@ function BackupFields({ form, setField }: any) {
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const updateMutation = useUpdatePreViabilidade();
+  const deleteMutation = useDeletePreViabilidade();
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
@@ -428,6 +429,18 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     }
   };
 
+  const handleDelete = async () => {
+    if (!item) return;
+    if (!confirm(`Excluir registro #${item.numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteMutation.mutateAsync(item.id);
+      toast({ title: "Registro excluído com sucesso!" });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  };
+
   const renderProductFields = () => {
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
@@ -601,12 +614,18 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2 justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
-            {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar
+        <div className="flex gap-2 pt-2 justify-between">
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending} className="gap-2">
+            {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Excluir
           </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
