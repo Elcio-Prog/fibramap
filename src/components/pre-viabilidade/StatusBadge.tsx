@@ -7,8 +7,11 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  "Ativa": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "Aberto": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "Aberto/Reavaliar": "bg-amber-100 text-amber-800 border-amber-200",
   "Fechado": "bg-gray-100 text-gray-600 border-gray-200",
+  "Fechado - Auto Avaliação": "bg-gray-100 text-gray-600 border-gray-200",
+  "Ativa": "bg-emerald-100 text-emerald-800 border-emerald-200",
   "Pendente": "bg-amber-100 text-amber-800 border-amber-200",
 };
 
