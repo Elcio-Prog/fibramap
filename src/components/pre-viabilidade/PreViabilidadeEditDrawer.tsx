@@ -3,6 +3,7 @@ import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade } from
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
