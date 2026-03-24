@@ -533,23 +533,42 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         <SelectField label="Status" value={meta.status}
           onChange={v => setMeta(f => ({ ...f, status: v }))}
           options={["Aberto", "Aberto/Reavaliar", "Fechado", "Fechado - Auto Avaliação"]} />
-        <div>
-          <Label className="text-xs text-muted-foreground">OPEX</Label>
-          <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(calcForm.valorOpex)} disabled />
-        </div>
+        <NumField label="OPEX" value={calcForm.valorOpex}
+          onChange={v => setField("valorOpex", v)} />
         <div>
           <Label className="text-xs text-muted-foreground">CAPEX</Label>
           <Input className="h-9 mt-1 bg-muted/50" value={formatCurrency(valorCapex)} disabled />
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Projetista</Label>
-          <Input className="h-9 mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
-        </div>
+        {projetistaOptions.length > 0 ? (
+          <SelectField label="Projetista" value={meta.projetista}
+            onChange={v => setMeta(f => ({ ...f, projetista: v }))} options={projetistaOptions} placeholder="Selecione..." />
+        ) : (
+          <div>
+            <Label className="text-xs text-muted-foreground">Projetista</Label>
+            <Input className="h-9 mt-1" value={meta.projetista} onChange={setMetaField("projetista")} />
+          </div>
+        )}
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
           <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Data de Reavaliação</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("h-9 mt-1 w-full justify-start text-left font-normal", !meta.data_reavaliacao && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {meta.data_reavaliacao ? format(new Date(meta.data_reavaliacao), "dd/MM/yyyy") : "Selecione..."}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" className="p-3 pointer-events-auto"
+                selected={meta.data_reavaliacao ? new Date(meta.data_reavaliacao) : undefined}
+                onSelect={d => setMeta(f => ({ ...f, data_reavaliacao: d ? format(d, "yyyy-MM-dd") : "" }))} />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       <div>
