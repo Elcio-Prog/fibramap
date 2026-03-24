@@ -173,6 +173,30 @@ export function useBulkExport() {
         mensagem_erro: allSuccess ? null : lastError,
       } as any);
 
+      // === INSERT into pre_viabilidades (independent of webhook result) ===
+      try {
+        const preViabPayloads = items.map((item) => ({
+          user_id: user!.id,
+          criado_por: user!.email || null,
+          produto_nt: item.produto || null,
+          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
+          viabilidade: item.designacao || null,
+          ticket_mensal: item.valor_a_ser_vendido ?? null,
+          observacoes: item.observacoes_user || null,
+          valor_minimo: item.final_value ?? null, // from pricing engine
+          origem: "fibramap",
+          tipo_solicitacao: item.tipo_solicitacao || null,
+          nome_cliente: item.cliente || null,
+          motivo_solicitacao: null,
+          codigo_smark: item.codigo_smark || null,
+          status: "Ativa",
+        }));
+        await supabase.from("pre_viabilidades" as any).insert(preViabPayloads as any);
+      } catch (preViabErr) {
+        console.error("Erro ao inserir pré-viabilidades:", preViabErr);
+        // Non-blocking: don't affect webhook result
+      }
+
       if (allSuccess) {
         // Separate items: DB items (valid UUID) vs ephemeral items (single search)
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
