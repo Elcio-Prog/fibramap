@@ -342,6 +342,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       cnpj_cliente: (item as any).cnpj_cliente || "",
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
+      protocolo: (item as any).protocolo || "",
     });
   }, [item]);
 
