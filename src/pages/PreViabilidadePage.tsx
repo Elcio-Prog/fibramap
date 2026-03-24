@@ -76,6 +76,8 @@ export default function PreViabilidadePage() {
           onOpenChange={(open) => !open && setEditItem(null)}
         />
       )}
+
+      <PreViabilidadeCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }
