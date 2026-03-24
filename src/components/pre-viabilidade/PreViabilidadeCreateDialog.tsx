@@ -242,7 +242,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       setValorCapex(0);
       initialLoadDone.current = false;
       setMeta({
-        nome_cliente: "", tipo_solicitacao: "", ticket_mensal: 0,
+        nome_cliente: "", tipo_solicitacao: "Nova Ativação", ticket_mensal: 0,
         cnpj_cliente: "", codigo_smark: "", coordenadas: "",
         id_guardachuva: "", endereco: "", observacoes: "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
