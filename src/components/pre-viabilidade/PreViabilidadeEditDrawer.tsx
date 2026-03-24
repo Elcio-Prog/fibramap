@@ -353,6 +353,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
       protocolo: (item as any).protocolo || "",
+      campanha_comercial: "",
     });
   }, [item]);
 
