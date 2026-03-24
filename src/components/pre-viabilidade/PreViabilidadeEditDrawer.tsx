@@ -186,10 +186,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
               <Input className="mt-1" value={form.criado_por} onChange={set("criado_por")} />
             </div>
             <div>
-              <Label className="text-xs">Origem</Label>
-              <Input className="mt-1" value={form.origem} onChange={set("origem")} />
-            </div>
-            <div>
               <Label className="text-xs">Status Aprovação</Label>
               <Input className="mt-1" value={form.status_aprovacao} onChange={set("status_aprovacao")} />
             </div>
@@ -227,7 +223,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </div>
           <div>
             <Label className="text-xs">Observações</Label>
-            <Textarea className="mt-1" rows={3} value={form.observacoes} onChange={set("observacoes")} />
+            <Textarea className="mt-1" rows={6} value={form.observacoes} onChange={set("observacoes")} />
           </div>
         </div>
 
