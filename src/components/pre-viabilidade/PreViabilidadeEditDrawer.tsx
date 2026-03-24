@@ -448,7 +448,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       custo_radio: (item?.dados_precificacao as any)?.custo_radio ?? 0,
       valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
       usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
-      campanha_comercial_meses: parseFloat(meta.campanha_comercial) || (item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0,
+      campanha_comercial_meses: parseFloat(meta.campanha_comercial) || ((item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0),
     };
   };
 
