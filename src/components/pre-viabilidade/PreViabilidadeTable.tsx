@@ -228,6 +228,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
                       </td>
+                      <td className="px-2 py-1.5"><TruncCell value={row.modificado_por} /></td>
                     </tr>
                   </ContextMenuTrigger>
                   {isAdmin && (
