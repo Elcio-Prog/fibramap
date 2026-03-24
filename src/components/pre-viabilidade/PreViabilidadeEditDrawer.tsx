@@ -224,6 +224,7 @@ function BackupFields({ form, setField }: any) {
 
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const updateMutation = useUpdatePreViabilidade();
   const deleteMutation = useDeletePreViabilidade();
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
