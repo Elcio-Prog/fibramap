@@ -602,12 +602,18 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2 justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
-            {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar
+        <div className="flex gap-2 pt-2 justify-between">
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending} className="gap-2">
+            {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Excluir
           </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2">
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
