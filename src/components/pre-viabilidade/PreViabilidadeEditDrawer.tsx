@@ -579,6 +579,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
             <Input className="mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
           </div>
           <div>
+            <Label className="text-xs">Protocolo</Label>
+            <Input className="mt-1" value={meta.protocolo} onChange={setMetaField("protocolo")} />
+          </div>
+          <div>
             <Label className="text-xs">Coordenadas</Label>
             <Input className="mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
           </div>
