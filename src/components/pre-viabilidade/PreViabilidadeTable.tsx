@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
-import { PreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Pencil, Link2 } from "lucide-react";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ArrowUpDown, Pencil, Link2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   data: PreViabilidade[];
