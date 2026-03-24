@@ -184,10 +184,13 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               </tr>
             ) : (
               paged.map((row) => (
-                <ContextMenu key={row.id}>
+                <ContextMenu key={row.id} onOpenChange={(open) => setContextRowId(open ? row.id : null)}>
                   <ContextMenuTrigger asChild>
-                    <tr className="border-t hover:bg-muted/30 transition-colors cursor-pointer" onDoubleClick={() => isAdmin && onEdit(row)}>
-                      <td className="px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 bg-background font-semibold">
+                    <tr className={cn(
+                      "border-t hover:bg-muted/30 transition-colors cursor-pointer",
+                      contextRowId === row.id && "bg-muted/50"
+                    )} onDoubleClick={() => isAdmin && onEdit(row)}>
+                      <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
                         #{row.numero}
                       </td>
                       {isAdmin && (
@@ -202,7 +205,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.produto_nt} /></td>
                       <td className="px-2 py-1.5">{row.vigencia != null ? `${row.vigencia} meses` : "—"}</td>
-                      <td className={cn("px-2 py-1.5 font-medium", row.status_viabilidade?.includes("ABAIXO") ? "bg-red-100 text-red-700" : "")}>
+                      <td className={cn("px-2 py-1.5 font-medium", row.status_viabilidade?.includes("ABAIXO") ? "bg-destructive/10 text-destructive" : "")}>
                         {formatCurrency(row.valor_minimo)}
                       </td>
                       <td className="px-2 py-1.5"><TruncCell value={row.viabilidade} max={100} /></td>
@@ -231,7 +234,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => handleDelete(row)} className="gap-2 text-destructive focus:text-destructive">
+                      <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" /> Excluir
                       </ContextMenuItem>
                     </ContextMenuContent>
@@ -242,6 +245,24 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
           </tbody>
         </table>
       </ScrollableTable>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir registro #{deleteTarget?.numero}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pagination */}
       <div className="flex items-center justify-between mt-3">
