@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PreViabilidade, useUpdatePreViabilidade } from "@/hooks/usePreViabilidades";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
-import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +28,7 @@ const formatCurrency = (v: number | null | undefined) => {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 };
 
-// ── Reusable field components (same as calculator) ──
+// ── Reusable field components ──
 
 function NumField({ label, value, onChange, disabled, className }: {
   label: string; value: number; onChange: (v: number) => void;
@@ -38,8 +37,8 @@ function NumField({ label, value, onChange, disabled, className }: {
   const [display, setDisplay] = useState(String(value).replace(".", ","));
 
   useEffect(() => {
-    if (disabled) setDisplay(String(value).replace(".", ","));
-  }, [value, disabled]);
+    setDisplay(String(value).replace(".", ","));
+  }, [value]);
 
   const handleBlur = () => {
     const num = Number(display.replace(",", ".")) || 0;
@@ -223,10 +222,7 @@ function BackupFields({ form, setField }: any) {
 export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const updateMutation = useUpdatePreViabilidade();
-  const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
-  const { data: resultado, loading: calculating, error: calcError, calcular } = useCalcularPrecificacao();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const initialLoadDone = useRef(false);
+  const { form: calcForm, setField, setProduto, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
 
   // Extra editable fields (non-calculator)
   const [meta, setMeta] = useState({
@@ -251,15 +247,59 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   // Populate form when item changes
   useEffect(() => {
     if (!item) return;
-    initialLoadDone.current = false;
 
-    // Set calculator fields from item
-    if (item.produto_nt) {
-      const produto = PRODUTOS.find(p => p === item.produto_nt) || "Conectividade";
-      setProduto(produto as FormState["produto"]);
-    }
-    if (item.vigencia != null) setField("vigencia", item.vigencia);
-    if (item.ticket_mensal != null) setField("taxaInstalacao", item.ticket_mensal);
+    // Load calculator state from dados_precificacao
+    const dp = item.dados_precificacao || {};
+    const produto = (PRODUTOS as readonly string[]).includes(dp.produto) ? dp.produto : "Conectividade";
+    setProduto(produto as FormState["produto"]);
+
+    // Apply saved calculator fields after a tick (setProduto resets specific fields)
+    setTimeout(() => {
+      if (dp.subproduto) setField("subproduto", dp.subproduto);
+      if (dp.banda != null) setField("banda", dp.banda);
+      if (dp.distancia != null) setField("distancia", dp.distancia);
+      if (dp.blocoIp) setField("blocoIp", dp.blocoIp);
+      if (dp.tecnologia) setField("tecnologia", dp.tecnologia);
+      if (dp.tecnologiaMeioFisico) setField("tecnologiaMeioFisico", dp.tecnologiaMeioFisico);
+      if (dp.rede) setField("rede", dp.rede);
+      if (dp.redePontaB) setField("redePontaB", dp.redePontaB);
+      if (dp.vigencia != null) setField("vigencia", dp.vigencia);
+      if (dp.taxaInstalacao != null) setField("taxaInstalacao", dp.taxaInstalacao);
+      if (dp.roiVigencia != null) setField("roiVigencia", dp.roiVigencia);
+      if (dp.custoLastMile != null) setField("custoLastMile", dp.custoLastMile);
+      if (dp.valorLastMile != null) setField("valorLastMile", dp.valorLastMile);
+      if (dp.qtdFibrasDarkFiber != null) setField("qtdFibrasDarkFiber", dp.qtdFibrasDarkFiber);
+      if (dp.custosMateriaisAdicionais != null) setField("custosMateriaisAdicionais", dp.custosMateriaisAdicionais);
+      if (dp.valorOpex != null) setField("valorOpex", dp.valorOpex);
+      // Firewall
+      if (dp.modeloFirewall) setField("modeloFirewall", dp.modeloFirewall);
+      if (dp.marcaFirewall) setField("marcaFirewall", dp.marcaFirewall);
+      if (dp.qtdEquipamentos != null) setField("qtdEquipamentos", dp.qtdEquipamentos);
+      // Switch / Wifi
+      if (dp.modeloSwitch) setField("modeloSwitch", dp.modeloSwitch);
+      if (dp.modeloWifi) setField("modeloWifi", dp.modeloWifi);
+      // VOZ
+      if (dp.equipamentoVoz1) setField("equipamentoVoz1", dp.equipamentoVoz1);
+      if (dp.qtdEquipamentoVoz1 != null) setField("qtdEquipamentoVoz1", dp.qtdEquipamentoVoz1);
+      if (dp.equipamentoVoz2) setField("equipamentoVoz2", dp.equipamentoVoz2);
+      if (dp.qtdEquipamentoVoz2 != null) setField("qtdEquipamentoVoz2", dp.qtdEquipamentoVoz2);
+      if (dp.equipamentoVoz3) setField("equipamentoVoz3", dp.equipamentoVoz3);
+      if (dp.qtdEquipamentoVoz3 != null) setField("qtdEquipamentoVoz3", dp.qtdEquipamentoVoz3);
+      if (dp.qtdRamais != null) setField("qtdRamais", dp.qtdRamais);
+      if (dp.qtdCanais != null) setField("qtdCanais", dp.qtdCanais);
+      if (dp.qtdNovasLinhas != null) setField("qtdNovasLinhas", dp.qtdNovasLinhas);
+      if (dp.qtdPortabilidades != null) setField("qtdPortabilidades", dp.qtdPortabilidades);
+      if (dp.minFixoLocal != null) setField("minFixoLocal", dp.minFixoLocal);
+      if (dp.minFixoLDN != null) setField("minFixoLDN", dp.minFixoLDN);
+      if (dp.minMovelLocal != null) setField("minMovelLocal", dp.minMovelLocal);
+      if (dp.minMovelLDN != null) setField("minMovelLDN", dp.minMovelLDN);
+      if (dp.min0800Movel != null) setField("min0800Movel", dp.min0800Movel);
+      if (dp.min0800Fixo != null) setField("min0800Fixo", dp.min0800Fixo);
+      if (dp.paisInternacional) setField("paisInternacional", dp.paisInternacional);
+      if (dp.minInternacional != null) setField("minInternacional", dp.minInternacional);
+      // Backup
+      if (dp.qtdBackupTB != null) setField("qtdBackupTB", dp.qtdBackupTB);
+    }, 50);
 
     // Set meta fields
     setMeta({
@@ -282,23 +322,56 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     });
   }, [item]);
 
-  // Auto-calculate on calc form change (debounced)
-  useEffect(() => {
-    if (loadingData || !open) return;
-    if (!initialLoadDone.current) {
-      initialLoadDone.current = true;
-      return;
-    }
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const payload = buildPayload();
-      calcular(payload as Parameters<typeof calcular>[0]);
-    }, 600);
-    return () => clearTimeout(debounceRef.current);
-  }, [calcForm, loadingData, open, buildPayload, calcular]);
-
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
+
+  // Build dados_precificacao snapshot from current calculator state
+  const buildDadosPrecificacao = () => {
+    const f = calcForm;
+    return {
+      produto: f.produto,
+      subproduto: f.subproduto,
+      vigencia: f.vigencia,
+      roiVigencia: f.roiVigencia,
+      taxaInstalacao: f.taxaInstalacao,
+      custosMateriaisAdicionais: f.custosMateriaisAdicionais,
+      valorOpex: f.valorOpex,
+      banda: f.banda,
+      distancia: f.distancia,
+      blocoIp: f.blocoIp,
+      custoLastMile: f.custoLastMile,
+      valorLastMile: f.valorLastMile,
+      qtdFibrasDarkFiber: f.qtdFibrasDarkFiber,
+      tecnologia: f.tecnologia,
+      tecnologiaMeioFisico: f.tecnologiaMeioFisico,
+      rede: f.rede,
+      redePontaB: f.redePontaB,
+      modeloFirewall: f.modeloFirewall,
+      marcaFirewall: f.marcaFirewall,
+      qtdEquipamentos: f.qtdEquipamentos,
+      modeloSwitch: f.modeloSwitch,
+      modeloWifi: f.modeloWifi,
+      equipamentoVoz1: f.equipamentoVoz1,
+      qtdEquipamentoVoz1: f.qtdEquipamentoVoz1,
+      equipamentoVoz2: f.equipamentoVoz2,
+      qtdEquipamentoVoz2: f.qtdEquipamentoVoz2,
+      equipamentoVoz3: f.equipamentoVoz3,
+      qtdEquipamentoVoz3: f.qtdEquipamentoVoz3,
+      qtdRamais: f.qtdRamais,
+      qtdCanais: f.qtdCanais,
+      qtdNovasLinhas: f.qtdNovasLinhas,
+      qtdPortabilidades: f.qtdPortabilidades,
+      minFixoLocal: f.minFixoLocal,
+      minFixoLDN: f.minFixoLDN,
+      minMovelLocal: f.minMovelLocal,
+      minMovelLDN: f.minMovelLDN,
+      min0800Movel: f.min0800Movel,
+      min0800Fixo: f.min0800Fixo,
+      paisInternacional: f.paisInternacional,
+      minInternacional: f.minInternacional,
+      qtdBackupTB: f.qtdBackupTB,
+    };
+  };
 
   const handleSave = async () => {
     if (!item) return;
@@ -324,7 +397,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           inviabilidade_tecnica: meta.inviabilidade_tecnica || null,
           comentarios_aprovador: meta.comentarios_aprovador || null,
           observacao_validacao: meta.observacao_validacao || null,
-        },
+          dados_precificacao: buildDadosPrecificacao(),
+        } as any,
       });
       toast({ title: "Registro atualizado com sucesso!" });
       onOpenChange(false);
@@ -359,28 +433,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         </DialogHeader>
 
         {/* Valor Mínimo — read-only */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <Label className="text-xs text-muted-foreground">Valor Mínimo (somente leitura)</Label>
-            <div className="mt-1 px-3 py-2 rounded-md border border-input bg-muted/50 text-sm min-h-[40px] flex items-center font-semibold">
-              {formatCurrency(item.valor_minimo)}
-            </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Valor Mínimo (somente leitura)</Label>
+          <div className="mt-1 px-3 py-2 rounded-md border border-input bg-muted/50 text-sm min-h-[40px] flex items-center font-semibold">
+            {formatCurrency(item.valor_minimo)}
           </div>
-          {/* Live result from calculator */}
-          {(resultado || calculating) && (
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Resultado Calculadora</Label>
-              <div className="mt-1 px-3 py-2 rounded-md border border-primary/30 bg-primary/5 text-sm min-h-[40px] flex items-center gap-2 font-semibold">
-                {calculating ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : resultado?.mensagem ? (
-                  <span className="text-amber-600 text-xs">{resultado.mensagem}</span>
-                ) : resultado ? (
-                  <span>{formatCurrency(resultado.valorMinimo)}</span>
-                ) : null}
-              </div>
-            </div>
-          )}
         </div>
 
         <Separator />
@@ -443,7 +500,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
         <Separator />
 
-        {/* Calculator fields — same as Calcular page */}
+        {/* Calculator fields */}
         {loadingData ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
