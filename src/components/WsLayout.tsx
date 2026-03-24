@@ -12,6 +12,7 @@ const wsLinks = [
   { to: "/ws/searches", label: "Minhas Buscas", icon: List },
   { to: "/ws/single", label: "Busca Unitária", icon: Search },
   { to: "/ws/pre-providers", label: "Pré-Cadastro", icon: ClipboardList },
+  { to: "/ws/pre-viabilidade", label: "Pré Viabilidade", icon: FileCheck },
   { to: "/ws/send-history", label: "Histórico Envios", icon: History },
 ];
 

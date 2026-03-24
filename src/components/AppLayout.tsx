@@ -61,6 +61,7 @@ const preViabilidadeSection: SidebarSection = {
   links: [
     { to: "/admin/precificacao", label: "Dados de Precificação", icon: Table2 },
     { to: "/admin/precificacao/calcular", label: "Calculadora", icon: Calculator },
+    { to: "/pre-viabilidade", label: "Pré Viabilidade", icon: FileCheck },
   ],
 };
 
