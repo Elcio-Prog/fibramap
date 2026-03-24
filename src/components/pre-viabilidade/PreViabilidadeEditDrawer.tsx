@@ -251,6 +251,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     comentarios_aprovador: "",
     observacao_validacao: "",
     observacoes: "",
+    ticket_mensal: 0,
+    cnpj_cliente: "",
+    coordenadas: "",
+    endereco: "",
   });
 
   // Initialize valor_minimo from item
@@ -333,6 +337,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       comentarios_aprovador: item.comentarios_aprovador || "",
       observacao_validacao: item.observacao_validacao || "",
       observacoes: item.observacoes || "",
+      ticket_mensal: item.ticket_mensal ?? 0,
+      cnpj_cliente: (item as any).cnpj_cliente || "",
+      coordenadas: (item as any).coordenadas || "",
+      endereco: (item as any).endereco || "",
     });
   }, [item]);
 
@@ -354,6 +362,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
+
+  const setMetaNum = (field: string) => (v: number) =>
+    setMeta(f => ({ ...f, [field]: v }));
 
   // Build dados_precificacao snapshot from current calculator state
   const buildDadosPrecificacao = () => {
@@ -423,6 +434,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           vigencia: calcForm.vigencia || null,
           nome_cliente: meta.nome_cliente || null,
           tipo_solicitacao: meta.tipo_solicitacao || null,
+          ticket_mensal: meta.ticket_mensal || null,
           viabilidade: meta.viabilidade || null,
           motivo_solicitacao: meta.motivo_solicitacao || null,
           observacoes: meta.observacoes || null,
@@ -437,6 +449,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           comentarios_aprovador: meta.comentarios_aprovador || null,
           observacao_validacao: meta.observacao_validacao || null,
           modificado_por: user?.email || null,
+          cnpj_cliente: meta.cnpj_cliente || null,
+          coordenadas: meta.coordenadas || null,
+          endereco: meta.endereco || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
@@ -554,6 +569,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           <div>
             <Label className="text-xs">Status de Viabilidade</Label>
             <Input className="mt-1" value={meta.status_viabilidade} onChange={setMetaField("status_viabilidade")} />
+          </div>
+          <NumField label="Ticket Mensal" value={meta.ticket_mensal} onChange={setMetaNum("ticket_mensal")} />
+          <div>
+            <Label className="text-xs">CNPJ Cliente</Label>
+            <Input className="mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
+          </div>
+          <div>
+            <Label className="text-xs">Coordenadas</Label>
+            <Input className="mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
+          </div>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <Label className="text-xs">Endereço</Label>
+            <Input className="mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
           </div>
         </div>
 

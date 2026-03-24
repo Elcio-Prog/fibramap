@@ -534,11 +534,14 @@ export type Database = {
       pre_viabilidades: {
         Row: {
           aprovado_por: string | null
+          cnpj_cliente: string | null
           codigo_smark: string | null
           comentarios_aprovador: string | null
+          coordenadas: string | null
           created_at: string | null
           criado_por: string | null
           dados_precificacao: Json | null
+          endereco: string | null
           id: string
           id_guardachuva: string | null
           inviabilidade_tecnica: string | null
@@ -565,11 +568,14 @@ export type Database = {
         }
         Insert: {
           aprovado_por?: string | null
+          cnpj_cliente?: string | null
           codigo_smark?: string | null
           comentarios_aprovador?: string | null
+          coordenadas?: string | null
           created_at?: string | null
           criado_por?: string | null
           dados_precificacao?: Json | null
+          endereco?: string | null
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null
@@ -596,11 +602,14 @@ export type Database = {
         }
         Update: {
           aprovado_por?: string | null
+          cnpj_cliente?: string | null
           codigo_smark?: string | null
           comentarios_aprovador?: string | null
+          coordenadas?: string | null
           created_at?: string | null
           criado_por?: string | null
           dados_precificacao?: Json | null
+          endereco?: string | null
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null

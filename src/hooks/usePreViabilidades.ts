@@ -32,6 +32,9 @@ export interface PreViabilidade {
   origem: string | null;
   dados_precificacao: Record<string, any> | null;
   modificado_por: string | null;
+  cnpj_cliente: string | null;
+  coordenadas: string | null;
+  endereco: string | null;
   created_at: string;
 }
 
