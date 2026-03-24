@@ -293,12 +293,40 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     };
   };
 
+  const validateStep = (s: number): string | null => {
+    if (s === 1) {
+      if (!calcForm.produto) return "Categoria NT é obrigatória";
+      if (!calcForm.vigencia && calcForm.subproduto !== "NT EVENTO") return "Vigência é obrigatória";
+      if (calcForm.produto === "Conectividade") {
+        if (!calcForm.subproduto) return "Produto Link IP é obrigatório";
+        if (calcForm.subproduto !== "NT DARK FIBER" && !calcForm.banda) return "Velocidade MB é obrigatória";
+        if (!calcForm.tecnologia) return "Tecnologia é obrigatória";
+      }
+    }
+    if (s === 2) {
+      if (!meta.nome_cliente.trim()) return "Nome do Cliente é obrigatório";
+      if (!meta.tipo_solicitacao) return "Tipo de Solicitação é obrigatório";
+      if (!meta.ticket_mensal) return "Valor Vendido é obrigatório";
+      if (!meta.endereco.trim()) return "Endereço é obrigatório";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (!user) return;
+    // Validate all steps
+    for (let s = 1; s <= 4; s++) {
+      const err = validateStep(s);
+      if (err) {
+        setStep(s);
+        toast({ title: "Campo obrigatório", description: err, variant: "destructive" });
+        return;
+      }
+    }
     try {
       await insertMutation.mutateAsync([{
         user_id: user.id,
-        numero: 0, // will be auto-generated
+        numero: 0,
         status: meta.status || "Aberto",
         produto_nt: calcForm.produto || null,
         valor_minimo: valorMinimo,
@@ -335,6 +363,15 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     } catch (e: any) {
       toast({ title: "Erro ao criar", description: e.message, variant: "destructive" });
     }
+  };
+
+  const handleNext = () => {
+    const err = validateStep(step);
+    if (err) {
+      toast({ title: "Campo obrigatório", description: err, variant: "destructive" });
+      return;
+    }
+    setStep(step + 1);
   };
 
   const renderProductFields = () => {
