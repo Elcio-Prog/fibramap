@@ -33,10 +33,22 @@ const PAGE_OPTIONS = [10, 25, 50];
 
 export default function PreViabilidadeTable({ data, search, statusFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
   const { isAdmin } = useUserRole();
+  const { toast } = useToast();
+  const deleteMutation = useDeletePreViabilidade();
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+
+  const handleDelete = async (row: PreViabilidade) => {
+    if (!confirm(`Excluir registro #${row.numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteMutation.mutateAsync(row.id);
+      toast({ title: "Registro excluído com sucesso!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  };
 
   // Count how many records share the same id_guardachuva
   const guardaChuvaCountMap = useMemo(() => {
