@@ -4,7 +4,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowUpDown, Pencil } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowUpDown, Pencil, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
@@ -14,6 +15,8 @@ interface Props {
   data: PreViabilidade[];
   search: string;
   statusFilter: string;
+  guardaChuvaFilter: string | null;
+  onGuardaChuvaClick: (id: string | null) => void;
   onEdit: (item: PreViabilidade) => void;
 }
 
@@ -26,22 +29,35 @@ const formatCurrency = (v: number | null | undefined) => {
 
 const PAGE_OPTIONS = [10, 25, 50];
 
-export default function PreViabilidadeTable({ data, search, statusFilter, onEdit }: Props) {
+export default function PreViabilidadeTable({ data, search, statusFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
   const { isAdmin } = useUserRole();
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
+  // Count how many records share the same id_guardachuva
+  const guardaChuvaCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const r of data) {
+      if (r.id_guardachuva) {
+        map[r.id_guardachuva] = (map[r.id_guardachuva] || 0) + 1;
+      }
+    }
+    return map;
+  }, [data]);
+
   const filtered = useMemo(() => {
     let list = data;
+    if (guardaChuvaFilter) list = list.filter((r) => r.id_guardachuva === guardaChuvaFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((r) =>
         (r.nome_cliente || "").toLowerCase().includes(q) ||
         (r.viabilidade || "").toLowerCase().includes(q) ||
-        String(r.numero).includes(q)
+        String(r.numero).includes(q) ||
+        (r.id_guardachuva || "").toLowerCase().includes(q)
       );
     }
     list = [...list].sort((a, b) => {
@@ -51,7 +67,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
       return sortDir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
     return list;
-  }, [data, statusFilter, search, sortKey, sortDir]);
+  }, [data, guardaChuvaFilter, statusFilter, search, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
@@ -84,6 +100,28 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
     );
   };
 
+  const GuardaChuvaCell = ({ value }: { value: string | null | undefined }) => {
+    if (!value) return <span className="text-muted-foreground">—</span>;
+    const count = guardaChuvaCountMap[value] || 0;
+    return (
+      <button
+        className="flex items-center gap-1.5 hover:underline text-left"
+        onClick={(e) => {
+          e.stopPropagation();
+          onGuardaChuvaClick(guardaChuvaFilter === value ? null : value);
+        }}
+      >
+        <span className="truncate max-w-[80px]">{value}</span>
+        {count > 1 && (
+          <Badge variant="secondary" className="h-4 px-1.5 text-[9px] gap-0.5 font-semibold">
+            <Link2 className="h-2.5 w-2.5" />
+            {count}
+          </Badge>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div>
       <ScrollableTable totalScrollableColumns={24}>
@@ -111,7 +149,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
               <SortHeader field="projetista">Projetista</SortHeader>
               <SortHeader field="motivo_solicitacao">Motivo</SortHeader>
               <SortHeader field="observacoes">Observações</SortHeader>
-              <Th>ID GuardaChuva</Th>
+              <SortHeader field="id_guardachuva">ID GuardaChuva</SortHeader>
               <SortHeader field="codigo_smark">Cód. SMARK</SortHeader>
               <Th>Inviab. Técnica</Th>
               <Th>Coment. Aprovador</Th>
@@ -158,7 +196,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
                   <td className="px-2 py-1.5"><TruncCell value={row.projetista} /></td>
                   <td className="px-2 py-1.5"><TruncCell value={row.motivo_solicitacao} /></td>
                   <td className="px-2 py-1.5"><TruncCell value={row.observacoes} max={80} /></td>
-                  <td className="px-2 py-1.5"><TruncCell value={row.id_guardachuva} /></td>
+                  <td className="px-2 py-1.5"><GuardaChuvaCell value={row.id_guardachuva} /></td>
                   <td className="px-2 py-1.5"><TruncCell value={row.codigo_smark} /></td>
                   <td className="px-2 py-1.5"><TruncCell value={row.inviabilidade_tecnica} /></td>
                   <td className="px-2 py-1.5"><TruncCell value={row.comentarios_aprovador} max={80} /></td>
