@@ -91,3 +91,20 @@ export function useUpdatePreViabilidade() {
     },
   });
 }
+
+export function useDeletePreViabilidade() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("pre_viabilidades" as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pre-viabilidades"] });
+    },
+  });
+}
