@@ -34,11 +34,7 @@ export interface PreViabilidade {
 
 export type PreViabilidadeInsert = Omit<PreViabilidade, "id" | "created_at">;
 
-export type PreViabilidadeUpdate = Partial<Pick<PreViabilidade,
-  "status_aprovacao" | "aprovado_por" | "projetista" |
-  "comentarios_aprovador" | "observacao_validacao" | "inviabilidade_tecnica" |
-  "status" | "status_viabilidade"
->>;
+export type PreViabilidadeUpdate = Partial<Omit<PreViabilidade, "id" | "created_at" | "user_id" | "valor_minimo">>;
 
 export function usePreViabilidades() {
   const { user } = useAuth();
