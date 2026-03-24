@@ -428,12 +428,12 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
-          <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
+          <Label className="text-xs text-muted-foreground">Nome do Cliente<span className="text-destructive ml-0.5">*</span></Label>
           <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
         </div>
-        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
+        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao} required
           onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} />
-        <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal}
+        <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal} required
           onChange={setMetaNum("ticket_mensal")} />
         <div>
           <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
@@ -452,7 +452,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
           <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
-          <Label className="text-xs text-muted-foreground">Endereço</Label>
+          <Label className="text-xs text-muted-foreground">Endereço<span className="text-destructive ml-0.5">*</span></Label>
           <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
