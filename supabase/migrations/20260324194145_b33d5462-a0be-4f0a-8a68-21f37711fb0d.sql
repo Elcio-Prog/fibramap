@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_viabilidades ADD COLUMN IF NOT EXISTS data_reavaliacao date;
