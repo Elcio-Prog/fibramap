@@ -255,6 +255,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     cnpj_cliente: "",
     coordenadas: "",
     endereco: "",
+    protocolo: "",
   });
 
   // Initialize valor_minimo from item
