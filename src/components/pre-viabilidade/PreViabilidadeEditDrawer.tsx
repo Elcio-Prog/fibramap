@@ -454,6 +454,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           cnpj_cliente: meta.cnpj_cliente || null,
           coordenadas: meta.coordenadas || null,
           endereco: meta.endereco || null,
+          protocolo: meta.protocolo || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
