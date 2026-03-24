@@ -751,12 +751,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           {step === 4 && renderStep4()}
         </div>
 
-        {/* Valor Mínimo footer */}
-        <div className="rounded-md border border-input bg-muted/30 px-4 py-2 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Valor Mínimo: <span className="font-semibold text-foreground">{formatCurrency(valorMinimo)}</span>
-          </span>
-        </div>
 
         {/* Navigation */}
         <div className="flex justify-between pt-2">
