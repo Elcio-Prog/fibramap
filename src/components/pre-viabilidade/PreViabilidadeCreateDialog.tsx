@@ -37,9 +37,9 @@ const formatCurrency = (v: number | null | undefined) => {
 };
 
 // ── Reusable field components ──
-function NumField({ label, value, onChange, disabled, className }: {
+function NumField({ label, value, onChange, disabled, className, required }: {
   label: string; value: number; onChange: (v: number) => void;
-  disabled?: boolean; className?: string;
+  disabled?: boolean; className?: string; required?: boolean;
 }) {
   const [display, setDisplay] = useState(String(value).replace(".", ","));
   useEffect(() => { setDisplay(String(value).replace(".", ",")); }, [value]);
