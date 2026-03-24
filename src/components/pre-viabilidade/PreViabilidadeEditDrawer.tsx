@@ -714,26 +714,31 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </DialogDescription>
         </DialogHeader>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-1 py-2">
-          {STEPS.map((s, i) => (
-            <div key={s.number} className="flex items-center gap-1">
-              <button
-                onClick={() => setStep(s.number)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  step === s.number
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-current">
-                  {s.number}
-                </span>
-                <span className="hidden sm:inline">{s.label}</span>
-              </button>
-              {i < STEPS.length - 1 && <div className="w-4 h-px bg-border" />}
-            </div>
-          ))}
+        {/* Step indicator + Valor Mínimo */}
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-1">
+            {STEPS.map((s, i) => (
+              <div key={s.number} className="flex items-center gap-1">
+                <button
+                  onClick={() => setStep(s.number)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    step === s.number
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-current">
+                    {s.number}
+                  </span>
+                  <span className="hidden sm:inline">{s.label}</span>
+                </button>
+                {i < STEPS.length - 1 && <div className="w-4 h-px bg-border" />}
+              </div>
+            ))}
+          </div>
+          <Badge variant="outline" className="text-sm px-3 py-1.5 font-normal">
+            Valor Mínimo: <span className="font-semibold text-foreground ml-1">{formatCurrency(valorMinimo)}</span>
+          </Badge>
         </div>
 
         <Separator />
@@ -746,12 +751,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           {step === 4 && renderStep4()}
         </div>
 
-        {/* Valor Mínimo footer */}
-        <div className="rounded-md border border-input bg-muted/30 px-4 py-2 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Valor Mínimo: <span className="font-semibold text-foreground">{formatCurrency(valorMinimo)}</span>
-          </span>
-        </div>
 
         {/* Navigation */}
         <div className="flex justify-between pt-2">
