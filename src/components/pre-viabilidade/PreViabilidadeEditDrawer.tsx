@@ -452,11 +452,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </DialogDescription>
         </DialogHeader>
 
-        {/* Valor Mínimo — read-only */}
+        {/* Valor Mínimo — auto-calculated */}
         <div>
-          <Label className="text-xs text-muted-foreground">Valor Mínimo (somente leitura)</Label>
+          <Label className="text-xs text-muted-foreground">Valor Mínimo {calculating && "(recalculando...)"}</Label>
           <div className="mt-1 px-3 py-2 rounded-md border border-input bg-muted/50 text-sm min-h-[40px] flex items-center font-semibold">
-            {formatCurrency(item.valor_minimo)}
+            {formatCurrency(valorMinimo)}
           </div>
         </div>
 
