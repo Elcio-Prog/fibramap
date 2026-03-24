@@ -542,6 +542,7 @@ export type Database = {
           id: string
           id_guardachuva: string | null
           inviabilidade_tecnica: string | null
+          modificado_por: string | null
           motivo_solicitacao: string | null
           nome_cliente: string | null
           numero: number
@@ -572,6 +573,7 @@ export type Database = {
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null
+          modificado_por?: string | null
           motivo_solicitacao?: string | null
           nome_cliente?: string | null
           numero?: number
@@ -602,6 +604,7 @@ export type Database = {
           id?: string
           id_guardachuva?: string | null
           inviabilidade_tecnica?: string | null
+          modificado_por?: string | null
           motivo_solicitacao?: string | null
           nome_cliente?: string | null
           numero?: number
