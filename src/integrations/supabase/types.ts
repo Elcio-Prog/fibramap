@@ -531,6 +531,93 @@ export type Database = {
           },
         ]
       }
+      pre_viabilidades: {
+        Row: {
+          aprovado_por: string | null
+          codigo_smark: string | null
+          comentarios_aprovador: string | null
+          created_at: string | null
+          criado_por: string | null
+          id: string
+          id_guardachuva: string | null
+          inviabilidade_tecnica: string | null
+          motivo_solicitacao: string | null
+          nome_cliente: string | null
+          observacao_validacao: string | null
+          observacoes: string | null
+          origem: string | null
+          previsao_roi: number | null
+          produto_nt: string | null
+          projetista: string | null
+          roi_global: number | null
+          status: string | null
+          status_aprovacao: string | null
+          status_viabilidade: string | null
+          ticket_mensal: number | null
+          tipo_solicitacao: string | null
+          user_id: string
+          valor_minimo: number | null
+          viabilidade: string | null
+          vigencia: number | null
+        }
+        Insert: {
+          aprovado_por?: string | null
+          codigo_smark?: string | null
+          comentarios_aprovador?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          id_guardachuva?: string | null
+          inviabilidade_tecnica?: string | null
+          motivo_solicitacao?: string | null
+          nome_cliente?: string | null
+          observacao_validacao?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          previsao_roi?: number | null
+          produto_nt?: string | null
+          projetista?: string | null
+          roi_global?: number | null
+          status?: string | null
+          status_aprovacao?: string | null
+          status_viabilidade?: string | null
+          ticket_mensal?: number | null
+          tipo_solicitacao?: string | null
+          user_id: string
+          valor_minimo?: number | null
+          viabilidade?: string | null
+          vigencia?: number | null
+        }
+        Update: {
+          aprovado_por?: string | null
+          codigo_smark?: string | null
+          comentarios_aprovador?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          id_guardachuva?: string | null
+          inviabilidade_tecnica?: string | null
+          motivo_solicitacao?: string | null
+          nome_cliente?: string | null
+          observacao_validacao?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          previsao_roi?: number | null
+          produto_nt?: string | null
+          projetista?: string | null
+          roi_global?: number | null
+          status?: string | null
+          status_aprovacao?: string | null
+          status_viabilidade?: string | null
+          ticket_mensal?: number | null
+          tipo_solicitacao?: string | null
+          user_id?: string
+          valor_minimo?: number | null
+          viabilidade?: string | null
+          vigencia?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
