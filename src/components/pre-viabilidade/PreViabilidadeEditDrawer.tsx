@@ -427,6 +427,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
+      // Recalculate ROI Global for the umbrella group
+      const guardaChuva = meta.id_guardachuva || item.id_guardachuva;
+      if (guardaChuva) {
+        await recalcRoiGlobal(guardaChuva);
+      }
       toast({ title: "Registro atualizado com sucesso!" });
       onOpenChange(false);
     } catch (e: any) {
