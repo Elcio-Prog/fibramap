@@ -248,9 +248,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     observacoes: "",
   });
 
-  // Populate form when item changes
+  // Initialize valor_minimo from item
   useEffect(() => {
     if (!item) return;
+    setValorMinimo(item.valor_minimo ?? null);
+    initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
     const dp = item.dados_precificacao || {};
