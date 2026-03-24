@@ -93,6 +93,40 @@ export function useUpdatePreViabilidade() {
   });
 }
 
+export async function recalcRoiGlobal(idGuardachuva: string | null) {
+  if (!idGuardachuva) return;
+
+  // Fetch all records with the same id_guardachuva
+  const { data, error } = await supabase
+    .from("pre_viabilidades" as any)
+    .select("id, ticket_mensal, valor_minimo")
+    .eq("id_guardachuva", idGuardachuva);
+
+  if (error || !data || data.length === 0) return;
+
+  const records = data as unknown as { id: string; ticket_mensal: number | null; valor_minimo: number | null }[];
+
+  // Receitas = sum(ticket_mensal), Despesas = sum(valor_minimo)
+  const somaReceitas = records.reduce((acc, r) => acc + (r.ticket_mensal ?? 0), 0);
+  const somaDespesas = records.reduce((acc, r) => acc + (r.valor_minimo ?? 0), 0);
+
+  let roi: number;
+  if (somaDespesas === 0) {
+    roi = somaReceitas > 0 ? 1 : 0;
+  } else {
+    roi = (somaReceitas - somaDespesas) / somaDespesas;
+  }
+
+  roi = Math.round(roi * 100) / 100;
+
+  // Update all records in the group
+  const ids = records.map((r) => r.id);
+  await supabase
+    .from("pre_viabilidades" as any)
+    .update({ roi_global: roi } as any)
+    .in("id", ids);
+}
+
 export function useDeletePreViabilidade() {
   const queryClient = useQueryClient();
 
