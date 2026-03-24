@@ -580,7 +580,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
           </Button>
           <div className="flex gap-2">
             {step < 4 && (
-              <Button onClick={() => setStep(step + 1)} className="gap-2">
+              <Button onClick={handleNext} className="gap-2">
                 Próximo
                 <ChevronRight className="h-4 w-4" />
               </Button>
