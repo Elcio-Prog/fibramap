@@ -264,11 +264,13 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     coordenadas: "",
     endereco: "",
     protocolo: "",
+    campanha_comercial: "",
   });
 
   // Initialize valor_minimo from item
   useEffect(() => {
     if (!item) return;
+    setStep(1);
     setValorMinimo(item.valor_minimo ?? null);
     setValorCapex((item.dados_precificacao as any)?.valorCapex ?? 0);
     initialLoadDone.current = false;
