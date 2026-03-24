@@ -236,7 +236,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive">
+                      <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
                         <Trash2 className="h-3.5 w-3.5" /> Excluir
                       </ContextMenuItem>
                     </ContextMenuContent>
