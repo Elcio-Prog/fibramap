@@ -499,6 +499,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           endereco: meta.endereco || null,
           protocolo: meta.protocolo || null,
           dados_precificacao: buildDadosPrecificacao(),
+          data_reavaliacao: meta.data_reavaliacao || null,
         } as any,
       });
       // Recalculate ROI Global for the umbrella group
