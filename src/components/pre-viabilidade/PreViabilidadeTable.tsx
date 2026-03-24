@@ -41,7 +41,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, onEdit
       list = list.filter((r) =>
         (r.nome_cliente || "").toLowerCase().includes(q) ||
         (r.viabilidade || "").toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q)
+        String(r.numero).includes(q)
       );
     }
     list = [...list].sort((a, b) => {
