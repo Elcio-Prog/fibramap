@@ -369,7 +369,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
       protocolo: (item as any).protocolo || "",
-      campanha_comercial: "",
+      campanha_comercial: String((item as any).dados_precificacao?.campanha_comercial_meses || ""),
       data_reavaliacao: (item as any).data_reavaliacao || "",
     });
   }, [item]);
