@@ -51,7 +51,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   useEffect(() => {
     if (item) {
       setForm({
-        status: item.status || "Ativa",
+        status: item.status || "Aberto",
         tipo_solicitacao: item.tipo_solicitacao || "",
         produto_nt: item.produto_nt || "",
         vigencia: item.vigencia != null ? String(item.vigencia) : "",
