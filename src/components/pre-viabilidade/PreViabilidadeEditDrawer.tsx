@@ -143,9 +143,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
               <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Ativa">Ativa</SelectItem>
+                  <SelectItem value="Aberto">Aberto</SelectItem>
+                  <SelectItem value="Aberto/Reavaliar">Aberto/Reavaliar</SelectItem>
                   <SelectItem value="Fechado">Fechado</SelectItem>
-                  <SelectItem value="Pendente">Pendente</SelectItem>
+                  <SelectItem value="Fechado - Auto Avaliação">Fechado - Auto Avaliação</SelectItem>
                 </SelectContent>
               </Select>
             </div>
