@@ -50,7 +50,7 @@ function NumField({ label, value, onChange, disabled, className, required }: {
   };
   return (
     <div className={className}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       <Input type="text" inputMode="decimal" disabled={disabled} className="h-9 tabular-nums"
         value={disabled ? String(value).replace(".", ",") : display}
         onChange={e => setDisplay(e.target.value.replace(/[^0-9,.\-]/g, ""))}
