@@ -173,6 +173,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <Th>Coment. Aprovador</Th>
               <Th>Obs. Validação</Th>
               <SortHeader field="created_at">Data Criação</SortHeader>
+              <SortHeader field="modificado_por">Modificado por</SortHeader>
             </tr>
           </thead>
           <tbody>
