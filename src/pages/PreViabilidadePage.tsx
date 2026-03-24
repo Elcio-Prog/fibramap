@@ -4,7 +4,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import PreViabilidadeTable from "@/components/pre-viabilidade/PreViabilidadeTable";
 import PreViabilidadeFilters from "@/components/pre-viabilidade/PreViabilidadeFilters";
 import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidadeEditDrawer";
-import { Loader2, FileCheck } from "lucide-react";
+import { Loader2, FileCheck, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function PreViabilidadePage() {
   const { data, isLoading } = usePreViabilidades();
@@ -12,6 +14,7 @@ export default function PreViabilidadePage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
+  const [guardaChuvaFilter, setGuardaChuvaFilter] = useState<string | null>(null);
 
   return (
     <div className="p-6 space-y-4">
@@ -32,6 +35,17 @@ export default function PreViabilidadePage() {
         onStatusFilterChange={setStatusFilter}
       />
 
+      {guardaChuvaFilter && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1 text-xs">
+            Guarda-Chuva: {guardaChuvaFilter}
+            <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 p-0" onClick={() => setGuardaChuvaFilter(null)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </Badge>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center h-40">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -41,6 +55,8 @@ export default function PreViabilidadePage() {
           data={data || []}
           search={search}
           statusFilter={statusFilter}
+          guardaChuvaFilter={guardaChuvaFilter}
+          onGuardaChuvaClick={setGuardaChuvaFilter}
           onEdit={setEditItem}
         />
       )}
