@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Save, Calculator, ChevronDown, AlertTriangle, Info, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS } from "@/lib/field-options";
 
