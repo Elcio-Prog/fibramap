@@ -570,6 +570,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
             <Label className="text-xs">Status de Viabilidade</Label>
             <Input className="mt-1" value={meta.status_viabilidade} onChange={setMetaField("status_viabilidade")} />
           </div>
+          <NumField label="Ticket Mensal" value={meta.ticket_mensal} onChange={setMetaNum("ticket_mensal")} />
+          <div>
+            <Label className="text-xs">CNPJ Cliente</Label>
+            <Input className="mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
+          </div>
+          <div>
+            <Label className="text-xs">Coordenadas</Label>
+            <Input className="mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
+          </div>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <Label className="text-xs">Endereço</Label>
+            <Input className="mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
+          </div>
         </div>
 
         <Separator />
