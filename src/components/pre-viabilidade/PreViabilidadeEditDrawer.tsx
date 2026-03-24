@@ -429,7 +429,18 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     }
   };
 
-  const renderProductFields = () => {
+  const handleDelete = async () => {
+    if (!item) return;
+    if (!confirm(`Excluir registro #${item.numero}? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteMutation.mutateAsync(item.id);
+      toast({ title: "Registro excluído com sucesso!" });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  };
+
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
       case "Conectividade": return <ConectividadeFields {...props} />;
