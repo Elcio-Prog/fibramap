@@ -349,6 +349,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         cnpj_cliente: meta.cnpj_cliente || null,
         coordenadas: meta.coordenadas || null,
         endereco: meta.endereco || null,
+        protocolo: meta.protocolo || null,
         dados_precificacao: buildDadosPrecificacao(),
         viabilidade: null,
         status_viabilidade: null,
