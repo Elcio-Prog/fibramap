@@ -37,9 +37,9 @@ const formatCurrency = (v: number | null | undefined) => {
 };
 
 // ── Reusable field components ──
-function NumField({ label, value, onChange, disabled, className }: {
+function NumField({ label, value, onChange, disabled, className, required }: {
   label: string; value: number; onChange: (v: number) => void;
-  disabled?: boolean; className?: string;
+  disabled?: boolean; className?: string; required?: boolean;
 }) {
   const [display, setDisplay] = useState(String(value).replace(".", ","));
   useEffect(() => { setDisplay(String(value).replace(".", ",")); }, [value]);
@@ -50,7 +50,7 @@ function NumField({ label, value, onChange, disabled, className }: {
   };
   return (
     <div className={className}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       <Input type="text" inputMode="decimal" disabled={disabled} className="h-9 tabular-nums"
         value={disabled ? String(value).replace(".", ",") : display}
         onChange={e => setDisplay(e.target.value.replace(/[^0-9,.\-]/g, ""))}
@@ -59,13 +59,13 @@ function NumField({ label, value, onChange, disabled, className }: {
   );
 }
 
-function SelectField({ label, value, onChange, options, placeholder, disabled, className }: {
+function SelectField({ label, value, onChange, options, placeholder, disabled, className, required }: {
   label: string; value: string; onChange: (v: string) => void;
-  options: string[]; placeholder?: string; disabled?: boolean; className?: string;
+  options: string[]; placeholder?: string; disabled?: boolean; className?: string; required?: boolean;
 }) {
   return (
     <div className={className}>
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-9"><SelectValue placeholder={placeholder ?? "Selecione..."} /></SelectTrigger>
         <SelectContent>
@@ -99,13 +99,13 @@ function ConectividadeFields({ form, setField, options }: any) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SelectField label="Produto Link IP" value={form.subproduto} onChange={(v: string) => setField("subproduto", v)} options={PRODUTO_LINK_OPTIONS} />
+        <SelectField label="Produto Link IP" value={form.subproduto} onChange={(v: string) => setField("subproduto", v)} options={PRODUTO_LINK_OPTIONS} required />
         <NumField label="Distância (m)" value={form.distancia} onChange={(v: number) => setField("distancia", v)} />
-        {!isDarkFiber && <NumField label="Velocidade do Link (MB)" value={form.banda} onChange={(v: number) => setField("banda", v)} />}
+        {!isDarkFiber && <NumField label="Velocidade do Link (MB)" value={form.banda} onChange={(v: number) => setField("banda", v)} required />}
         {!isL2L && !isDarkFiber && (
           <SelectField label="Bloco IP" value={form.blocoIp} onChange={(v: string) => setField("blocoIp", v)} options={BLOCO_IP_OPTIONS} placeholder="Selecione..." />
         )}
-        <SelectField label="Tecnologia" value={form.tecnologia} onChange={(v: string) => setField("tecnologia", v)} options={TECNOLOGIA_OPTIONS} />
+        <SelectField label="Tecnologia" value={form.tecnologia} onChange={(v: string) => setField("tecnologia", v)} options={TECNOLOGIA_OPTIONS} required />
         <SelectField label="Tecnologia (Meio Físico)" value={form.tecnologiaMeioFisico} onChange={(v: string) => setField("tecnologiaMeioFisico", v)} options={MEIO_FISICO_OPTIONS} />
         <SelectField label="Cidade Ponta A" value={form.rede} onChange={(v: string) => setField("rede", v)} options={options.redes} placeholder="Selecione a cidade..." />
         {isL2L && <SelectField label="Cidade Ponta B" value={form.redePontaB} onChange={(v: string) => setField("redePontaB", v)} options={options.redes} placeholder="Selecione a cidade..." />}
@@ -293,12 +293,40 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     };
   };
 
+  const validateStep = (s: number): string | null => {
+    if (s === 1) {
+      if (!calcForm.produto) return "Categoria NT é obrigatória";
+      if (!calcForm.vigencia && calcForm.subproduto !== "NT EVENTO") return "Vigência é obrigatória";
+      if (calcForm.produto === "Conectividade") {
+        if (!calcForm.subproduto) return "Produto Link IP é obrigatório";
+        if (calcForm.subproduto !== "NT DARK FIBER" && !calcForm.banda) return "Velocidade MB é obrigatória";
+        if (!calcForm.tecnologia) return "Tecnologia é obrigatória";
+      }
+    }
+    if (s === 2) {
+      if (!meta.nome_cliente.trim()) return "Nome do Cliente é obrigatório";
+      if (!meta.tipo_solicitacao) return "Tipo de Solicitação é obrigatório";
+      if (!meta.ticket_mensal) return "Valor Vendido é obrigatório";
+      if (!meta.endereco.trim()) return "Endereço é obrigatório";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (!user) return;
+    // Validate all steps
+    for (let s = 1; s <= 4; s++) {
+      const err = validateStep(s);
+      if (err) {
+        setStep(s);
+        toast({ title: "Campo obrigatório", description: err, variant: "destructive" });
+        return;
+      }
+    }
     try {
       await insertMutation.mutateAsync([{
         user_id: user.id,
-        numero: 0, // will be auto-generated
+        numero: 0,
         status: meta.status || "Aberto",
         produto_nt: calcForm.produto || null,
         valor_minimo: valorMinimo,
@@ -337,6 +365,15 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     }
   };
 
+  const handleNext = () => {
+    const err = validateStep(step);
+    if (err) {
+      toast({ title: "Campo obrigatório", description: err, variant: "destructive" });
+      return;
+    }
+    setStep(step + 1);
+  };
+
   const renderProductFields = () => {
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
@@ -359,9 +396,9 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SelectField label="Categoria NT" value={calcForm.produto}
+            <SelectField label="Categoria NT" value={calcForm.produto} required
               onChange={v => setProduto(v as FormState["produto"])} options={[...PRODUTOS]} />
-            <SelectField label="Vigência"
+            <SelectField label="Vigência" required
               value={calcForm.subproduto === "NT EVENTO" ? "1" : String(calcForm.vigencia)}
               onChange={v => {
                 const num = Number(v) || 0;
@@ -371,7 +408,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
               }}
               options={VIGENCIA_OPTIONS}
               disabled={calcForm.subproduto === "NT EVENTO"} />
-            <NumField label="Taxa de Instalação" value={calcForm.taxaInstalacao}
+            <NumField label="Taxa de Instalação" value={calcForm.taxaInstalacao} required
               onChange={v => setField("taxaInstalacao", v)} />
           </div>
 
@@ -391,12 +428,12 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
-          <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
+          <Label className="text-xs text-muted-foreground">Nome do Cliente<span className="text-destructive ml-0.5">*</span></Label>
           <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
         </div>
-        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
+        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao} required
           onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} />
-        <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal}
+        <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal} required
           onChange={setMetaNum("ticket_mensal")} />
         <div>
           <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
@@ -415,7 +452,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
           <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
-          <Label className="text-xs text-muted-foreground">Endereço</Label>
+          <Label className="text-xs text-muted-foreground">Endereço<span className="text-destructive ml-0.5">*</span></Label>
           <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
         </div>
         <div className="sm:col-span-2 lg:col-span-3">
@@ -543,7 +580,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
           </Button>
           <div className="flex gap-2">
             {step < 4 && (
-              <Button onClick={() => setStep(step + 1)} className="gap-2">
+              <Button onClick={handleNext} className="gap-2">
                 Próximo
                 <ChevronRight className="h-4 w-4" />
               </Button>
