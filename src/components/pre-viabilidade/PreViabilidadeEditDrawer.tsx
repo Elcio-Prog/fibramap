@@ -255,6 +255,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     cnpj_cliente: "",
     coordenadas: "",
     endereco: "",
+    protocolo: "",
   });
 
   // Initialize valor_minimo from item
@@ -341,6 +342,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       cnpj_cliente: (item as any).cnpj_cliente || "",
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
+      protocolo: (item as any).protocolo || "",
     });
   }, [item]);
 
@@ -452,6 +454,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           cnpj_cliente: meta.cnpj_cliente || null,
           coordenadas: meta.coordenadas || null,
           endereco: meta.endereco || null,
+          protocolo: meta.protocolo || null,
           dados_precificacao: buildDadosPrecificacao(),
         } as any,
       });
@@ -574,6 +577,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           <div>
             <Label className="text-xs">CNPJ Cliente</Label>
             <Input className="mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
+          </div>
+          <div>
+            <Label className="text-xs">Protocolo</Label>
+            <Input className="mt-1" value={meta.protocolo} onChange={setMetaField("protocolo")} />
           </div>
           <div>
             <Label className="text-xs">Coordenadas</Label>

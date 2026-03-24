@@ -224,6 +224,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     aprovado_por: "",
     status_aprovacao: "",
     criado_por: "",
+    protocolo: "",
   });
 
   // Reset form when dialog opens
@@ -240,7 +241,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
         observacao_validacao: "", campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
-        criado_por: user?.email || "",
+        criado_por: user?.email || "", protocolo: "",
       });
       setProduto("Conectividade");
       setTimeout(() => { initialLoadDone.current = true; }, 300);
@@ -348,6 +349,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         cnpj_cliente: meta.cnpj_cliente || null,
         coordenadas: meta.coordenadas || null,
         endereco: meta.endereco || null,
+        protocolo: meta.protocolo || null,
         dados_precificacao: buildDadosPrecificacao(),
         viabilidade: null,
         status_viabilidade: null,
@@ -520,6 +522,10 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         <div>
           <Label className="text-xs text-muted-foreground">Criado por</Label>
           <Input className="h-9 mt-1" value={meta.criado_por} onChange={setMetaField("criado_por")} />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Protocolo</Label>
+          <Input className="h-9 mt-1" value={meta.protocolo} onChange={setMetaField("protocolo")} />
         </div>
       </div>
     </div>

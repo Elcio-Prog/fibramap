@@ -35,6 +35,7 @@ export interface PreViabilidade {
   cnpj_cliente: string | null;
   coordenadas: string | null;
   endereco: string | null;
+  protocolo: string | null;
   created_at: string;
 }
 
