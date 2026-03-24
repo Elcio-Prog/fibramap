@@ -205,7 +205,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.produto_nt} /></td>
-                      <td className="px-2 py-1.5">{row.vigencia != null ? `${row.vigencia} meses` : "—"}</td>
+                      <td className="px-2 py-1.5">{row.vigencia != null ? row.vigencia : "—"}</td>
                       <td className={cn("px-2 py-1.5 font-medium", row.status_viabilidade?.includes("ABAIXO") ? "bg-destructive/10 text-destructive" : "")}>
                         {formatCurrency(row.valor_minimo)}
                       </td>
