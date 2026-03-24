@@ -211,7 +211,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
 
   const [meta, setMeta] = useState({
     nome_cliente: "",
-    tipo_solicitacao: "",
+    tipo_solicitacao: "Nova Ativação",
     ticket_mensal: 0,
     cnpj_cliente: "",
     codigo_smark: "",
