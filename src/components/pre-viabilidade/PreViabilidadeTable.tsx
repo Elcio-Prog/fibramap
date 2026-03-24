@@ -139,7 +139,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <SortHeader field="vigencia">Vigência</SortHeader>
               <SortHeader field="valor_minimo">Valor Mínimo</SortHeader>
               <SortHeader field="viabilidade">Viabilidade</SortHeader>
-              <SortHeader field="ticket_mensal">Valor Vendido</SortHeader>
+              <SortHeader field="ticket_mensal">Ticket Mensal</SortHeader>
               <SortHeader field="status_aprovacao">Status Aprovação</SortHeader>
               <SortHeader field="aprovado_por">Aprovado por</SortHeader>
               <SortHeader field="nome_cliente">Nome Cliente</SortHeader>
