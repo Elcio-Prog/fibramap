@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { LogOut, Wifi, Upload, Search, List, ClipboardList, History } from "lucide-react";
+import { LogOut, Wifi, Upload, Search, List, ClipboardList, History, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
 import ProfileDropdown from "@/components/ProfileDropdown";
