@@ -337,6 +337,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       comentarios_aprovador: item.comentarios_aprovador || "",
       observacao_validacao: item.observacao_validacao || "",
       observacoes: item.observacoes || "",
+      ticket_mensal: item.ticket_mensal ?? 0,
+      cnpj_cliente: (item as any).cnpj_cliente || "",
+      coordenadas: (item as any).coordenadas || "",
+      endereco: (item as any).endereco || "",
     });
   }, [item]);
 
