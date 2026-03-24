@@ -251,6 +251,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     comentarios_aprovador: "",
     observacao_validacao: "",
     observacoes: "",
+    ticket_mensal: 0,
+    cnpj_cliente: "",
+    coordenadas: "",
+    endereco: "",
   });
 
   // Initialize valor_minimo from item
