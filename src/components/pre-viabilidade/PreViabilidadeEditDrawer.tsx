@@ -260,6 +260,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
     // Load calculator state from dados_precificacao
     const dp = item.dados_precificacao || {};
+    const savedVigencia = item.vigencia ?? dp.vigencia ?? 12;
     const produto = (PRODUTOS as readonly string[]).includes(dp.produto) ? dp.produto : "Conectividade";
     setProduto(produto as FormState["produto"]);
 
