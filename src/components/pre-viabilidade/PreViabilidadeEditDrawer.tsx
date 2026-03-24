@@ -305,8 +305,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.minInternacional != null) setField("minInternacional", dp.minInternacional);
       // Backup
       if (dp.qtdBackupTB != null) setField("qtdBackupTB", dp.qtdBackupTB);
+      // Mark initial load will be done after setTimeout fires
+      setTimeout(() => { initialLoadDone.current = true; }, 200);
     }, 50);
-
     // Set meta fields
     setMeta({
       status: item.status || "Aberto",
