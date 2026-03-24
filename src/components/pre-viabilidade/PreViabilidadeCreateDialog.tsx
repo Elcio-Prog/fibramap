@@ -557,7 +557,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Criado por</Label>
-          <Input className="h-9 mt-1" value={meta.criado_por} onChange={setMetaField("criado_por")} />
+          <Input className="h-9 mt-1" value={meta.criado_por} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Protocolo</Label>
