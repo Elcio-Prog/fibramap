@@ -99,16 +99,48 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
   // Fetch all records with the same id_guardachuva
   const { data, error } = await supabase
     .from("pre_viabilidades" as any)
-    .select("id, ticket_mensal, valor_minimo")
+    .select("id, ticket_mensal, valor_minimo, dados_precificacao")
     .eq("id_guardachuva", idGuardachuva);
 
   if (error || !data || data.length === 0) return;
 
-  const records = data as unknown as { id: string; ticket_mensal: number | null; valor_minimo: number | null }[];
+  const records = data as unknown as {
+    id: string;
+    ticket_mensal: number | null;
+    valor_minimo: number | null;
+    dados_precificacao: Record<string, any> | null;
+  }[];
 
-  // Receitas = sum(ticket_mensal), Despesas = sum(valor_minimo)
-  const somaReceitas = records.reduce((acc, r) => acc + (r.ticket_mensal ?? 0), 0);
-  const somaDespesas = records.reduce((acc, r) => acc + (r.valor_minimo ?? 0), 0);
+  // Per-record calculation then sum across the group
+  let somaReceitas = 0;
+  let somaDespesas = 0;
+
+  for (const r of records) {
+    const dp = r.dados_precificacao || {};
+    const ticketMensal = r.ticket_mensal ?? 0;
+    const mediaMensalidadeLm = dp.media_mensalidade_lm ?? 0;
+
+    // CUSTO TOTAL = taxa_instalacao_lm + lancamento_custos_materiais + custo_radio + capex + valor_total_reais
+    const custoTotal =
+      (dp.custoLastMile ?? 0) +
+      (dp.custosMateriaisAdicionais ?? 0) +
+      (dp.custo_radio ?? 0) +
+      (dp.valorCapex ?? 0) +
+      (dp.valor_total_reais ?? 0);
+
+    const usouFinder2 = dp.usou_finder2 ?? 0;
+    const campanhaComercialMeses = dp.campanha_comercial_meses ?? 0;
+    const taxaInstalacao = dp.taxaInstalacao ?? 0;
+
+    // Receita = Ticket Mensal Previsto - Média Mensalidade LM
+    const receita = ticketMensal - mediaMensalidadeLm;
+
+    // Despesa = Custo Total + (Ticket Mensal * (Usou FINDER2 / 100)) + Campanha Comercial Meses - Taxa de Instalação
+    const despesa = custoTotal + (ticketMensal * (usouFinder2 / 100)) + campanhaComercialMeses - taxaInstalacao;
+
+    somaReceitas += receita;
+    somaDespesas += despesa;
+  }
 
   let roi: number;
   if (somaDespesas === 0) {
