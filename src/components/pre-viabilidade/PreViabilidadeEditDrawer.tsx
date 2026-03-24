@@ -430,9 +430,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     }
   };
 
-  const handleDelete = async () => {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteConfirm = async () => {
     if (!item) return;
-    if (!confirm(`Excluir registro #${item.numero}? Esta ação não pode ser desfeita.`)) return;
     try {
       await deleteMutation.mutateAsync(item.id);
       toast({ title: "Registro excluído com sucesso!" });
@@ -440,6 +441,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     } catch (e: any) {
       toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
+    setShowDeleteDialog(false);
   };
 
   const renderProductFields = () => {
