@@ -257,6 +257,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   useEffect(() => {
     if (!item) return;
     setValorMinimo(item.valor_minimo ?? null);
+    setValorCapex((item.dados_precificacao as any)?.valorCapex ?? 0);
     initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
