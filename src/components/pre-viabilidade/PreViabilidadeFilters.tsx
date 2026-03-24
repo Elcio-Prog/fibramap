@@ -27,9 +27,10 @@ export default function PreViabilidadeFilters({ search, onSearchChange, statusFi
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="Ativa">Ativa</SelectItem>
+          <SelectItem value="Aberto">Aberto</SelectItem>
+          <SelectItem value="Aberto/Reavaliar">Aberto/Reavaliar</SelectItem>
           <SelectItem value="Fechado">Fechado</SelectItem>
-          <SelectItem value="Pendente">Pendente</SelectItem>
+          <SelectItem value="Fechado - Auto Avaliação">Fechado - Auto Avaliação</SelectItem>
         </SelectContent>
       </Select>
     </div>
