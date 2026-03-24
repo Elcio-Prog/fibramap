@@ -36,7 +36,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const { isAdmin } = useUserRole();
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortKey, setSortKey] = useState<SortKey>("numero");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
