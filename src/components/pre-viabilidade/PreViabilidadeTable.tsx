@@ -40,15 +40,18 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [contextRowId, setContextRowId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PreViabilidade | null>(null);
 
-  const handleDelete = async (row: PreViabilidade) => {
-    if (!confirm(`Excluir registro #${row.numero}? Esta ação não pode ser desfeita.`)) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteMutation.mutateAsync(row.id);
+      await deleteMutation.mutateAsync(deleteTarget.id);
       toast({ title: "Registro excluído com sucesso!" });
     } catch (e: any) {
       toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
     }
+    setDeleteTarget(null);
   };
 
   // Count how many records share the same id_guardachuva
