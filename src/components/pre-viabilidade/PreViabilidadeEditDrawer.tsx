@@ -575,33 +575,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
             <CardContent>{renderProductFields()}</CardContent>
           </Card>
 
-          {/* Projetista options manager */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Gerenciar Projetistas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 mb-2">
-                <Input className="h-9" placeholder="Nome do projetista" value={newProjetista}
-                  onChange={e => setNewProjetista(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addProjetista())} />
-                <Button type="button" size="sm" className="gap-1 h-9" onClick={addProjetista}>
-                  <Plus className="h-3.5 w-3.5" /> Adicionar
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {projetistaOptions.map(p => (
-                  <Badge key={p} variant="secondary" className="gap-1 text-xs">
-                    {p}
-                    <button type="button" onClick={() => removeProjetista(p)} className="ml-0.5 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                {projetistaOptions.length === 0 && <span className="text-xs text-muted-foreground">Nenhum projetista cadastrado</span>}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
     </div>
