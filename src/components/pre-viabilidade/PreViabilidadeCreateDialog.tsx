@@ -224,6 +224,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     projetista: "",
     inviabilidade_tecnica: "",
     observacao_validacao: "",
+    data_reavaliacao: "",
     // Step 4 - BKO
     campanha_comercial: "",
     motivo_solicitacao: "",
