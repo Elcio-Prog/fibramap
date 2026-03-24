@@ -230,6 +230,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const { form: calcForm, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
+  const [valorCapex, setValorCapex] = useState<number>(0);
   const initialLoadDone = useRef(false);
 
   // Extra editable fields (non-calculator)
