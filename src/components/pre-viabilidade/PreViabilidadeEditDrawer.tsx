@@ -363,6 +363,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
 
+  const setMetaNum = (field: string) => (v: number) =>
+    setMeta(f => ({ ...f, [field]: v }));
+
   // Build dados_precificacao snapshot from current calculator state
   const buildDadosPrecificacao = () => {
     const f = calcForm;
