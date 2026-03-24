@@ -190,8 +190,8 @@ export function useBulkExport() {
           motivo_solicitacao: null,
           codigo_smark: item.codigo_smark || null,
           cnpj_cliente: (item as any).cnpj_cliente || null,
-          endereco: item.endereco_a || null,
-          coordenadas: item.lat_a && item.lng_a ? `${item.lat_a}, ${item.lng_a}` : null,
+          endereco: item.endereco || null,
+          coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
           status: "Aberto",
           dados_precificacao: {
             produto: item.produto || "Conectividade",
