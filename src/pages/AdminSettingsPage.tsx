@@ -169,6 +169,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="webhook">Webhook</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
+          <TabsTrigger value="integracoes">Integrações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="webhook" className="space-y-4">
