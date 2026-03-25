@@ -119,7 +119,7 @@ const defaultSpecific: Partial<FormState> = {
   minMovelLDN: 0,
   min0800Movel: 0,
   min0800Fixo: 0,
-  paisInternacional: "Custo Médio Internacional",
+  paisInternacional: "Custo Medio Internacional",
   minInternacional: 0,
   qtdBackupTB: 0,
 };
