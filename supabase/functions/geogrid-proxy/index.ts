@@ -30,8 +30,10 @@ serve(async (req) => {
       });
     }
 
+    // Ensure base URL has https:// prefix
+    const baseUrl = GEOGRID_BASE_URL.startsWith('http') ? GEOGRID_BASE_URL : `https://${GEOGRID_BASE_URL}`;
     // Build URL with query params
-    const url = new URL(`${GEOGRID_BASE_URL}/${endpoint}`);
+    const url = new URL(`${baseUrl}/${endpoint}`);
     if (params && typeof params === 'object') {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
