@@ -256,7 +256,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        </TabsContent>
 
         <TabsContent value="integracoes">
           <IntegracoesTab />
