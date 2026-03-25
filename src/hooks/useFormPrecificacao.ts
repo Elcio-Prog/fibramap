@@ -250,7 +250,7 @@ export function useFormPrecificacao() {
         return {
           ...base,
           modeloFirewall: p.modeloFirewall || undefined,
-          marcaFirewall: p.marcaFirewall || undefined,
+          firewallSolucao: p.firewallSolucao || undefined,
           qtdEquipamentos: p.qtdEquipamentos,
         };
       case "Switch":
