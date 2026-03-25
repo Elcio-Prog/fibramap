@@ -49,38 +49,10 @@ export default function SettingsPage() {
   const [mappingLoaded, setMappingLoaded] = useState(false);
 
   // Load initial values when config loads
-  if (!isLoading && !webhookLoaded) {
-    setUrl(webhook.url || "");
-    setToken(webhook.token || "");
-    setWebhookLoaded(true);
-  }
   if (!isLoading && !mappingLoaded) {
     setMappingJson(JSON.stringify(fieldMapping.length > 0 ? fieldMapping : DEFAULT_MAPPING, null, 2));
     setMappingLoaded(true);
   }
-
-  const handleSaveWebhook = async () => {
-    setSavingWebhook(true);
-    try {
-      await saveConfig.mutateAsync({ chave: "webhook", valor: { url: url.trim(), token: token.trim() } });
-      toast({ title: "Configurações de Webhook salvas!" });
-    } catch (e: any) {
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-    } finally {
-      setSavingWebhook(false);
-    }
-  };
-
-  const handleTestWebhook = async () => {
-    setTesting(true);
-    const result = await testWebhook();
-    setTesting(false);
-    if (result.ok) {
-      toast({ title: `Webhook respondeu com sucesso (${result.code})` });
-    } else {
-      toast({ title: "Falha no teste", description: result.error || `HTTP ${result.code}`, variant: "destructive" });
-    }
-  };
 
   const validateMapping = (json: string): boolean => {
     try {
