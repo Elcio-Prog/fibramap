@@ -38,18 +38,8 @@ const DEFAULT_MAPPING: FieldMappingEntry[] = [
 ];
 
 export default function SettingsPage() {
-  const { webhook, fieldMapping, saveConfig, isLoading } = useConfig();
-  const { testWebhook } = useBulkExport();
+  const { fieldMapping, saveConfig, isLoading } = useConfig();
   const { toast } = useToast();
-
-  // Webhook tab state
-  const [url, setUrl] = useState("");
-  const [token, setToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [savingWebhook, setSavingWebhook] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [webhookLoaded, setWebhookLoaded] = useState(false);
-
   // Mapping tab state
   const [mappingJson, setMappingJson] = useState("");
   const [jsonValid, setJsonValid] = useState(true);
