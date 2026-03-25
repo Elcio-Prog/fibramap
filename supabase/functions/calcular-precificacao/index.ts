@@ -386,8 +386,8 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     valorOpex: valorOpexInput,
   } = input;
 
-  const pabxDespesaCAC = db.custosPabx.get("Despesa de CAC (SVA'") ?? 0;
-  const pabxMargemLucro = db.custosPabx.get("Margem de Lucro") ?? 0;
+  const pabxDespesaCAC = db.custosPabx.get("Despesa de CAC (SVA)") ?? 0;
+  const pabxMargemLucro = (db.custosPabx.get("Margem de Lucro") ?? 0) / 100;
   const custoPorContrato =
     db.custosPabx.get("Custo Firewall Switch e Wifi por contrato") ?? 0;
 
