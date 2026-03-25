@@ -292,7 +292,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       custoLastMile: f.custoLastMile, valorLastMile: f.valorLastMile,
       qtdFibrasDarkFiber: f.qtdFibrasDarkFiber, tecnologia: f.tecnologia,
       tecnologiaMeioFisico: f.tecnologiaMeioFisico, rede: f.rede, redePontaB: f.redePontaB,
-      modeloFirewall: f.modeloFirewall, marcaFirewall: f.marcaFirewall,
+      modeloFirewall: f.modeloFirewall, firewallSolucao: f.firewallSolucao,
       qtdEquipamentos: f.qtdEquipamentos, modeloSwitch: f.modeloSwitch, modeloWifi: f.modeloWifi,
       equipamentoVoz1: f.equipamentoVoz1, qtdEquipamentoVoz1: f.qtdEquipamentoVoz1,
       equipamentoVoz2: f.equipamentoVoz2, qtdEquipamentoVoz2: f.qtdEquipamentoVoz2,

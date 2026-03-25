@@ -298,7 +298,7 @@ export function useFormPrecificacao() {
       blocosIp: blocoIpOptions,
       vigencias: vigenciaOptions,
       firewallModelos,
-      firewallMarcas,
+      firewallSolucoes,
       switchModelos,
       wifiModelos,
       vozEquipamentos,
