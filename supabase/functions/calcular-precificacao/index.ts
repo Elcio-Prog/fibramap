@@ -28,7 +28,7 @@ interface CalcInput {
   vigencia?: number;
   valorOpex?: number;
   modeloFirewall?: string;
-  marcaFirewall?: string;
+  firewallSolucao?: string;
   qtdEquipamentos?: number;
   modeloSwitch?: string;
   modeloWifi?: string;
