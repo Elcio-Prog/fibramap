@@ -99,7 +99,7 @@ const defaultSpecific: Partial<FormState> = {
   tecnologia: "GPON",
   tecnologiaMeioFisico: "Fibra",
   modeloFirewall: "",
-  marcaFirewall: "",
+  firewallSolucao: "",
   modeloSwitch: "",
   modeloWifi: "",
   qtdEquipamentos: 1,
