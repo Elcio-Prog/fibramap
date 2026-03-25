@@ -158,7 +158,13 @@ export function useFormPrecificacao() {
       setBlocosIp(blocosRes.data ?? []);
       setEquipamentos((eqRes.data ?? []) as EquipamentoOption[]);
       setPaises(paisRes.data ?? []);
-      setVigenciaRoi((vigRes.data ?? []) as VigenciaRoiOption[]);
+      const vigData = (vigRes.data ?? []) as VigenciaRoiOption[];
+      setVigenciaRoi(vigData);
+      // Sync ROI with initial vigencia from DB data
+      const initialRoi = vigData.find(v => v.meses === String(initialState.vigencia));
+      if (initialRoi?.roi != null) {
+        setForm(prev => ({ ...prev, roiVigencia: initialRoi.roi! }));
+      }
       setLoadingData(false);
     });
   }, []);
