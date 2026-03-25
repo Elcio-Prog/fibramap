@@ -50,7 +50,7 @@ export interface FormState {
 
   // Firewall
   modeloFirewall: string;
-  marcaFirewall: string;
+  firewallSolucao: string;
 
   // Switch
   modeloSwitch: string;
@@ -99,7 +99,7 @@ const defaultSpecific: Partial<FormState> = {
   tecnologia: "GPON",
   tecnologiaMeioFisico: "Fibra",
   modeloFirewall: "",
-  marcaFirewall: "",
+  firewallSolucao: "",
   modeloSwitch: "",
   modeloWifi: "",
   qtdEquipamentos: 1,
@@ -192,9 +192,7 @@ export function useFormPrecificacao() {
     .filter(e => classifyEquipment(e.equipamento) === "Firewall")
     .map(e => e.equipamento);
 
-  const firewallMarcas = equipamentos
-    .filter(e => classifyEquipment(e.equipamento) === "Firewall Licença" && (form.modeloFirewall ? e.equipamento.includes(form.modeloFirewall) : true))
-    .map(e => e.equipamento);
+  const firewallSolucoes = ["NT FIREWALL PLUS", "NT FIREWALL WEB", "NT FIREWALL BASIC"];
 
   const switchModelos = equipamentos
     .filter(e => classifyEquipment(e.equipamento) === "Switch")
@@ -252,7 +250,7 @@ export function useFormPrecificacao() {
         return {
           ...base,
           modeloFirewall: p.modeloFirewall || undefined,
-          marcaFirewall: p.marcaFirewall || undefined,
+          firewallSolucao: p.firewallSolucao || undefined,
           qtdEquipamentos: p.qtdEquipamentos,
         };
       case "Switch":
@@ -300,7 +298,7 @@ export function useFormPrecificacao() {
       blocosIp: blocoIpOptions,
       vigencias: vigenciaOptions,
       firewallModelos,
-      firewallMarcas,
+      firewallSolucoes,
       switchModelos,
       wifiModelos,
       vozEquipamentos,

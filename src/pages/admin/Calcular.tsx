@@ -191,16 +191,16 @@ function FirewallFields({ form, setField, options }: {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <SelectField
-        label="Modelo Firewall"
+        label="Firewall Equipamento"
         value={form.modeloFirewall}
-        onChange={v => { setField("modeloFirewall", v); setField("marcaFirewall", ""); }}
+        onChange={v => { setField("modeloFirewall", v); setField("firewallSolucao", ""); }}
         options={options.firewallModelos}
       />
       <SelectField
-        label="Marca / Licença (ANUAL)"
-        value={form.marcaFirewall}
-        onChange={v => setField("marcaFirewall", v)}
-        options={options.firewallMarcas}
+        label="Firewall Solução"
+        value={form.firewallSolucao}
+        onChange={v => setField("firewallSolucao", v)}
+        options={options.firewallSolucoes}
       />
       <NumField label="Qtd Equipamentos" value={form.qtdEquipamentos} onChange={v => setField("qtdEquipamentos", v)} />
     </div>

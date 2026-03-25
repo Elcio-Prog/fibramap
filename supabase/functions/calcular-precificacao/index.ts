@@ -28,7 +28,7 @@ interface CalcInput {
   vigencia?: number;
   valorOpex?: number;
   modeloFirewall?: string;
-  marcaFirewall?: string;
+  firewallSolucao?: string;
   qtdEquipamentos?: number;
   modeloSwitch?: string;
   modeloWifi?: string;
@@ -377,7 +377,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   const {
     modeloFirewall = "",
-    marcaFirewall = "",
+    firewallSolucao = "",
     qtdEquipamentos = 0,
     vigencia = 1,
     roiVigencia = 1,
@@ -391,7 +391,7 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   const custoPorContrato =
     db.custosPabx.get("Custo Firewall Switch e Wifi por contrato") ?? 0;
 
-  const licencaKey = `${marcaFirewall} ${modeloFirewall} ANUAL`;
+  const licencaKey = `${firewallSolucao} ${modeloFirewall} ANUAL`;
   const licencaFirewall = db.equipamentos.get(licencaKey)?.valor_final ?? 0;
   const valorEquipamento = db.equipamentos.get(modeloFirewall)?.valor_final ?? 0;
 

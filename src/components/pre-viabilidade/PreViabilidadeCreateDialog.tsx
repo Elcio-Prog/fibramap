@@ -125,8 +125,8 @@ function ConectividadeFields({ form, setField, options }: any) {
 function FirewallFields({ form, setField, options }: any) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <SelectField label="Modelo Firewall" value={form.modeloFirewall} onChange={(v: string) => { setField("modeloFirewall", v); setField("marcaFirewall", ""); }} options={options.firewallModelos} />
-      <SelectField label="Marca / Licença (ANUAL)" value={form.marcaFirewall} onChange={(v: string) => setField("marcaFirewall", v)} options={options.firewallMarcas} />
+      <SelectField label="Firewall Equipamento" value={form.modeloFirewall} onChange={(v: string) => { setField("modeloFirewall", v); setField("firewallSolucao", ""); }} options={options.firewallModelos} />
+      <SelectField label="Firewall Solução" value={form.firewallSolucao} onChange={(v: string) => setField("firewallSolucao", v)} options={options.firewallSolucoes} />
       <NumField label="Qtd Equipamentos" value={form.qtdEquipamentos} onChange={(v: number) => setField("qtdEquipamentos", v)} />
     </div>
   );
@@ -292,7 +292,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       custoLastMile: f.custoLastMile, valorLastMile: f.valorLastMile,
       qtdFibrasDarkFiber: f.qtdFibrasDarkFiber, tecnologia: f.tecnologia,
       tecnologiaMeioFisico: f.tecnologiaMeioFisico, rede: f.rede, redePontaB: f.redePontaB,
-      modeloFirewall: f.modeloFirewall, marcaFirewall: f.marcaFirewall,
+      modeloFirewall: f.modeloFirewall, firewallSolucao: f.firewallSolucao,
       qtdEquipamentos: f.qtdEquipamentos, modeloSwitch: f.modeloSwitch, modeloWifi: f.modeloWifi,
       equipamentoVoz1: f.equipamentoVoz1, qtdEquipamentoVoz1: f.qtdEquipamentoVoz1,
       equipamentoVoz2: f.equipamentoVoz2, qtdEquipamentoVoz2: f.qtdEquipamentoVoz2,
