@@ -50,7 +50,7 @@ export interface FormState {
 
   // Firewall
   modeloFirewall: string;
-  marcaFirewall: string;
+  firewallSolucao: string;
 
   // Switch
   modeloSwitch: string;
