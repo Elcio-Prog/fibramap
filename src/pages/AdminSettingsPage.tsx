@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
-import { useBulkExport } from "@/hooks/useBulkExport";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Save, TestTube, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Loader2, Save, RotateCcw } from "lucide-react";
 import IntegracoesTab from "@/components/admin/IntegracoesTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
