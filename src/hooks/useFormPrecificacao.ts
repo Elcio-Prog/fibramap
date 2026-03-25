@@ -192,9 +192,7 @@ export function useFormPrecificacao() {
     .filter(e => classifyEquipment(e.equipamento) === "Firewall")
     .map(e => e.equipamento);
 
-  const firewallMarcas = equipamentos
-    .filter(e => classifyEquipment(e.equipamento) === "Firewall Licença" && (form.modeloFirewall ? e.equipamento.includes(form.modeloFirewall) : true))
-    .map(e => e.equipamento);
+  const firewallSolucoes = ["NT FIREWALL PLUS", "NT FIREWALL WEB", "NT FIREWALL BASIC"];
 
   const switchModelos = equipamentos
     .filter(e => classifyEquipment(e.equipamento) === "Switch")
