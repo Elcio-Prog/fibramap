@@ -563,48 +563,56 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         </DialogHeader>
 
         {/* Step indicator + Valor Mínimo */}
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-1">
+        <div className="rounded-lg bg-muted/40 border p-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
-              <div key={s.number} className="flex items-center gap-1">
+              <div key={s.number} className="flex items-center">
                 <button
                   onClick={() => setStep(s.number)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                     step === s.number
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : step > s.number
+                        ? "text-primary hover:bg-primary/10"
+                        : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  <span className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors",
+                    step === s.number
+                      ? "bg-primary-foreground/20"
                       : step > s.number
                         ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-current">
-                    {s.number}
+                        : "bg-muted-foreground/20"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
                   </span>
                   <span className="hidden sm:inline">{s.label}</span>
                 </button>
-                {i < STEPS.length - 1 && <div className="w-4 h-px bg-border" />}
+                {i < STEPS.length - 1 && <div className="w-6 h-px bg-border" />}
               </div>
             ))}
           </div>
-          <Badge variant="outline" className="text-sm px-3 py-1.5 font-normal">
-            Valor Mínimo: <span className="font-semibold text-foreground ml-1">{formatCurrency(valorMinimo)}</span>
-          </Badge>
+          <div className="flex items-center gap-2 rounded-lg bg-background border px-4 py-2 shadow-sm">
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Mínimo</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(valorMinimo)}</span>
+          </div>
         </div>
 
-        <Separator />
-
         {/* Step content */}
-        <div className="min-h-[300px]">
+        <div className="min-h-[300px] pt-2">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
           {step === 4 && renderStep4()}
         </div>
 
-
         {/* Navigation */}
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
+        <Separator />
+        <div className="flex justify-between pt-1">
+          <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
             className="gap-2">
             <ChevronLeft className="h-4 w-4" />
             {step === 1 ? "Cancelar" : "Voltar"}
