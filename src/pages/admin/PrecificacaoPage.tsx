@@ -113,6 +113,56 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
     );
   }
 
+  const isEquipamentos = config.tabela === "equipamentos_valor";
+
+  const renderRow = (row: any, idx: number) => (
+    <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+      <TableCell className="font-medium text-sm">{row[config.keyField]}</TableCell>
+      {(config.textFields ?? []).map(field => (
+        <TableCell key={field} className="p-1">
+          <Input
+            type="text"
+            className="h-8 text-sm"
+            value={row[field] ?? ""}
+            onChange={e => handleValueChange(idx, field, e.target.value)}
+          />
+        </TableCell>
+      ))}
+      {config.valueFields.map(field => (
+        <TableCell key={field} className="p-1">
+          <Input
+            type="text"
+            inputMode="decimal"
+            className="h-8 text-right text-sm tabular-nums"
+            value={String(row[field] ?? 0).replace('.', ',')}
+            onChange={e => {
+              const raw = e.target.value.replace(/[^0-9,\-]/g, '');
+              handleValueChange(idx, field, raw.replace(',', '.'));
+            }}
+            onBlur={() => {
+              const num = Number(row[field]) || 0;
+              handleValueChange(idx, field, num.toFixed(2));
+            }}
+            onKeyDown={e => {
+              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const current = Number(row[field]) || 0;
+                const step = 0.01;
+                const next = e.key === 'ArrowUp' ? current + step : current - step;
+                handleValueChange(idx, field, (Math.round(next * 100) / 100).toFixed(2));
+              }
+            }}
+          />
+        </TableCell>
+      ))}
+      <TableCell className="p-1">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(row.id)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 justify-end">
