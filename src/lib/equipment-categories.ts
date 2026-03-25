@@ -14,7 +14,6 @@ export const CATEGORY_ORDER: EquipmentCategory[] = [
   "Switch",
   "Wifi",
   "VOZ",
-  "ONU",
   "Outros",
 ];
 
