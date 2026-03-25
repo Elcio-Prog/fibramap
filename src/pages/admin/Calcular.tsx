@@ -191,7 +191,7 @@ function FirewallFields({ form, setField, options }: {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <SelectField
-        label="Modelo Firewall"
+        label="Firewall Equipamento"
         value={form.modeloFirewall}
         onChange={v => { setField("modeloFirewall", v); setField("firewallSolucao", ""); }}
         options={options.firewallModelos}
