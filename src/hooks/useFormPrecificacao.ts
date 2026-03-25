@@ -188,22 +188,24 @@ export function useFormPrecificacao() {
     .map(r => r.identificacao);
 
   const firewallModelos = equipamentos
-    .filter(e => /firewall/i.test(e.equipamento) && !/ANUAL/i.test(e.equipamento))
+    .filter(e => classifyEquipment(e.equipamento) === "Firewall")
     .map(e => e.equipamento);
 
   const firewallMarcas = equipamentos
-    .filter(e => /ANUAL/i.test(e.equipamento) && (form.modeloFirewall ? e.equipamento.includes(form.modeloFirewall) : true))
+    .filter(e => classifyEquipment(e.equipamento) === "Firewall Licença" && (form.modeloFirewall ? e.equipamento.includes(form.modeloFirewall) : true))
     .map(e => e.equipamento);
 
   const switchModelos = equipamentos
-    .filter(e => /switch/i.test(e.equipamento))
+    .filter(e => classifyEquipment(e.equipamento) === "Switch")
     .map(e => e.equipamento);
 
   const wifiModelos = equipamentos
-    .filter(e => /wifi|ap\b/i.test(e.equipamento))
+    .filter(e => classifyEquipment(e.equipamento) === "Wifi")
     .map(e => e.equipamento);
 
-  const vozEquipamentos = equipamentos.map(e => e.equipamento);
+  const vozEquipamentos = equipamentos
+    .filter(e => classifyEquipment(e.equipamento) === "VOZ")
+    .map(e => e.equipamento);
 
   const paisOptions = paises.map(p => p.pais);
 
