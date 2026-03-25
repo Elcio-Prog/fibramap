@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { groupByCategory, type EquipmentCategory } from "@/lib/equipment-categories";
 
 const CUSTO_POR_MEGA_ORDER = [
   "Custo do Metro de rede",
