@@ -611,8 +611,8 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
 function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   const { qtdBackupTB = 0, valorOpex: valorOpexInput } = input;
 
-  const pabxDespesaCAC = db.custosPabx.get("Despesa de CAC (SVA'") ?? 0;
-  const pabxMargemLucro = db.custosPabx.get("Margem de Lucro") ?? 0;
+  const pabxDespesaCAC = db.custosPabx.get("Despesa de CAC (SVA)") ?? 0;
+  const pabxMargemLucro = (db.custosPabx.get("Margem de Lucro") ?? 0) / 100;
   const custoPorContratoBackup = db.custosPabx.get("Custo Backup por contrato") ?? 0;
   const custoPorTB = db.custosPabx.get("Custo Backup TB") ?? 0;
 
