@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useInsertPreViabilidade, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
@@ -82,18 +82,12 @@ function SelectField({ label, value, onChange, options, placeholder, disabled, c
   );
 }
 
-function CollapsibleSection({ title, children, defaultOpen = true }: {
-  title: string; children: React.ReactNode; defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-        {title}
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2 pb-4">{children}</CollapsibleContent>
-    </Collapsible>
+    <div className="flex items-center gap-2 pt-2">
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
   );
 }
 
@@ -152,43 +146,36 @@ function WifiFields({ form, setField, options }: any) {
 
 function VozFields({ form, setField, options }: any) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {form.qtdCanais > 50 && <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Projeto especial</Badge>}
-      <CollapsibleSection title="Equipamentos">
-        <div className="space-y-3">
-          {[1, 2, 3].map(slot => (
-            <div key={slot} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <SelectField label={`Equipamento ${slot}`} value={form[`equipamentoVoz${slot}`]} onChange={(v: string) => setField(`equipamentoVoz${slot}` as any, v)} options={options.vozEquipamentos} placeholder="Selecione..." />
-              <NumField label={`Qtd Equip. ${slot}`} value={form[`qtdEquipamentoVoz${slot}`]} onChange={(v: number) => setField(`qtdEquipamentoVoz${slot}` as any, v)} />
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Ramais e Canais">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={(v: number) => setField("qtdRamais", v)} />
-          <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={(v: number) => setField("qtdCanais", v)} />
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Tráfego">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={(v: number) => setField("minFixoLocal", v)} />
-          <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={(v: number) => setField("minFixoLDN", v)} />
-          <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={(v: number) => setField("minMovelLocal", v)} />
-          <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={(v: number) => setField("minMovelLDN", v)} />
-          <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={(v: number) => setField("min0800Movel", v)} />
-          <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={(v: number) => setField("min0800Fixo", v)} />
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Internacional">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SelectField label="País" value={form.paisInternacional} onChange={(v: string) => setField("paisInternacional", v)} options={options.paises} placeholder="Selecione o país..." />
-          <NumField label="Min Internacionais" value={form.minInternacional} onChange={(v: number) => setField("minInternacional", v)} />
-        </div>
-      </CollapsibleSection>
+      <SectionLabel>Equipamentos</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(slot => (
+          <React.Fragment key={slot}>
+            <SelectField label={`Equipamento ${slot}`} value={form[`equipamentoVoz${slot}`]} onChange={(v: string) => setField(`equipamentoVoz${slot}` as any, v)} options={options.vozEquipamentos} placeholder="Selecione..." />
+            <NumField label={`Qtd Equip. ${slot}`} value={form[`qtdEquipamentoVoz${slot}`]} onChange={(v: number) => setField(`qtdEquipamentoVoz${slot}` as any, v)} />
+          </React.Fragment>
+        ))}
+      </div>
+      <SectionLabel>Ramais e Canais</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={(v: number) => setField("qtdRamais", v)} />
+        <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={(v: number) => setField("qtdCanais", v)} />
+      </div>
+      <SectionLabel>Tráfego</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={(v: number) => setField("minFixoLocal", v)} />
+        <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={(v: number) => setField("minFixoLDN", v)} />
+        <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={(v: number) => setField("minMovelLocal", v)} />
+        <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={(v: number) => setField("minMovelLDN", v)} />
+        <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={(v: number) => setField("min0800Movel", v)} />
+        <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={(v: number) => setField("min0800Fixo", v)} />
+      </div>
+      <SectionLabel>Internacional</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SelectField label="País" value={form.paisInternacional} onChange={(v: string) => setField("paisInternacional", v)} options={options.paises} placeholder="Selecione o país..." />
+        <NumField label="Min Internacionais" value={form.minInternacional} onChange={(v: number) => setField("minInternacional", v)} />
+      </div>
     </div>
   );
 }
@@ -434,12 +421,10 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
               onChange={v => setField("taxaInstalacao", v)} />
           </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Campos — {calcForm.produto}</CardTitle>
-            </CardHeader>
-            <CardContent>{renderProductFields()}</CardContent>
-          </Card>
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Campos — {calcForm.produto}</p>
+            {renderProductFields()}
+          </div>
 
         </>
       )}
@@ -576,48 +561,56 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         </DialogHeader>
 
         {/* Step indicator + Valor Mínimo */}
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-1">
+        <div className="rounded-lg bg-muted/40 border p-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-0">
             {STEPS.map((s, i) => (
-              <div key={s.number} className="flex items-center gap-1">
+              <div key={s.number} className="flex items-center">
                 <button
                   onClick={() => setStep(s.number)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all",
                     step === s.number
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : step > s.number
+                        ? "text-primary hover:bg-primary/10"
+                        : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  <span className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors",
+                    step === s.number
+                      ? "bg-primary-foreground/20"
                       : step > s.number
                         ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-current">
-                    {s.number}
+                        : "bg-muted-foreground/20"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
                   </span>
                   <span className="hidden sm:inline">{s.label}</span>
                 </button>
-                {i < STEPS.length - 1 && <div className="w-4 h-px bg-border" />}
+                {i < STEPS.length - 1 && <div className="w-6 h-px bg-border" />}
               </div>
             ))}
           </div>
-          <Badge variant="outline" className="text-sm px-3 py-1.5 font-normal">
-            Valor Mínimo: <span className="font-semibold text-foreground ml-1">{formatCurrency(valorMinimo)}</span>
-          </Badge>
+          <div className="flex items-center gap-2 rounded-lg bg-background border px-4 py-2 shadow-sm">
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Valor Mínimo</span>
+            <span className="text-sm font-bold text-foreground">{formatCurrency(valorMinimo)}</span>
+          </div>
         </div>
 
-        <Separator />
-
         {/* Step content */}
-        <div className="min-h-[300px]">
+        <div className="min-h-[300px] pt-2">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
           {step === 4 && renderStep4()}
         </div>
 
-
         {/* Navigation */}
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
+        <Separator />
+        <div className="flex justify-between pt-1">
+          <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
             className="gap-2">
             <ChevronLeft className="h-4 w-4" />
             {step === 1 ? "Cancelar" : "Voltar"}
