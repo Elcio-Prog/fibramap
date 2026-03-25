@@ -377,7 +377,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   const {
     modeloFirewall = "",
-    marcaFirewall = "",
+    firewallSolucao = "",
     qtdEquipamentos = 0,
     vigencia = 1,
     roiVigencia = 1,
