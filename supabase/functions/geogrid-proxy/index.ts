@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,13 @@ serve(async (req) => {
     });
   }
 
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  const startTime = Date.now();
+
   try {
     const { endpoint, method = 'GET', params } = await req.json();
 
@@ -30,9 +38,7 @@ serve(async (req) => {
       });
     }
 
-    // Ensure base URL has https:// prefix
     const baseUrl = GEOGRID_BASE_URL.startsWith('http') ? GEOGRID_BASE_URL : `https://${GEOGRID_BASE_URL}`;
-    // Build URL with query params
     const url = new URL(`${baseUrl}/${endpoint}`);
     if (params && typeof params === 'object') {
       Object.entries(params).forEach(([k, v]) => {
@@ -50,6 +56,7 @@ serve(async (req) => {
       },
     });
 
+    const durationMs = Date.now() - startTime;
     const contentType = response.headers.get('content-type') || '';
     let data: any;
     if (contentType.includes('application/json')) {
@@ -57,6 +64,18 @@ serve(async (req) => {
     } else {
       data = await response.text();
     }
+
+    // Log the request (fire-and-forget)
+    supabaseAdmin.from('api_request_logs').insert({
+      integration_name: 'GeoGrid',
+      endpoint,
+      method,
+      request_params: params || null,
+      response_status: response.status,
+      response_ok: response.ok,
+      response_body: typeof data === 'object' ? { count: Array.isArray(data) ? data.length : 1, preview: Array.isArray(data) ? data.slice(0, 2) : null } : { raw: String(data).slice(0, 500) },
+      duration_ms: durationMs,
+    }).then(() => {});
 
     return new Response(JSON.stringify({
       status: response.status,
@@ -67,6 +86,18 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+
+    // Log the error
+    supabaseAdmin.from('api_request_logs').insert({
+      integration_name: 'GeoGrid',
+      endpoint: 'unknown',
+      method: 'unknown',
+      error_message: error.message,
+      response_ok: false,
+      duration_ms: durationMs,
+    }).then(() => {});
+
     console.error('GeoGrid proxy error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

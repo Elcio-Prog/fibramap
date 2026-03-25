@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Save, RotateCcw } from "lucide-react";
 import IntegracoesTab from "@/components/admin/IntegracoesTab";
+import ApiLogsTab from "@/components/admin/ApiLogsTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
   { colunaApp: "Designação", campoJson: "protocolo", tipo: "string" },
@@ -128,11 +129,16 @@ export default function SettingsPage() {
       <Tabs defaultValue="integracoes">
         <TabsList>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
+          <TabsTrigger value="logs">Logs API</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="integracoes">
           <IntegracoesTab />
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <ApiLogsTab />
         </TabsContent>
 
         <TabsContent value="mapping" className="space-y-4">

@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_request_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          integration_name: string
+          method: string
+          request_params: Json | null
+          response_body: Json | null
+          response_ok: boolean | null
+          response_status: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          integration_name: string
+          method?: string
+          request_params?: Json | null
+          response_body?: Json | null
+          response_ok?: boolean | null
+          response_status?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          integration_name?: string
+          method?: string
+          request_params?: Json | null
+          response_body?: Json | null
+          response_ok?: boolean | null
+          response_status?: number | null
+        }
+        Relationships: []
+      }
       compras_lm: {
         Row: {
           banda_mbps: number | null
