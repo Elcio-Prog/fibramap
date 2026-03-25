@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
-import { useBulkExport } from "@/hooks/useBulkExport";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Save, TestTube, Eye, EyeOff, RotateCcw } from "lucide-react";
+import { Loader2, Save, RotateCcw } from "lucide-react";
 import IntegracoesTab from "@/components/admin/IntegracoesTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
@@ -40,18 +38,8 @@ const DEFAULT_MAPPING: FieldMappingEntry[] = [
 ];
 
 export default function SettingsPage() {
-  const { webhook, fieldMapping, saveConfig, isLoading } = useConfig();
-  const { testWebhook } = useBulkExport();
+  const { fieldMapping, saveConfig, isLoading } = useConfig();
   const { toast } = useToast();
-
-  // Webhook tab state
-  const [url, setUrl] = useState("");
-  const [token, setToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [savingWebhook, setSavingWebhook] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [webhookLoaded, setWebhookLoaded] = useState(false);
-
   // Mapping tab state
   const [mappingJson, setMappingJson] = useState("");
   const [jsonValid, setJsonValid] = useState(true);
@@ -61,38 +49,10 @@ export default function SettingsPage() {
   const [mappingLoaded, setMappingLoaded] = useState(false);
 
   // Load initial values when config loads
-  if (!isLoading && !webhookLoaded) {
-    setUrl(webhook.url || "");
-    setToken(webhook.token || "");
-    setWebhookLoaded(true);
-  }
   if (!isLoading && !mappingLoaded) {
     setMappingJson(JSON.stringify(fieldMapping.length > 0 ? fieldMapping : DEFAULT_MAPPING, null, 2));
     setMappingLoaded(true);
   }
-
-  const handleSaveWebhook = async () => {
-    setSavingWebhook(true);
-    try {
-      await saveConfig.mutateAsync({ chave: "webhook", valor: { url: url.trim(), token: token.trim() } });
-      toast({ title: "Configurações de Webhook salvas!" });
-    } catch (e: any) {
-      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-    } finally {
-      setSavingWebhook(false);
-    }
-  };
-
-  const handleTestWebhook = async () => {
-    setTesting(true);
-    const result = await testWebhook();
-    setTesting(false);
-    if (result.ok) {
-      toast({ title: `Webhook respondeu com sucesso (${result.code})` });
-    } else {
-      toast({ title: "Falha no teste", description: result.error || `HTTP ${result.code}`, variant: "destructive" });
-    }
-  };
 
   const validateMapping = (json: string): boolean => {
     try {
@@ -165,61 +125,14 @@ export default function SettingsPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Configurações</h1>
 
-      <Tabs defaultValue="webhook">
+      <Tabs defaultValue="integracoes">
         <TabsList>
-          <TabsTrigger value="webhook">Webhook</TabsTrigger>
-          <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
+          <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="webhook" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Configuração do Webhook</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>URL do Webhook</Label>
-                <Input
-                  type="url"
-                  placeholder="https://prod-xx.westus.logic.azure.com/..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Token de Autenticação (opcional)</Label>
-                <div className="relative">
-                  <Input
-                    type={showToken ? "text" : "password"}
-                    placeholder="Bearer token..."
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full"
-                    onClick={() => setShowToken(!showToken)}
-                  >
-                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button className="gap-2" onClick={handleSaveWebhook} disabled={savingWebhook}>
-                  {savingWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar Configurações
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={handleTestWebhook} disabled={testing || !url.trim()}>
-                  {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
-                  Testar Webhook
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="integracoes">
+          <IntegracoesTab />
         </TabsContent>
 
         <TabsContent value="mapping" className="space-y-4">
@@ -255,10 +168,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="integracoes">
-          <IntegracoesTab />
         </TabsContent>
       </Tabs>
 
