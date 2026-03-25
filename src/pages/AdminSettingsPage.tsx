@@ -169,10 +169,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="integracoes">
-          <IntegracoesTab />
-        </TabsContent>
       </Tabs>
 
       <Dialog open={restoreOpen} onOpenChange={setRestoreOpen}>
