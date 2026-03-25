@@ -93,18 +93,12 @@ function SelectField({ label, value, onChange, options, placeholder, disabled, c
   );
 }
 
-function CollapsibleSection({ title, children, defaultOpen = true }: {
-  title: string; children: React.ReactNode; defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-        {title}
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2 pb-4">{children}</CollapsibleContent>
-    </Collapsible>
+    <div className="flex items-center gap-2 pt-2">
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
   );
 }
 
