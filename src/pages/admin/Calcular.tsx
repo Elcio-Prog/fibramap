@@ -249,97 +249,68 @@ function VozFields({ form, setField, options }: {
   options: ReturnType<typeof useFormPrecificacao>["options"];
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {form.qtdCanais > 50 && (
         <Badge variant="destructive" className="gap-1">
           <AlertTriangle className="h-3 w-3" /> Projeto especial — consultar área técnica de Voz
         </Badge>
       )}
 
-      <CollapsibleSection title="Equipamentos">
-        <div className="space-y-3">
-          {[1, 2, 3].map(slot => {
-            const eqKey = `equipamentoVoz${slot}` as keyof FormState;
-            const qtdKey = `qtdEquipamentoVoz${slot}` as keyof FormState;
-            return (
-              <div key={slot} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <SelectField
-                  label={`Equipamento ${slot}`}
-                  value={form[eqKey] as string}
-                  onChange={v => setField(eqKey, v as never)}
-                  options={options.vozEquipamentos}
-                  placeholder="Selecione..."
-                />
-                <NumField
-                  label={`Qtd Equip. ${slot}`}
-                  value={form[qtdKey] as number}
-                  onChange={v => setField(qtdKey, v as never)}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </CollapsibleSection>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(slot => {
+          const eqKey = `equipamentoVoz${slot}` as keyof FormState;
+          const qtdKey = `qtdEquipamentoVoz${slot}` as keyof FormState;
+          return (
+            <div key={slot} className="space-y-3">
+              <SelectField
+                label={`Equipamento ${slot}`}
+                value={form[eqKey] as string}
+                onChange={v => setField(eqKey, v as never)}
+                options={options.vozEquipamentos}
+                placeholder="Selecione..."
+              />
+              <NumField
+                label={`Qtd Equip. ${slot}`}
+                value={form[qtdKey] as number}
+                onChange={v => setField(qtdKey, v as never)}
+              />
+            </div>
+          );
+        })}
+      </div>
 
       <Separator />
 
-      <CollapsibleSection title="Ramais e Canais">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={v => setField("qtdRamais", v)} />
-          <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={v => setField("qtdCanais", v)} />
-        </div>
-      </CollapsibleSection>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={v => setField("qtdRamais", v)} />
+        <NumField label="Qtd Novas Linhas" value={form.qtdNovasLinhas} onChange={v => setField("qtdNovasLinhas", v)} />
+        <NumField label="Qtd Portabilidades" value={form.qtdPortabilidades} onChange={v => setField("qtdPortabilidades", v)} />
+        <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={v => setField("qtdCanais", v)} />
+      </div>
 
       <Separator />
 
-      <CollapsibleSection title="Novas Linhas e Portabilidade">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Qtd Novas Linhas" value={form.qtdNovasLinhas} onChange={v => setField("qtdNovasLinhas", v)} />
-          <NumField label="Qtd Portabilidades" value={form.qtdPortabilidades} onChange={v => setField("qtdPortabilidades", v)} />
-        </div>
-      </CollapsibleSection>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={v => setField("minFixoLocal", v)} />
+        <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={v => setField("minFixoLDN", v)} />
+        <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={v => setField("minMovelLocal", v)} />
+        <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={v => setField("minMovelLDN", v)} />
+        <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={v => setField("min0800Movel", v)} />
+        <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={v => setField("min0800Fixo", v)} />
+      </div>
 
       <Separator />
 
-      <CollapsibleSection title="Tráfego Fixo">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={v => setField("minFixoLocal", v)} />
-          <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={v => setField("minFixoLDN", v)} />
-        </div>
-      </CollapsibleSection>
-
-      <Separator />
-
-      <CollapsibleSection title="Tráfego Móvel">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={v => setField("minMovelLocal", v)} />
-          <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={v => setField("minMovelLDN", v)} />
-        </div>
-      </CollapsibleSection>
-
-      <Separator />
-
-      <CollapsibleSection title="0800">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={v => setField("min0800Movel", v)} />
-          <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={v => setField("min0800Fixo", v)} />
-        </div>
-      </CollapsibleSection>
-
-      <Separator />
-
-      <CollapsibleSection title="Internacional">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SelectField
-            label="País"
-            value={form.paisInternacional}
-            onChange={v => setField("paisInternacional", v)}
-            options={options.paises}
-            placeholder="Selecione o país..."
-          />
-          <NumField label="Min Internacionais" value={form.minInternacional} onChange={v => setField("minInternacional", v)} />
-        </div>
-      </CollapsibleSection>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SelectField
+          label="País"
+          value={form.paisInternacional}
+          onChange={v => setField("paisInternacional", v)}
+          options={options.paises}
+          placeholder="Selecione o país..."
+        />
+        <NumField label="Min Internacionais" value={form.minInternacional} onChange={v => setField("minInternacional", v)} />
+      </div>
     </div>
   );
 }
