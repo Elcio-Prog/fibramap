@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
