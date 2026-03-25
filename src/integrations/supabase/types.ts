@@ -360,6 +360,42 @@ export type Database = {
         }
         Relationships: []
       }
+      integracoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          tipo: string
+          token: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo?: string
+          token?: string
+          updated_at?: string
+          url?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+          token?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       logs_envio_sharepoint: {
         Row: {
           data_envio: string
