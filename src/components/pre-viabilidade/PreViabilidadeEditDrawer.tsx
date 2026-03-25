@@ -418,7 +418,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       rede: f.rede,
       redePontaB: f.redePontaB,
       modeloFirewall: f.modeloFirewall,
-      marcaFirewall: f.marcaFirewall,
+      firewallSolucao: f.firewallSolucao,
       qtdEquipamentos: f.qtdEquipamentos,
       modeloSwitch: f.modeloSwitch,
       modeloWifi: f.modeloWifi,
