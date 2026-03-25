@@ -6,7 +6,6 @@ export type EquipmentCategory =
   | "Switch"
   | "Wifi"
   | "VOZ"
-  | "ONU"
   | "Outros";
 
 export const CATEGORY_ORDER: EquipmentCategory[] = [
@@ -15,7 +14,6 @@ export const CATEGORY_ORDER: EquipmentCategory[] = [
   "Switch",
   "Wifi",
   "VOZ",
-  "ONU",
   "Outros",
 ];
 
@@ -34,11 +32,8 @@ export function classifyEquipment(name: string): EquipmentCategory {
   // Wifi / AP: FN-FAP-*, AC-*, U6-*, U7-*
   if (/^FN-FAP-|^AC[\s-]|^U[67][\s-]/i.test(n)) return "Wifi";
 
-  // ONU
-  if (/ONU/i.test(n)) return "ONU";
-
-  // VOZ: everything else that looks like telephony
-  if (/ATA\s|GRANDSTREAM|^FIP|^TIP|TELEFONE|^V\d{4}|GATEWAY|MIKROTIK/i.test(n)) return "VOZ";
+  // VOZ: everything that looks like telephony + ONU
+  if (/ATA\s|GRANDSTREAM|^FIP|^TIP|TELEFONE|^V\d{4}|GATEWAY|MIKROTIK|ONU/i.test(n)) return "VOZ";
 
   return "Outros";
 }
