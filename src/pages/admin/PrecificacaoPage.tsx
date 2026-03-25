@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { groupByCategory, type EquipmentCategory } from "@/lib/equipment-categories";
 
 const CUSTO_POR_MEGA_ORDER = [
   "Custo do Metro de rede",
@@ -112,6 +113,56 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
     );
   }
 
+  const isEquipamentos = config.tabela === "equipamentos_valor";
+
+  const renderRow = (row: any, idx: number) => (
+    <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+      <TableCell className="font-medium text-sm">{row[config.keyField]}</TableCell>
+      {(config.textFields ?? []).map(field => (
+        <TableCell key={field} className="p-1">
+          <Input
+            type="text"
+            className="h-8 text-sm"
+            value={row[field] ?? ""}
+            onChange={e => handleValueChange(idx, field, e.target.value)}
+          />
+        </TableCell>
+      ))}
+      {config.valueFields.map(field => (
+        <TableCell key={field} className="p-1">
+          <Input
+            type="text"
+            inputMode="decimal"
+            className="h-8 text-right text-sm tabular-nums"
+            value={String(row[field] ?? 0).replace('.', ',')}
+            onChange={e => {
+              const raw = e.target.value.replace(/[^0-9,\-]/g, '');
+              handleValueChange(idx, field, raw.replace(',', '.'));
+            }}
+            onBlur={() => {
+              const num = Number(row[field]) || 0;
+              handleValueChange(idx, field, num.toFixed(2));
+            }}
+            onKeyDown={e => {
+              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const current = Number(row[field]) || 0;
+                const step = 0.01;
+                const next = e.key === 'ArrowUp' ? current + step : current - step;
+                handleValueChange(idx, field, (Math.round(next * 100) / 100).toFixed(2));
+              }
+            }}
+          />
+        </TableCell>
+      ))}
+      <TableCell className="p-1">
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(row.id)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 justify-end">
@@ -141,53 +192,26 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
             {rows.length === 0 && (
               <TableRow><TableCell colSpan={(config.textFields?.length ?? 0) + config.valueFields.length + 2} className="text-center text-muted-foreground py-8">Nenhum registro encontrado</TableCell></TableRow>
             )}
-            {rows.map((row, idx) => (
-              <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                <TableCell className="font-medium text-sm">{row[config.keyField]}</TableCell>
-                {(config.textFields ?? []).map(field => (
-                  <TableCell key={field} className="p-1">
-                    <Input
-                      type="text"
-                      className="h-8 text-sm"
-                      value={row[field] ?? ""}
-                      onChange={e => handleValueChange(idx, field, e.target.value)}
-                    />
-                  </TableCell>
-                ))}
-                {config.valueFields.map(field => (
-                  <TableCell key={field} className="p-1">
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      className="h-8 text-right text-sm tabular-nums"
-                      value={String(row[field] ?? 0).replace('.', ',')}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/[^0-9,\-]/g, '');
-                        handleValueChange(idx, field, raw.replace(',', '.'));
-                      }}
-                      onBlur={() => {
-                        const num = Number(row[field]) || 0;
-                        handleValueChange(idx, field, num.toFixed(2));
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                          e.preventDefault();
-                          const current = Number(row[field]) || 0;
-                          const step = 0.01;
-                          const next = e.key === 'ArrowUp' ? current + step : current - step;
-                          handleValueChange(idx, field, (Math.round(next * 100) / 100).toFixed(2));
-                        }
-                      }}
-                    />
-                  </TableCell>
-                ))}
-                <TableCell className="p-1">
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(row.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isEquipamentos ? (
+              groupByCategory(rows as { equipamento: string }[]).map(({ category, items }) => (
+                <>
+                  <TableRow key={`cat-${category}`}>
+                    <TableCell
+                      colSpan={(config.textFields?.length ?? 0) + config.valueFields.length + 2}
+                      className="bg-primary/10 font-bold text-sm text-primary py-2 px-4"
+                    >
+                      {category}
+                    </TableCell>
+                  </TableRow>
+                  {items.map((row: any) => {
+                    const idx = rows.indexOf(row);
+                    return renderRow(row, idx);
+                  })}
+                </>
+              ))
+            ) : (
+              rows.map((row, idx) => renderRow(row, idx))
+            )}
           </TableBody>
         </Table>
       </div>
