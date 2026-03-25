@@ -146,43 +146,36 @@ function WifiFields({ form, setField, options }: any) {
 
 function VozFields({ form, setField, options }: any) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {form.qtdCanais > 50 && <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Projeto especial</Badge>}
-      <CollapsibleSection title="Equipamentos">
-        <div className="space-y-3">
-          {[1, 2, 3].map(slot => (
-            <div key={slot} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <SelectField label={`Equipamento ${slot}`} value={form[`equipamentoVoz${slot}`]} onChange={(v: string) => setField(`equipamentoVoz${slot}` as any, v)} options={options.vozEquipamentos} placeholder="Selecione..." />
-              <NumField label={`Qtd Equip. ${slot}`} value={form[`qtdEquipamentoVoz${slot}`]} onChange={(v: number) => setField(`qtdEquipamentoVoz${slot}` as any, v)} />
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Ramais e Canais">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={(v: number) => setField("qtdRamais", v)} />
-          <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={(v: number) => setField("qtdCanais", v)} />
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Tráfego">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={(v: number) => setField("minFixoLocal", v)} />
-          <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={(v: number) => setField("minFixoLDN", v)} />
-          <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={(v: number) => setField("minMovelLocal", v)} />
-          <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={(v: number) => setField("minMovelLDN", v)} />
-          <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={(v: number) => setField("min0800Movel", v)} />
-          <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={(v: number) => setField("min0800Fixo", v)} />
-        </div>
-      </CollapsibleSection>
-      <Separator />
-      <CollapsibleSection title="Internacional">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <SelectField label="País" value={form.paisInternacional} onChange={(v: string) => setField("paisInternacional", v)} options={options.paises} placeholder="Selecione o país..." />
-          <NumField label="Min Internacionais" value={form.minInternacional} onChange={(v: number) => setField("minInternacional", v)} />
-        </div>
-      </CollapsibleSection>
+      <SectionLabel>Equipamentos</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3].map(slot => (
+          <React.Fragment key={slot}>
+            <SelectField label={`Equipamento ${slot}`} value={form[`equipamentoVoz${slot}`]} onChange={(v: string) => setField(`equipamentoVoz${slot}` as any, v)} options={options.vozEquipamentos} placeholder="Selecione..." />
+            <NumField label={`Qtd Equip. ${slot}`} value={form[`qtdEquipamentoVoz${slot}`]} onChange={(v: number) => setField(`qtdEquipamentoVoz${slot}` as any, v)} />
+          </React.Fragment>
+        ))}
+      </div>
+      <SectionLabel>Ramais e Canais</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Qtd Ramais" value={form.qtdRamais} onChange={(v: number) => setField("qtdRamais", v)} />
+        <NumField label="Qtd Canais Simultâneos" value={form.qtdCanais} onChange={(v: number) => setField("qtdCanais", v)} />
+      </div>
+      <SectionLabel>Tráfego</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Min Fixo Local" value={form.minFixoLocal} onChange={(v: number) => setField("minFixoLocal", v)} />
+        <NumField label="Min Fixo LDN" value={form.minFixoLDN} onChange={(v: number) => setField("minFixoLDN", v)} />
+        <NumField label="Min Móvel Local" value={form.minMovelLocal} onChange={(v: number) => setField("minMovelLocal", v)} />
+        <NumField label="Min Móvel LDN" value={form.minMovelLDN} onChange={(v: number) => setField("minMovelLDN", v)} />
+        <NumField label="Min 0800 Móvel" value={form.min0800Movel} onChange={(v: number) => setField("min0800Movel", v)} />
+        <NumField label="Min 0800 Fixo" value={form.min0800Fixo} onChange={(v: number) => setField("min0800Fixo", v)} />
+      </div>
+      <SectionLabel>Internacional</SectionLabel>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SelectField label="País" value={form.paisInternacional} onChange={(v: string) => setField("paisInternacional", v)} options={options.paises} placeholder="Selecione o país..." />
+        <NumField label="Min Internacionais" value={form.minInternacional} onChange={(v: number) => setField("minInternacional", v)} />
+      </div>
     </div>
   );
 }
