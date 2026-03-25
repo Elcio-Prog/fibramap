@@ -129,11 +129,16 @@ export default function SettingsPage() {
       <Tabs defaultValue="integracoes">
         <TabsList>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
+          <TabsTrigger value="logs">Logs API</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="integracoes">
           <IntegracoesTab />
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <ApiLogsTab />
         </TabsContent>
 
         <TabsContent value="mapping" className="space-y-4">
