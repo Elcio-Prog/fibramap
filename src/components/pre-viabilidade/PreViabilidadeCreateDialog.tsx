@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useInsertPreViabilidade, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
