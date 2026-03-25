@@ -317,7 +317,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.valorOpex != null) setField("valorOpex", dp.valorOpex);
       // Firewall
       if (dp.modeloFirewall) setField("modeloFirewall", dp.modeloFirewall);
-      if (dp.marcaFirewall) setField("marcaFirewall", dp.marcaFirewall);
+      if (dp.firewallSolucao) setField("firewallSolucao", dp.firewallSolucao);
       if (dp.qtdEquipamentos != null) setField("qtdEquipamentos", dp.qtdEquipamentos);
       // Switch / Wifi
       if (dp.modeloSwitch) setField("modeloSwitch", dp.modeloSwitch);
