@@ -421,12 +421,10 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
               onChange={v => setField("taxaInstalacao", v)} />
           </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Campos — {calcForm.produto}</CardTitle>
-            </CardHeader>
-            <CardContent>{renderProductFields()}</CardContent>
-          </Card>
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Campos — {calcForm.produto}</p>
+            {renderProductFields()}
+          </div>
 
         </>
       )}
