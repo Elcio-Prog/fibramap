@@ -127,7 +127,7 @@ const defaultSpecific: Partial<FormState> = {
 const initialState: FormState = {
   produto: "Conectividade",
   vigencia: 12,
-  roiVigencia: 24,
+  roiVigencia: 4,
   taxaInstalacao: 0,
   custosMateriaisAdicionais: 0,
   motivo: "",
