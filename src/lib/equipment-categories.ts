@@ -6,7 +6,6 @@ export type EquipmentCategory =
   | "Switch"
   | "Wifi"
   | "VOZ"
-  | "ONU"
   | "Outros";
 
 export const CATEGORY_ORDER: EquipmentCategory[] = [
