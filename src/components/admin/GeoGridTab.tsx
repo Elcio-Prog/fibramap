@@ -121,6 +121,18 @@ export default function GeoGridTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full sm:w-40">
+              <Select value={selectedItem} onValueChange={setSelectedItem}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de item" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos</SelectItem>
+                  <SelectItem value="caixa">Caixa</SelectItem>
+                  <SelectItem value="poste">Poste</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={handleSearch} disabled={loadingItems || !selectedPasta} className="gap-2">
               {loadingItems ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Buscar
