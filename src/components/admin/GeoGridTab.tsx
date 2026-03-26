@@ -392,7 +392,8 @@ export default function GeoGridTab() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Filtra automaticamente: <code className="bg-muted px-1 rounded">portasLivres &gt; 0</code> e <code className="bg-muted px-1 rounded">statusViabilidade = "possui"</code>
+            Filtra automaticamente: <code className="bg-muted px-1 rounded">portasLivres &gt; 0</code> e <code className="bg-muted px-1 rounded">statusViabilidade = "possui"</code>.
+            Enriquece com dados de <code className="bg-muted px-1 rounded">/itensRede/&#123;id&#125;/mapa</code> + <code className="bg-muted px-1 rounded">/pastas</code>.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
