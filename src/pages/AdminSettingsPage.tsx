@@ -131,6 +131,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="logs">Logs API</TabsTrigger>
+          <TabsTrigger value="geogrid">GeoGrid</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
