@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, RefreshCw, Download, Filter, X } from "lucide-react";
+import { Loader2, Search, RefreshCw, Download, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGeoGridPastas, useGeoGridItensRede, GeoGridItemRede } from "@/hooks/useGeoGridData";
 import { useToast } from "@/hooks/use-toast";
 
