@@ -234,7 +234,7 @@ export default function GeoGridTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((item, idx) => (
+                    {paginatedItems.map((item, idx) => (
                       <TableRow key={`${item.id}-${idx}`}>
                         <TableCell className="text-xs font-mono">{item.id}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{item.sigla}</TableCell>
@@ -260,6 +260,40 @@ export default function GeoGridTab() {
                   </TableBody>
                 </Table>
               </ScrollableTable>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let page: number;
+                      if (totalPages <= 7) {
+                        page = i + 1;
+                      } else if (currentPage <= 4) {
+                        page = i + 1;
+                      } else if (currentPage >= totalPages - 3) {
+                        page = totalPages - 6 + i;
+                      } else {
+                        page = currentPage - 3 + i;
+                      }
+                      return (
+                        <Button key={page} variant={page === currentPage ? "default" : "outline"} size="icon" className="h-7 w-7 text-xs" onClick={() => setCurrentPage(page)}>
+                          {page}
+                        </Button>
+                      );
+                    })}
+                    <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             )}
 
             {/* Raw response debug (collapsed) */}
