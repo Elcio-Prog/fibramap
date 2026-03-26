@@ -16,6 +16,7 @@ export default function GeoGridTab() {
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
+  const [selectedItem, setSelectedItem] = useState<string>("__all__");
   const [searchText, setSearchText] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("__all__");
   const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
