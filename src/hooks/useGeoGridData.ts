@@ -183,44 +183,43 @@ export function useGeoGridViabilidade() {
           );
         } catch { /* ignore pasta fetch errors */ }
 
-        // Process in batches of 5 to avoid overwhelming the API
+        // Process one at a time with 15s delay between calls
         const enriched = [...filtered];
-        const BATCH_SIZE = 5;
-        for (let i = 0; i < enriched.length; i += BATCH_SIZE) {
-          const batch = enriched.slice(i, i + BATCH_SIZE);
-          const promises = batch.map(async (item, batchIdx) => {
-            try {
-              const mapaResult = await callGeoGridProxy(`itensRede/${item.id}/mapa`);
-              const mapaData = mapaResult?.registros ?? mapaResult;
+        for (let i = 0; i < enriched.length; i++) {
+          // Wait 15s before each call (except the first)
+          if (i > 0) {
+            await new Promise((r) => setTimeout(r, 15000));
+          }
+          try {
+            const mapaResult = await callGeoGridProxy(`itensRede/${enriched[i].id}/mapa`);
+            const mapaData = mapaResult?.registros ?? mapaResult;
 
-              // Extract recipiente info
-              const recipientes = mapaData?.recipientes ?? mapaData?.recipiente ?? [];
-              const recipientesList = Array.isArray(recipientes) ? recipientes : (recipientes ? [recipientes] : []);
-              const firstRecipiente = recipientesList[0];
+            // Extract recipiente info
+            const recipientes = mapaData?.recipientes ?? mapaData?.recipiente ?? [];
+            const recipientesList = Array.isArray(recipientes) ? recipientes : (recipientes ? [recipientes] : []);
+            const firstRecipiente = recipientesList[0];
 
-              if (firstRecipiente) {
-                enriched[i + batchIdx] = {
-                  ...enriched[i + batchIdx],
-                  recipienteId: String(firstRecipiente.id ?? ""),
-                  recipienteItem: safeStr(firstRecipiente.item),
-                  recipienteSigla: safeStr(firstRecipiente.sigla),
-                };
-              }
-
-              // Get pasta name from idPasta
-              const idPasta = String(mapaData?.idPasta ?? mapaData?.pasta?.id ?? "");
-              if (idPasta && pastasMap[idPasta]) {
-                enriched[i + batchIdx] = {
-                  ...enriched[i + batchIdx],
-                  pastaNome: pastasMap[idPasta],
-                };
-              }
-            } catch {
-              // Skip enrichment for items that fail
+            if (firstRecipiente) {
+              enriched[i] = {
+                ...enriched[i],
+                recipienteId: String(firstRecipiente.id ?? ""),
+                recipienteItem: safeStr(firstRecipiente.item),
+                recipienteSigla: safeStr(firstRecipiente.sigla),
+              };
             }
-          });
-          await Promise.all(promises);
-          setEnrichProgress({ done: Math.min(i + BATCH_SIZE, enriched.length), total: enriched.length });
+
+            // Get pasta name from idPasta
+            const idPasta = String(mapaData?.idPasta ?? mapaData?.pasta?.id ?? "");
+            if (idPasta && pastasMap[idPasta]) {
+              enriched[i] = {
+                ...enriched[i],
+                pastaNome: pastasMap[idPasta],
+              };
+            }
+          } catch {
+            // Skip enrichment for items that fail
+          }
+          setEnrichProgress({ done: i + 1, total: enriched.length });
           setItems([...enriched]);
         }
         setEnriching(false);
