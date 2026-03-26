@@ -239,16 +239,17 @@ export default function GeoGridTab() {
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (recipiente)</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (poste)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Valor</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Tipo</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Entrada</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reservadas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reserv. Cliente</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Atend. Cliente</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Ocupadas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Livres</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Quantidade portas de entrada</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Quantidade portas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Total portas reservadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas reservadas (cliente)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas atendimento cliente</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas ocupadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">longitude</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
