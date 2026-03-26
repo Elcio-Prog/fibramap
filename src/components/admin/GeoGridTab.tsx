@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, RefreshCw, Download, Filter, X } from "lucide-react";
+import { Loader2, Search, RefreshCw, Download, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGeoGridPastas, useGeoGridItensRede, GeoGridItemRede } from "@/hooks/useGeoGridData";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +20,8 @@ export default function GeoGridTab() {
   const [filterTipo, setFilterTipo] = useState<string>("__all__");
   const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
   const [hasFetched, setHasFetched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Load pastas on mount
   useEffect(() => {
@@ -41,8 +43,9 @@ export default function GeoGridTab() {
     return Array.from(tipos).sort();
   }, [items]);
 
-  // Filtered items
+  // Reset page when filters change
   const filtered = useMemo(() => {
+    setCurrentPage(1);
     let result = items;
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
@@ -66,6 +69,12 @@ export default function GeoGridTab() {
     }
     return result;
   }, [items, searchText, filterTipo, filterPortasLivres]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
 
   const hasActiveFilters = searchText || filterTipo !== "__all__" || filterPortasLivres !== "__all__";
 
@@ -203,54 +212,89 @@ export default function GeoGridTab() {
                   : "Nenhum item corresponde aos filtros aplicados."}
               </div>
             ) : (
-              <ScrollableTable totalScrollableColumns={13}>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Id</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (recipiente)</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (poste)</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Tipo</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Entrada</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reservadas</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reserv. Cliente</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Atend. Cliente</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Ocupadas</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Livres</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                      <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((item, idx) => (
-                      <TableRow key={`${item.id}-${idx}`}>
-                        <TableCell className="text-xs font-mono">{item.id}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.sigla}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.pasta}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.siglaRecipiente}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.siglaPoste}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{item.tipo}</TableCell>
-                        <TableCell className="text-xs text-center">{item.quantidadePortasEntrada}</TableCell>
-                        <TableCell className="text-xs text-center">{item.quantidadePortas}</TableCell>
-                        <TableCell className="text-xs text-center">{item.totalPortasReservadas}</TableCell>
-                        <TableCell className="text-xs text-center">{item.portasReservadasCliente}</TableCell>
-                        <TableCell className="text-xs text-center">{item.portasAtendimentoCliente}</TableCell>
-                        <TableCell className="text-xs text-center">{item.portasOcupadas}</TableCell>
-                        <TableCell className="text-xs text-center font-semibold">
-                          <span className={item.portasLivres > 0 ? "text-green-600" : "text-destructive"}>
-                            {item.portasLivres}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">{item.latitude ?? "—"}</TableCell>
-                        <TableCell className="text-xs font-mono">{item.longitude ?? "—"}</TableCell>
+              <>
+                <ScrollableTable totalScrollableColumns={13}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Id</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (recipiente)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (poste)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Tipo</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Entrada</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reservadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reserv. Cliente</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Atend. Cliente</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Ocupadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollableTable>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedItems.map((item, idx) => (
+                        <TableRow key={`${item.id}-${idx}`}>
+                          <TableCell className="text-xs font-mono">{item.id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.sigla}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.pasta}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.siglaRecipiente}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.siglaPoste}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.tipo}</TableCell>
+                          <TableCell className="text-xs text-center">{item.quantidadePortasEntrada}</TableCell>
+                          <TableCell className="text-xs text-center">{item.quantidadePortas}</TableCell>
+                          <TableCell className="text-xs text-center">{item.totalPortasReservadas}</TableCell>
+                          <TableCell className="text-xs text-center">{item.portasReservadasCliente}</TableCell>
+                          <TableCell className="text-xs text-center">{item.portasAtendimentoCliente}</TableCell>
+                          <TableCell className="text-xs text-center">{item.portasOcupadas}</TableCell>
+                          <TableCell className="text-xs text-center font-semibold">
+                            <span className={item.portasLivres > 0 ? "text-green-600" : "text-destructive"}>
+                              {item.portasLivres}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs font-mono">{item.latitude ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{item.longitude ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollableTable>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-3">
+                    <span className="text-xs text-muted-foreground">
+                      {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                        let page: number;
+                        if (totalPages <= 7) {
+                          page = i + 1;
+                        } else if (currentPage <= 4) {
+                          page = i + 1;
+                        } else if (currentPage >= totalPages - 3) {
+                          page = totalPages - 6 + i;
+                        } else {
+                          page = currentPage - 3 + i;
+                        }
+                        return (
+                          <Button key={page} variant={page === currentPage ? "default" : "outline"} size="icon" className="h-7 w-7 text-xs" onClick={() => setCurrentPage(page)}>
+                            {page}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Raw response debug (collapsed) */}
