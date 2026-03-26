@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function GeoGridTab() {
   const { pastas, loading: loadingPastas, fetchPastas } = useGeoGridPastas();
   const { items, loading: loadingItems, error, rawResponse, fetchItensRede } = useGeoGridItensRede();
+  const { items: viabItems, loading: loadingViab, error: errorViab, fetchViabilidade } = useGeoGridViabilidade();
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
