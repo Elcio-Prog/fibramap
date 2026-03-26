@@ -119,6 +119,11 @@ export interface GeoGridViabilidadeItem {
   fibras: number;
   fibrasLivres: number;
   fibrasOcupadas: number;
+  // Enriched from /itensRede/{id}/mapa
+  recipienteId: string;
+  recipienteItem: string;
+  recipienteSigla: string;
+  pastaNome: string;
 }
 
 function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
