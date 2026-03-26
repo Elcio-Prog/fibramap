@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function GeoGridTab() {
   const { pastas, loading: loadingPastas, fetchPastas } = useGeoGridPastas();
   const { items, loading: loadingItems, error, rawResponse, fetchItensRede } = useGeoGridItensRede();
-  const { items: viabItems, loading: loadingViab, error: errorViab, fetchViabilidade } = useGeoGridViabilidade();
+  const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, fetchViabilidade } = useGeoGridViabilidade();
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
@@ -130,8 +130,8 @@ export default function GeoGridTab() {
 
   const handleExportViabCsv = () => {
     if (viabFiltered.length === 0) return;
-    const headers = ["ID", "Sigla", "Item", "Portas Livres", "Latitude", "Longitude"];
-    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.item, v.portasLivres, v.latitude ?? "", v.longitude ?? ""]);
+    const headers = ["ID", "Sigla", "Item", "Portas Livres", "Latitude", "Longitude", "Recipiente ID", "Recipiente Item", "Recipiente Sigla", "Pasta"];
+    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.item, v.portasLivres, v.latitude ?? "", v.longitude ?? "", v.recipienteId, v.recipienteItem, v.recipienteSigla, v.pastaNome]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -392,7 +392,8 @@ export default function GeoGridTab() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Filtra automaticamente: <code className="bg-muted px-1 rounded">portasLivres &gt; 0</code> e <code className="bg-muted px-1 rounded">statusViabilidade = "possui"</code>
+            Filtra automaticamente: <code className="bg-muted px-1 rounded">portasLivres &gt; 0</code> e <code className="bg-muted px-1 rounded">statusViabilidade = "possui"</code>.
+            Enriquece com dados de <code className="bg-muted px-1 rounded">/itensRede/&#123;id&#125;/mapa</code> + <code className="bg-muted px-1 rounded">/pastas</code>.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -406,6 +407,19 @@ export default function GeoGridTab() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               <span className="ml-2 text-sm text-muted-foreground">Buscando viabilidade...</span>
+            </div>
+          ) : enrichingViab ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Enriquecendo dados... {enrichProgress.done}/{enrichProgress.total}
+              </span>
+              <div className="w-48 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${enrichProgress.total ? (enrichProgress.done / enrichProgress.total) * 100 : 0}%` }}
+                />
+              </div>
             </div>
           ) : viabFetched ? (
             <>
@@ -428,7 +442,7 @@ export default function GeoGridTab() {
                 </div>
               ) : (
                 <>
-                  <ScrollableTable totalScrollableColumns={4}>
+                  <ScrollableTable totalScrollableColumns={8}>
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
@@ -438,6 +452,10 @@ export default function GeoGridTab() {
                           <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
                           <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
                           <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -449,6 +467,10 @@ export default function GeoGridTab() {
                             <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
                             <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
                             <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.recipienteId || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || "—"}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
