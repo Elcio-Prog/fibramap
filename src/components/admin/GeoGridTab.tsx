@@ -404,102 +404,97 @@ export default function GeoGridTab() {
               </div>
             )}
 
-            {loadingViab ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Buscando viabilidade...</span>
-              </div>
-            ) : enrichingViab ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  Enriquecendo dados... {enrichProgress.done}/{enrichProgress.total}
-                </span>
-                <div className="w-48 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-300"
-                    style={{ width: `${enrichProgress.total ? (enrichProgress.done / enrichProgress.total) * 100 : 0}%` }}
-                  />
+            {(loadingViab || enrichingViab) && (
+              <div className="flex flex-col items-center justify-center py-4 gap-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {enrichingViab
+                      ? `Enriquecendo dados... ${enrichProgress.done}/${enrichProgress.total}`
+                      : "Buscando viabilidade..."}
+                  </span>
                 </div>
-              </div>
-            ) : viabFetched ? (
-              <>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Buscar por ID, sigla..."
-                    value={viabSearchText}
-                    onChange={(e) => { setViabSearchText(e.target.value); setViabPage(1); }}
-                    className="h-8 text-sm max-w-sm"
-                  />
-                  <Button variant="outline" size="sm" onClick={handleExportViabCsv} disabled={viabFiltered.length === 0} className="gap-1.5 h-8">
-                    <Download className="h-3.5 w-3.5" />
-                    CSV
-                  </Button>
-                </div>
-
-                {viabFiltered.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    Nenhum item encontrado com portas livres e viabilidade.
+                {enrichingViab && enrichProgress.total > 0 && (
+                  <div className="w-48 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${(enrichProgress.done / enrichProgress.total) * 100}%` }}
+                    />
                   </div>
-                ) : (
-                  <>
-                    <ScrollableTable totalScrollableColumns={8}>
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-muted/50">
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">ID</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
-                            <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {viabPaginated.map((v, idx) => (
-                            <TableRow key={`${v.id}-${idx}`}>
-                              <TableCell className="text-xs font-mono">{v.id}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{v.item}</TableCell>
-                              <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
-                              <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
-                              <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
-                              <TableCell className="text-xs font-mono">{v.recipienteId || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || "—"}</TableCell>
-                              <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || "—"}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </ScrollableTable>
+                )}
+              </div>
+            )}
 
-                    {viabTotalPages > 1 && (
-                      <div className="flex items-center justify-between pt-3">
-                        <span className="text-xs text-muted-foreground">
-                          {(viabPage - 1) * PAGE_SIZE + 1}–{Math.min(viabPage * PAGE_SIZE, viabFiltered.length)} de {viabFiltered.length}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage <= 1} onClick={() => setViabPage((p) => p - 1)}>
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage >= viabTotalPages} onClick={() => setViabPage((p) => p + 1)}>
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar por ID, sigla..."
+                value={viabSearchText}
+                onChange={(e) => { setViabSearchText(e.target.value); setViabPage(1); }}
+                className="h-8 text-sm max-w-sm"
+              />
+              <Button variant="outline" size="sm" onClick={handleExportViabCsv} disabled={viabFiltered.length === 0} className="gap-1.5 h-8">
+                <Download className="h-3.5 w-3.5" />
+                CSV
+              </Button>
+            </div>
+
+            {viabFiltered.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                {viabFetched ? "Nenhum item encontrado com portas livres e viabilidade." : "Clique em \"Buscar Viabilidade\" para carregar os dados."}
+              </div>
+            ) : (
+              <>
+                <ScrollableTable totalScrollableColumns={8}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {viabPaginated.map((v, idx) => (
+                        <TableRow key={`${v.id}-${idx}`}>
+                          <TableCell className="text-xs font-mono">{v.id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.item}</TableCell>
+                          <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
+                          <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{v.recipienteId || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollableTable>
+
+                {viabTotalPages > 1 && (
+                  <div className="flex items-center justify-between pt-3">
+                    <span className="text-xs text-muted-foreground">
+                      {(viabPage - 1) * PAGE_SIZE + 1}–{Math.min(viabPage * PAGE_SIZE, viabFiltered.length)} de {viabFiltered.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage <= 1} onClick={() => setViabPage((p) => p - 1)}>
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage >= viabTotalPages} onClick={() => setViabPage((p) => p + 1)}>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </>
-            ) : (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Clique em "Buscar Viabilidade" para carregar os dados.
-              </div>
             )}
           </div>
         </CardContent>
