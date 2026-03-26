@@ -69,10 +69,10 @@ export function useGeoGridPastas() {
       const registros = result?.registros ?? result ?? [];
       const parsed: GeoGridPasta[] = (Array.isArray(registros) ? registros : []).map((r: any) => ({
         id: String(r.id),
-        nome: r.nome ?? "",
-        cidade: r.cidade ?? null,
-        estado: r.estado ?? null,
-        ativo: r.ativo ?? "S",
+        nome: typeof r.nome === "string" ? r.nome : (r.nome?.nome ?? JSON.stringify(r.nome) ?? ""),
+        cidade: typeof r.cidade === "string" ? r.cidade : null,
+        estado: typeof r.estado === "string" ? r.estado : null,
+        ativo: typeof r.ativo === "string" ? r.ativo : "S",
       }));
       setPastas(parsed.filter((p) => p.ativo === "S"));
     } catch (e: any) {
