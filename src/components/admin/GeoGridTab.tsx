@@ -408,6 +408,19 @@ export default function GeoGridTab() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               <span className="ml-2 text-sm text-muted-foreground">Buscando viabilidade...</span>
             </div>
+          ) : enrichingViab ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Enriquecendo dados... {enrichProgress.done}/{enrichProgress.total}
+              </span>
+              <div className="w-48 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${enrichProgress.total ? (enrichProgress.done / enrichProgress.total) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
           ) : viabFetched ? (
             <>
               <div className="flex gap-2">
