@@ -47,6 +47,15 @@ function safeStr(val: any): string {
   return JSON.stringify(val);
 }
 
+function formatValor(raw: any): string {
+  if (raw == null || raw === "") return "R$0,00";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "number") {
+    return raw.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+  return String(raw);
+}
+
 function parseItemRede(raw: any): GeoGridItemRede {
   return {
     id: String(raw.id ?? raw.idItemRede ?? ""),
@@ -54,6 +63,7 @@ function parseItemRede(raw: any): GeoGridItemRede {
     pasta: safeStr(raw.pasta ?? raw.nomePasta),
     siglaRecipiente: safeStr(raw.siglaRecipiente ?? raw.recipiente),
     siglaPoste: safeStr(raw.siglaPoste ?? raw.poste),
+    valor: formatValor(raw.valor ?? raw.valorEquipamento ?? raw.value),
     tipo: safeStr(raw.tipo ?? raw.tipoEquipamento ?? raw.descricaoEquipamento),
     quantidadePortasEntrada: Number(raw.quantidadePortasEntrada ?? raw.qtdPortasEntrada ?? 0),
     quantidadePortas: Number(raw.quantidadePortas ?? raw.qtdPortas ?? 0),
