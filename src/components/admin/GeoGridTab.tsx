@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, RefreshCw, Download, Filter, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { useGeoGridPastas, useGeoGridItensRede, GeoGridItemRede } from "@/hooks/useGeoGridData";
+import { Loader2, Search, RefreshCw, Download, Filter, X, ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { useGeoGridPastas, useGeoGridItensRede, useGeoGridViabilidade, GeoGridItemRede } from "@/hooks/useGeoGridData";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GeoGridTab() {
