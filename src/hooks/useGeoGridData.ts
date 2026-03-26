@@ -106,6 +106,66 @@ export function useGeoGridPastas() {
   return { pastas, loading, error, fetchPastas };
 }
 
+export interface GeoGridViabilidadeItem {
+  id: string;
+  sigla: string;
+  portasLivres: number;
+  latitude: number | null;
+  longitude: number | null;
+  statusViabilidade: string;
+  item: string;
+  portas: number;
+  portasOcupadas: number;
+  fibras: number;
+  fibrasLivres: number;
+  fibrasOcupadas: number;
+}
+
+function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
+  return {
+    id: String(raw.id ?? ""),
+    sigla: safeStr(raw.sigla),
+    portasLivres: Number(raw.portasLivres ?? 0),
+    latitude: raw.latitude ? Number(String(raw.latitude).replace(",", ".")) : null,
+    longitude: raw.longitude ? Number(String(raw.longitude).replace(",", ".")) : null,
+    statusViabilidade: safeStr(raw.statusViabilidade),
+    item: safeStr(raw.item),
+    portas: Number(raw.portas ?? 0),
+    portasOcupadas: Number(raw.portasOcupadas ?? 0),
+    fibras: Number(raw.fibras ?? 0),
+    fibrasLivres: Number(raw.fibrasLivres ?? 0),
+    fibrasOcupadas: Number(raw.fibrasOcupadas ?? 0),
+  };
+}
+
+export function useGeoGridViabilidade() {
+  const [items, setItems] = useState<GeoGridViabilidadeItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchViabilidade = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await callGeoGridProxy("viabilidade");
+      const registros = result?.registros ?? result ?? [];
+      const list = Array.isArray(registros) ? registros : [];
+      const parsed = list.map(parseViabilidadeItem);
+      // Filter: portasLivres > 0 AND statusViabilidade === "possui"
+      const filtered = parsed.filter(
+        (i) => i.portasLivres > 0 && i.statusViabilidade.toLowerCase() === "possui"
+      );
+      setItems(filtered);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { items, loading, error, fetchViabilidade };
+}
+
 export function useGeoGridItensRede() {
   const [items, setItems] = useState<GeoGridItemRede[]>([]);
   const [loading, setLoading] = useState(false);
