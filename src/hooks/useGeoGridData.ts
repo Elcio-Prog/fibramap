@@ -36,14 +36,24 @@ async function callGeoGridProxy(endpoint: string, params?: Record<string, any>) 
   return data?.data;
 }
 
+function safeStr(val: any): string {
+  if (val == null) return "";
+  if (typeof val === "string") return val;
+  if (typeof val === "number" || typeof val === "boolean") return String(val);
+  if (typeof val === "object" && val.nome) return String(val.nome);
+  if (typeof val === "object" && val.sigla) return String(val.sigla);
+  if (typeof val === "object" && val.descricao) return String(val.descricao);
+  return JSON.stringify(val);
+}
+
 function parseItemRede(raw: any): GeoGridItemRede {
   return {
     id: String(raw.id ?? raw.idItemRede ?? ""),
-    sigla: raw.sigla ?? raw.nome ?? "",
-    pasta: raw.pasta ?? raw.nomePasta ?? "",
-    siglaRecipiente: raw.siglaRecipiente ?? raw.recipiente?.sigla ?? raw.recipiente ?? "",
-    siglaPoste: raw.siglaPoste ?? raw.poste?.sigla ?? raw.poste ?? "",
-    tipo: raw.tipo ?? raw.tipoEquipamento ?? raw.descricaoEquipamento ?? "",
+    sigla: safeStr(raw.sigla ?? raw.nome),
+    pasta: safeStr(raw.pasta ?? raw.nomePasta),
+    siglaRecipiente: safeStr(raw.siglaRecipiente ?? raw.recipiente),
+    siglaPoste: safeStr(raw.siglaPoste ?? raw.poste),
+    tipo: safeStr(raw.tipo ?? raw.tipoEquipamento ?? raw.descricaoEquipamento),
     quantidadePortasEntrada: Number(raw.quantidadePortasEntrada ?? raw.qtdPortasEntrada ?? 0),
     quantidadePortas: Number(raw.quantidadePortas ?? raw.qtdPortas ?? 0),
     totalPortasReservadas: Number(raw.totalPortasReservadas ?? raw.qtdPortasReservadas ?? 0),
