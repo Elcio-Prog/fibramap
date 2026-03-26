@@ -260,6 +260,7 @@ export default function GeoGridTab() {
                           <TableCell className="text-xs whitespace-nowrap">{item.pasta}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.siglaRecipiente}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.siglaPoste}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.valor}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.tipo}</TableCell>
                           <TableCell className="text-xs text-center">{item.quantidadePortasEntrada}</TableCell>
                           <TableCell className="text-xs text-center">{item.quantidadePortas}</TableCell>
