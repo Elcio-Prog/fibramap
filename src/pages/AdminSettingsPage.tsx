@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Loader2, Save, RotateCcw } from "lucide-react";
 import IntegracoesTab from "@/components/admin/IntegracoesTab";
 import ApiLogsTab from "@/components/admin/ApiLogsTab";
+import GeoGridTab from "@/components/admin/GeoGridTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
   { colunaApp: "Designação", campoJson: "protocolo", tipo: "string" },
@@ -130,6 +131,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="logs">Logs API</TabsTrigger>
+          <TabsTrigger value="geogrid">GeoGrid</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
@@ -139,6 +141,10 @@ export default function SettingsPage() {
 
         <TabsContent value="logs">
           <ApiLogsTab />
+        </TabsContent>
+
+        <TabsContent value="geogrid">
+          <GeoGridTab />
         </TabsContent>
 
         <TabsContent value="mapping" className="space-y-4">
