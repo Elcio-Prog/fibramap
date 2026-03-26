@@ -15,6 +15,7 @@ export interface GeoGridItemRede {
   pasta: string;
   siglaRecipiente: string;
   siglaPoste: string;
+  valor: string;
   tipo: string;
   quantidadePortasEntrada: number;
   quantidadePortas: number;
