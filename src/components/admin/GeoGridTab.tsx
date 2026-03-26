@@ -20,6 +20,8 @@ export default function GeoGridTab() {
   const [filterTipo, setFilterTipo] = useState<string>("__all__");
   const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
   const [hasFetched, setHasFetched] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 50;
 
   // Load pastas on mount
   useEffect(() => {
