@@ -91,8 +91,8 @@ export default function GeoGridTab() {
 
   const handleExportCsv = () => {
     if (filtered.length === 0) return;
-    const headers = ["Id", "Sigla", "Pasta", "Sigla (recipiente)", "Sigla (poste)", "Tipo", "Portas Entrada", "Portas", "Portas Reservadas", "Reserv. Cliente", "Atend. Cliente", "Ocupadas", "Livres", "Latitude", "Longitude"];
-    const rows = filtered.map((i) => [i.id, i.sigla, i.pasta, i.siglaRecipiente, i.siglaPoste, i.tipo, i.quantidadePortasEntrada, i.quantidadePortas, i.totalPortasReservadas, i.portasReservadasCliente, i.portasAtendimentoCliente, i.portasOcupadas, i.portasLivres, i.latitude ?? "", i.longitude ?? ""]);
+    const headers = ["Id", "Sigla", "Pasta", "Sigla (recipiente)", "Sigla (poste)", "Valor", "Tipo", "Quantidade portas de entrada", "Quantidade portas", "Total portas reservadas", "Portas reservadas (cliente)", "Portas atendimento cliente", "Portas ocupadas", "Portas livres", "latitude", "longitude"];
+    const rows = filtered.map((i) => [i.id, i.sigla, i.pasta, i.siglaRecipiente, i.siglaPoste, i.valor, i.tipo, i.quantidadePortasEntrada, i.quantidadePortas, i.totalPortasReservadas, i.portasReservadasCliente, i.portasAtendimentoCliente, i.portasOcupadas, i.portasLivres, i.latitude ?? "", i.longitude ?? ""]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -230,7 +230,7 @@ export default function GeoGridTab() {
               </div>
             ) : (
               <>
-                <ScrollableTable totalScrollableColumns={13}>
+                <ScrollableTable totalScrollableColumns={14}>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -239,16 +239,17 @@ export default function GeoGridTab() {
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (recipiente)</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla (poste)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">Valor</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Tipo</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Entrada</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reservadas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Reserv. Cliente</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Atend. Cliente</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Ocupadas</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Livres</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Quantidade portas de entrada</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Quantidade portas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Total portas reservadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas reservadas (cliente)</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas atendimento cliente</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas ocupadas</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold">longitude</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -259,6 +260,7 @@ export default function GeoGridTab() {
                           <TableCell className="text-xs whitespace-nowrap">{item.pasta}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.siglaRecipiente}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.siglaPoste}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{item.valor}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{item.tipo}</TableCell>
                           <TableCell className="text-xs text-center">{item.quantidadePortasEntrada}</TableCell>
                           <TableCell className="text-xs text-center">{item.quantidadePortas}</TableCell>
