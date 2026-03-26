@@ -107,6 +107,41 @@ export default function GeoGridTab() {
     URL.revokeObjectURL(url);
   };
 
+  // Viabilidade helpers
+  const handleFetchViabilidade = async () => {
+    setViabFetched(true);
+    await fetchViabilidade();
+  };
+
+  const viabFiltered = useMemo(() => {
+    setViabPage(1);
+    if (!viabSearchText.trim()) return viabItems;
+    const q = viabSearchText.toLowerCase();
+    return viabItems.filter(
+      (v) => String(v.id).includes(q) || v.sigla.toLowerCase().includes(q)
+    );
+  }, [viabItems, viabSearchText]);
+
+  const viabTotalPages = Math.max(1, Math.ceil(viabFiltered.length / PAGE_SIZE));
+  const viabPaginated = useMemo(() => {
+    const start = (viabPage - 1) * PAGE_SIZE;
+    return viabFiltered.slice(start, start + PAGE_SIZE);
+  }, [viabFiltered, viabPage]);
+
+  const handleExportViabCsv = () => {
+    if (viabFiltered.length === 0) return;
+    const headers = ["ID", "Sigla", "Item", "Portas Livres", "Latitude", "Longitude"];
+    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.item, v.portasLivres, v.latitude ?? "", v.longitude ?? ""]);
+    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `geogrid_portas_livres_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
       {/* Search Card */}
