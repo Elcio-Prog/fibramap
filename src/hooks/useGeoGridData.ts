@@ -1,0 +1,112 @@
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface GeoGridPasta {
+  id: string;
+  nome: string;
+  cidade: string | null;
+  estado: string | null;
+  ativo: string;
+}
+
+export interface GeoGridItemRede {
+  id: string;
+  sigla: string;
+  pasta: string;
+  siglaRecipiente: string;
+  siglaPoste: string;
+  tipo: string;
+  quantidadePortasEntrada: number;
+  quantidadePortas: number;
+  totalPortasReservadas: number;
+  portasReservadasCliente: number;
+  portasAtendimentoCliente: number;
+  portasOcupadas: number;
+  portasLivres: number;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+async function callGeoGridProxy(endpoint: string, params?: Record<string, any>) {
+  const { data, error } = await supabase.functions.invoke("geogrid-proxy", {
+    body: { endpoint, params },
+  });
+  if (error) throw new Error(error.message || "Erro ao chamar GeoGrid");
+  if (!data?.ok) throw new Error(`GeoGrid retornou status ${data?.status}`);
+  return data?.data;
+}
+
+function parseItemRede(raw: any): GeoGridItemRede {
+  return {
+    id: String(raw.id ?? raw.idItemRede ?? ""),
+    sigla: raw.sigla ?? raw.nome ?? "",
+    pasta: raw.pasta ?? raw.nomePasta ?? "",
+    siglaRecipiente: raw.siglaRecipiente ?? raw.recipiente?.sigla ?? raw.recipiente ?? "",
+    siglaPoste: raw.siglaPoste ?? raw.poste?.sigla ?? raw.poste ?? "",
+    tipo: raw.tipo ?? raw.tipoEquipamento ?? raw.descricaoEquipamento ?? "",
+    quantidadePortasEntrada: Number(raw.quantidadePortasEntrada ?? raw.qtdPortasEntrada ?? 0),
+    quantidadePortas: Number(raw.quantidadePortas ?? raw.qtdPortas ?? 0),
+    totalPortasReservadas: Number(raw.totalPortasReservadas ?? raw.qtdPortasReservadas ?? 0),
+    portasReservadasCliente: Number(raw.portasReservadasCliente ?? raw.qtdPortasReservadasCliente ?? 0),
+    portasAtendimentoCliente: Number(raw.portasAtendimentoCliente ?? raw.qtdPortasAtendimentoCliente ?? 0),
+    portasOcupadas: Number(raw.portasOcupadas ?? raw.qtdPortasOcupadas ?? 0),
+    portasLivres: Number(raw.portasLivres ?? raw.qtdPortasLivres ?? 0),
+    latitude: raw.latitude ? Number(String(raw.latitude).replace(",", ".")) : null,
+    longitude: raw.longitude ? Number(String(raw.longitude).replace(",", ".")) : null,
+  };
+}
+
+export function useGeoGridPastas() {
+  const [pastas, setPastas] = useState<GeoGridPasta[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPastas = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await callGeoGridProxy("pastas");
+      const registros = result?.registros ?? result ?? [];
+      const parsed: GeoGridPasta[] = (Array.isArray(registros) ? registros : []).map((r: any) => ({
+        id: String(r.id),
+        nome: r.nome ?? "",
+        cidade: r.cidade ?? null,
+        estado: r.estado ?? null,
+        ativo: r.ativo ?? "S",
+      }));
+      setPastas(parsed.filter((p) => p.ativo === "S"));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { pastas, loading, error, fetchPastas };
+}
+
+export function useGeoGridItensRede() {
+  const [items, setItems] = useState<GeoGridItemRede[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<any>(null);
+
+  const fetchItensRede = useCallback(async (params?: Record<string, any>) => {
+    setLoading(true);
+    setError(null);
+    setRawResponse(null);
+    try {
+      const result = await callGeoGridProxy("itensRede", params);
+      setRawResponse(result);
+      const registros = result?.registros ?? result ?? [];
+      const list = Array.isArray(registros) ? registros : [];
+      setItems(list.map(parseItemRede));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { items, loading, error, rawResponse, fetchItensRede };
+}
