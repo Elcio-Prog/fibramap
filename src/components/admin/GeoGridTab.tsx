@@ -332,6 +332,119 @@ export default function GeoGridTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Busca de Portas Livres */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Zap className="h-4 w-4 text-green-600" />
+              Busca de Portas Livres
+              {viabFetched && (
+                <Badge variant="secondary" className="text-xs">
+                  {viabFiltered.length} itens
+                </Badge>
+              )}
+            </CardTitle>
+            <Button
+              onClick={handleFetchViabilidade}
+              disabled={loadingViab}
+              className="gap-1.5"
+              size="sm"
+            >
+              {loadingViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              Buscar Viabilidade
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Filtra automaticamente: <code className="bg-muted px-1 rounded">portasLivres &gt; 0</code> e <code className="bg-muted px-1 rounded">statusViabilidade = "possui"</code>
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {errorViab && (
+            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-2">
+              {errorViab}
+            </div>
+          )}
+
+          {loadingViab ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Buscando viabilidade...</span>
+            </div>
+          ) : viabFetched ? (
+            <>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Buscar por ID, sigla..."
+                  value={viabSearchText}
+                  onChange={(e) => { setViabSearchText(e.target.value); setViabPage(1); }}
+                  className="h-8 text-sm max-w-sm"
+                />
+                <Button variant="outline" size="sm" onClick={handleExportViabCsv} disabled={viabFiltered.length === 0} className="gap-1.5 h-8">
+                  <Download className="h-3.5 w-3.5" />
+                  CSV
+                </Button>
+              </div>
+
+              {viabFiltered.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Nenhum item encontrado com portas livres e viabilidade.
+                </div>
+              ) : (
+                <>
+                  <ScrollableTable totalScrollableColumns={4}>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">ID</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {viabPaginated.map((v, idx) => (
+                          <TableRow key={`${v.id}-${idx}`}>
+                            <TableCell className="text-xs font-mono">{v.id}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.item}</TableCell>
+                            <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollableTable>
+
+                  {viabTotalPages > 1 && (
+                    <div className="flex items-center justify-between pt-3">
+                      <span className="text-xs text-muted-foreground">
+                        {(viabPage - 1) * PAGE_SIZE + 1}–{Math.min(viabPage * PAGE_SIZE, viabFiltered.length)} de {viabFiltered.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage <= 1} onClick={() => setViabPage((p) => p - 1)}>
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage >= viabTotalPages} onClick={() => setViabPage((p) => p + 1)}>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Clique em "Buscar Viabilidade" para carregar os dados.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
