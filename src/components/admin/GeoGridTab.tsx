@@ -23,6 +23,9 @@ export default function GeoGridTab() {
   const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
   const [hasFetched, setHasFetched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viabPage, setViabPage] = useState(1);
+  const [viabSearchText, setViabSearchText] = useState("");
+  const [viabFetched, setViabFetched] = useState(false);
   const PAGE_SIZE = 50;
 
   // Load pastas on mount
