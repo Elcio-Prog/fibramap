@@ -43,8 +43,9 @@ export default function GeoGridTab() {
     return Array.from(tipos).sort();
   }, [items]);
 
-  // Filtered items
+  // Reset page when filters change
   const filtered = useMemo(() => {
+    setCurrentPage(1);
     let result = items;
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
