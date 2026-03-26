@@ -230,7 +230,7 @@ export default function GeoGridTab() {
               </div>
             ) : (
               <>
-                <ScrollableTable totalScrollableColumns={13}>
+                <ScrollableTable totalScrollableColumns={14}>
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
