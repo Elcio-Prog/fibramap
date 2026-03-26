@@ -16,6 +16,7 @@ export default function GeoGridTab() {
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
+  const [selectedItem, setSelectedItem] = useState<string>("__all__");
   const [searchText, setSearchText] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("__all__");
   const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
@@ -34,7 +35,11 @@ export default function GeoGridTab() {
       return;
     }
     setHasFetched(true);
-    await fetchItensRede({ idPasta: selectedPasta });
+    const params: Record<string, any> = { idPasta: selectedPasta };
+    if (selectedItem !== "__all__") {
+      params.item = selectedItem;
+    }
+    await fetchItensRede(params);
   };
 
   // Unique tipos for filter
@@ -118,6 +123,18 @@ export default function GeoGridTab() {
                       {p.nome}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-40">
+              <Select value={selectedItem} onValueChange={setSelectedItem}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de item" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos</SelectItem>
+                  <SelectItem value="caixa">Caixa</SelectItem>
+                  <SelectItem value="poste">Poste</SelectItem>
                 </SelectContent>
               </Select>
             </div>
