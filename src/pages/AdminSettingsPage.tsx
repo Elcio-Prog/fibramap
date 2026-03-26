@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Loader2, Save, RotateCcw } from "lucide-react";
 import IntegracoesTab from "@/components/admin/IntegracoesTab";
 import ApiLogsTab from "@/components/admin/ApiLogsTab";
+import GeoGridTab from "@/components/admin/GeoGridTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
   { colunaApp: "Designação", campoJson: "protocolo", tipo: "string" },
