@@ -143,6 +143,10 @@ export default function SettingsPage() {
           <ApiLogsTab />
         </TabsContent>
 
+        <TabsContent value="geogrid">
+          <GeoGridTab />
+        </TabsContent>
+
         <TabsContent value="mapping" className="space-y-4">
           <Card>
             <CardHeader>
