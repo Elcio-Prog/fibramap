@@ -150,6 +150,8 @@ function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
 export function useGeoGridViabilidade() {
   const [items, setItems] = useState<GeoGridViabilidadeItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
 
   const fetchViabilidade = useCallback(async () => {
@@ -160,11 +162,69 @@ export function useGeoGridViabilidade() {
       const registros = result?.registros ?? result ?? [];
       const list = Array.isArray(registros) ? registros : [];
       const parsed = list.map(parseViabilidadeItem);
-      // Filter: portasLivres > 0 AND statusViabilidade === "possui"
       const filtered = parsed.filter(
         (i) => i.portasLivres > 0 && i.statusViabilidade.toLowerCase() === "possui"
       );
       setItems(filtered);
+
+      // Enrich with /itensRede/{id}/mapa + /pastas
+      if (filtered.length > 0) {
+        setEnriching(true);
+        setEnrichProgress({ done: 0, total: filtered.length });
+
+        // Fetch pastas once for name lookup
+        let pastasMap: Record<string, string> = {};
+        try {
+          const pastasResult = await callGeoGridProxy("pastas");
+          const pastasReg = pastasResult?.registros ?? pastasResult ?? [];
+          const pastasList = Array.isArray(pastasReg) ? pastasReg : [];
+          pastasMap = Object.fromEntries(
+            pastasList.map((p: any) => [String(p.id), typeof p.nome === "string" ? p.nome : safeStr(p.nome)])
+          );
+        } catch { /* ignore pasta fetch errors */ }
+
+        // Process in batches of 5 to avoid overwhelming the API
+        const enriched = [...filtered];
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < enriched.length; i += BATCH_SIZE) {
+          const batch = enriched.slice(i, i + BATCH_SIZE);
+          const promises = batch.map(async (item, batchIdx) => {
+            try {
+              const mapaResult = await callGeoGridProxy(`itensRede/${item.id}/mapa`);
+              const mapaData = mapaResult?.registros ?? mapaResult;
+
+              // Extract recipiente info
+              const recipientes = mapaData?.recipientes ?? mapaData?.recipiente ?? [];
+              const recipientesList = Array.isArray(recipientes) ? recipientes : (recipientes ? [recipientes] : []);
+              const firstRecipiente = recipientesList[0];
+
+              if (firstRecipiente) {
+                enriched[i + batchIdx] = {
+                  ...enriched[i + batchIdx],
+                  recipienteId: String(firstRecipiente.id ?? ""),
+                  recipienteItem: safeStr(firstRecipiente.item),
+                  recipienteSigla: safeStr(firstRecipiente.sigla),
+                };
+              }
+
+              // Get pasta name from idPasta
+              const idPasta = String(mapaData?.idPasta ?? mapaData?.pasta?.id ?? "");
+              if (idPasta && pastasMap[idPasta]) {
+                enriched[i + batchIdx] = {
+                  ...enriched[i + batchIdx],
+                  pastaNome: pastasMap[idPasta],
+                };
+              }
+            } catch {
+              // Skip enrichment for items that fail
+            }
+          });
+          await Promise.all(promises);
+          setEnrichProgress({ done: Math.min(i + BATCH_SIZE, enriched.length), total: enriched.length });
+          setItems([...enriched]);
+        }
+        setEnriching(false);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -172,7 +232,7 @@ export function useGeoGridViabilidade() {
     }
   }, []);
 
-  return { items, loading, error, fetchViabilidade };
+  return { items, loading, enriching, enrichProgress, error, fetchViabilidade };
 }
 
 export function useGeoGridItensRede() {
