@@ -35,7 +35,11 @@ export default function GeoGridTab() {
       return;
     }
     setHasFetched(true);
-    await fetchItensRede({ idPasta: selectedPasta });
+    const params: Record<string, any> = { idPasta: selectedPasta };
+    if (selectedItem !== "__all__") {
+      params.item = selectedItem;
+    }
+    await fetchItensRede(params);
   };
 
   // Unique tipos for filter
