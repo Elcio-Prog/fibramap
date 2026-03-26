@@ -70,6 +70,12 @@ export default function GeoGridTab() {
     return result;
   }, [items, searchText, filterTipo, filterPortasLivres]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
   const hasActiveFilters = searchText || filterTipo !== "__all__" || filterPortasLivres !== "__all__";
 
   const clearFilters = () => {
