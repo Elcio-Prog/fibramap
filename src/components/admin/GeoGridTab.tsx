@@ -442,7 +442,7 @@ export default function GeoGridTab() {
                 </div>
               ) : (
                 <>
-                  <ScrollableTable totalScrollableColumns={4}>
+                  <ScrollableTable totalScrollableColumns={8}>
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
@@ -452,6 +452,10 @@ export default function GeoGridTab() {
                           <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
                           <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
                           <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
+                          <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -463,6 +467,10 @@ export default function GeoGridTab() {
                             <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
                             <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
                             <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
+                            <TableCell className="text-xs font-mono">{v.recipienteId || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || "—"}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || "—"}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
