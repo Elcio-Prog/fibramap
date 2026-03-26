@@ -91,8 +91,8 @@ export default function GeoGridTab() {
 
   const handleExportCsv = () => {
     if (filtered.length === 0) return;
-    const headers = ["Id", "Sigla", "Pasta", "Sigla (recipiente)", "Sigla (poste)", "Tipo", "Portas Entrada", "Portas", "Portas Reservadas", "Reserv. Cliente", "Atend. Cliente", "Ocupadas", "Livres", "Latitude", "Longitude"];
-    const rows = filtered.map((i) => [i.id, i.sigla, i.pasta, i.siglaRecipiente, i.siglaPoste, i.tipo, i.quantidadePortasEntrada, i.quantidadePortas, i.totalPortasReservadas, i.portasReservadasCliente, i.portasAtendimentoCliente, i.portasOcupadas, i.portasLivres, i.latitude ?? "", i.longitude ?? ""]);
+    const headers = ["Id", "Sigla", "Pasta", "Sigla (recipiente)", "Sigla (poste)", "Valor", "Tipo", "Quantidade portas de entrada", "Quantidade portas", "Total portas reservadas", "Portas reservadas (cliente)", "Portas atendimento cliente", "Portas ocupadas", "Portas livres", "latitude", "longitude"];
+    const rows = filtered.map((i) => [i.id, i.sigla, i.pasta, i.siglaRecipiente, i.siglaPoste, i.valor, i.tipo, i.quantidadePortasEntrada, i.quantidadePortas, i.totalPortasReservadas, i.portasReservadasCliente, i.portasAtendimentoCliente, i.portasOcupadas, i.portasLivres, i.latitude ?? "", i.longitude ?? ""]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
