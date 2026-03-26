@@ -140,6 +140,10 @@ function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
     fibras: Number(raw.fibras ?? 0),
     fibrasLivres: Number(raw.fibrasLivres ?? 0),
     fibrasOcupadas: Number(raw.fibrasOcupadas ?? 0),
+    recipienteId: "",
+    recipienteItem: "",
+    recipienteSigla: "",
+    pastaNome: "",
   };
 }
 
