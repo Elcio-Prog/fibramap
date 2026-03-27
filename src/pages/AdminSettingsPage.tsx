@@ -147,7 +147,7 @@ export default function SettingsPage() {
           <GeoGridTab />
         </TabsContent>
 
-        <TabsContent value="mapping" className="space-y-4">
+        <TabsContent value="mapping" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
