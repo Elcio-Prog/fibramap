@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function GeoGridTab() {
   const { pastas, loading: loadingPastas, fetchPastas } = useGeoGridPastas();
   const { items, loading: loadingItems, error, rawResponse, fetchItensRede } = useGeoGridItensRede();
-  const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, fetchViabilidade } = useGeoGridViabilidade();
+  const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, fetchViabilidade } = useGeoGridViabilidade();
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
@@ -377,7 +377,7 @@ export default function GeoGridTab() {
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-green-600" />
                 <h3 className="text-sm font-semibold">Busca de Portas Livres</h3>
-                {viabFetched && (
+                {(viabFetched || viabItems.length > 0) && (
                   <Badge variant="secondary" className="text-xs">
                     {viabFiltered.length} itens
                   </Badge>
@@ -440,7 +440,7 @@ export default function GeoGridTab() {
 
             {viabFiltered.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
-                {viabFetched ? "Nenhum item encontrado com portas livres e viabilidade." : "Clique em \"Buscar Viabilidade\" para carregar os dados."}
+                {(viabFetched || viabItems.length > 0) ? "Nenhum item encontrado com portas livres e viabilidade." : "Clique em \"Buscar Viabilidade\" para carregar os dados."}
               </div>
             ) : (
               <>

@@ -153,6 +153,83 @@ export function useGeoGridViabilidade() {
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  // Load cached data from DB on mount
+  const loadFromDb = useCallback(async () => {
+    try {
+      const { data, error: dbErr } = await supabase
+        .from("geogrid_viabilidade_cache")
+        .select("*")
+        .order("sigla");
+      if (dbErr) throw dbErr;
+      if (data && data.length > 0) {
+        const mapped: GeoGridViabilidadeItem[] = data.map((row: any) => ({
+          id: row.geogrid_id,
+          sigla: row.sigla,
+          portasLivres: row.portas_livres,
+          latitude: row.latitude ? Number(row.latitude) : null,
+          longitude: row.longitude ? Number(row.longitude) : null,
+          statusViabilidade: row.status_viabilidade,
+          item: row.item,
+          portas: row.portas,
+          portasOcupadas: row.portas_ocupadas,
+          fibras: row.fibras,
+          fibrasLivres: row.fibras_livres,
+          fibrasOcupadas: row.fibras_ocupadas,
+          recipienteId: row.recipiente_id,
+          recipienteItem: row.recipiente_item,
+          recipienteSigla: row.recipiente_sigla,
+          pastaNome: row.pasta_nome,
+        }));
+        setItems(mapped);
+      }
+    } catch {
+      // Silently fail — user can click refresh
+    } finally {
+      setDbLoaded(true);
+    }
+  }, []);
+
+  // Save items to DB (upsert)
+  const saveToDb = useCallback(async (viabItems: GeoGridViabilidadeItem[]) => {
+    try {
+      // Delete old data first, then insert fresh
+      await supabase.from("geogrid_viabilidade_cache").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (viabItems.length === 0) return;
+
+      const rows = viabItems.map((i) => ({
+        geogrid_id: i.id,
+        sigla: i.sigla,
+        portas_livres: i.portasLivres,
+        latitude: i.latitude,
+        longitude: i.longitude,
+        status_viabilidade: i.statusViabilidade,
+        item: i.item,
+        portas: i.portas,
+        portas_ocupadas: i.portasOcupadas,
+        fibras: i.fibras,
+        fibras_livres: i.fibrasLivres,
+        fibras_ocupadas: i.fibrasOcupadas,
+        recipiente_id: i.recipienteId,
+        recipiente_item: i.recipienteItem,
+        recipiente_sigla: i.recipienteSigla,
+        pasta_nome: i.pastaNome,
+        enriched: !!(i.recipienteId || i.pastaNome),
+      }));
+
+      // Insert in batches of 50
+      for (let b = 0; b < rows.length; b += 50) {
+        await supabase.from("geogrid_viabilidade_cache").insert(rows.slice(b, b + 50));
+      }
+    } catch {
+      // Silently fail on save
+    }
+  }, []);
+
+  // Load from DB on mount
+  useState(() => { loadFromDb(); });
 
   const fetchViabilidade = useCallback(async () => {
     setLoading(true);
@@ -194,7 +271,6 @@ export function useGeoGridViabilidade() {
             const mapaResult = await callGeoGridProxy(`itensRede/${enriched[i].id}/mapa`);
             const mapaData = mapaResult?.registros ?? mapaResult;
 
-            // Extract recipiente info
             const recipientes = mapaData?.recipientes ?? mapaData?.recipiente ?? [];
             const recipientesList = Array.isArray(recipientes) ? recipientes : (recipientes ? [recipientes] : []);
             const firstRecipiente = recipientesList[0];
@@ -208,7 +284,6 @@ export function useGeoGridViabilidade() {
               };
             }
 
-            // Get pasta name from idPasta
             const idPasta = String(mapaData?.idPasta ?? mapaData?.pasta?.id ?? "");
             if (idPasta && pastasMap[idPasta]) {
               enriched[i] = {
@@ -223,15 +298,21 @@ export function useGeoGridViabilidade() {
           setItems([...enriched]);
         }
         setEnriching(false);
+
+        // Save enriched data to DB
+        await saveToDb(enriched);
+      } else {
+        // No items — clear cache
+        await saveToDb([]);
       }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [saveToDb]);
 
-  return { items, loading, enriching, enrichProgress, error, fetchViabilidade };
+  return { items, loading, enriching, enrichProgress, error, dbLoaded, fetchViabilidade };
 }
 
 export function useGeoGridItensRede() {

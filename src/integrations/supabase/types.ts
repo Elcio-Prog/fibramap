@@ -375,6 +375,75 @@ export type Database = {
           },
         ]
       }
+      geogrid_viabilidade_cache: {
+        Row: {
+          created_at: string
+          enriched: boolean
+          fibras: number
+          fibras_livres: number
+          fibras_ocupadas: number
+          geogrid_id: string
+          id: string
+          item: string
+          latitude: number | null
+          longitude: number | null
+          pasta_nome: string
+          portas: number
+          portas_livres: number
+          portas_ocupadas: number
+          recipiente_id: string
+          recipiente_item: string
+          recipiente_sigla: string
+          sigla: string
+          status_viabilidade: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enriched?: boolean
+          fibras?: number
+          fibras_livres?: number
+          fibras_ocupadas?: number
+          geogrid_id: string
+          id?: string
+          item?: string
+          latitude?: number | null
+          longitude?: number | null
+          pasta_nome?: string
+          portas?: number
+          portas_livres?: number
+          portas_ocupadas?: number
+          recipiente_id?: string
+          recipiente_item?: string
+          recipiente_sigla?: string
+          sigla?: string
+          status_viabilidade?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enriched?: boolean
+          fibras?: number
+          fibras_livres?: number
+          fibras_ocupadas?: number
+          geogrid_id?: string
+          id?: string
+          item?: string
+          latitude?: number | null
+          longitude?: number | null
+          pasta_nome?: string
+          portas?: number
+          portas_livres?: number
+          portas_ocupadas?: number
+          recipiente_id?: string
+          recipiente_item?: string
+          recipiente_sigla?: string
+          sigla?: string
+          status_viabilidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       import_profiles: {
         Row: {
           column_mapping: Json
