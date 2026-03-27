@@ -396,6 +396,7 @@ export type Database = {
           recipiente_sigla: string
           sigla: string
           status_viabilidade: string
+          tipo_splitter: string
           updated_at: string
         }
         Insert: {
@@ -418,6 +419,7 @@ export type Database = {
           recipiente_sigla?: string
           sigla?: string
           status_viabilidade?: string
+          tipo_splitter?: string
           updated_at?: string
         }
         Update: {
@@ -440,6 +442,7 @@ export type Database = {
           recipiente_sigla?: string
           sigla?: string
           status_viabilidade?: string
+          tipo_splitter?: string
           updated_at?: string
         }
         Relationships: []
