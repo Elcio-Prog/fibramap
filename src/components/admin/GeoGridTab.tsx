@@ -59,7 +59,7 @@ export default function GeoGridTab() {
             <CardTitle className="text-base">GeoGrid</CardTitle>
           </div>
         </CardHeader>
-
+        <CardContent className="space-y-6">
           {/* Busca de Portas Livres */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
