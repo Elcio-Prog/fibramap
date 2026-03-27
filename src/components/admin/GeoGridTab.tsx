@@ -161,8 +161,8 @@ export default function GeoGridTab() {
                     <TableBody>
                       {viabPaginated.map((v, idx) => (
                         <TableRow key={`${v.id}-${idx}`}>
-                          <TableCell className="text-xs font-mono sticky left-0 z-10 bg-background min-w-[80px]">{v.id}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap sticky left-[80px] z-10 bg-background min-w-[220px] border-r max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
+                          <TableCell className="text-xs font-mono min-w-[80px]">{v.id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap min-w-[280px]" title={v.sigla}>{v.sigla}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.item || "—"}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
                           <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
