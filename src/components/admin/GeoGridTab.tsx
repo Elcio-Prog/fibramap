@@ -142,8 +142,8 @@ export default function GeoGridTab() {
               </div>
             ) : (
               <>
-                <ScrollableTable totalScrollableColumns={10}>
-                  <Table className="min-w-[1800px]">
+                <ScrollableTable totalScrollableColumns={9}>
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[80px]">ID</TableHead>
