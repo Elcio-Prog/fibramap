@@ -440,7 +440,7 @@ export default function GeoGridTab() {
 
             {viabFiltered.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
-                {viabFetched ? "Nenhum item encontrado com portas livres e viabilidade." : "Clique em \"Buscar Viabilidade\" para carregar os dados."}
+                {(viabFetched || viabItems.length > 0) ? "Nenhum item encontrado com portas livres e viabilidade." : "Clique em \"Buscar Viabilidade\" para carregar os dados."}
               </div>
             ) : (
               <>
