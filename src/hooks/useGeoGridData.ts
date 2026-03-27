@@ -333,7 +333,7 @@ export function useGeoGridViabilidade() {
 
                 if (!recipId) continue;
 
-                await new Promise((resolve) => setTimeout(resolve, 1000));
+                await new Promise((resolve) => setTimeout(resolve, 600));
 
                 try {
                   const portasResult = await callGeoGridProxy(`viabilidade/${recipId}/portas`, { disponivel: "S" });

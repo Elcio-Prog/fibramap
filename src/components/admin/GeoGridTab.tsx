@@ -14,7 +14,7 @@ export default function GeoGridTab() {
   const [viabPage, setViabPage] = useState(1);
   const [viabSearchText, setViabSearchText] = useState("");
   const [viabFetched, setViabFetched] = useState(false);
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 100;
 
   // Viabilidade helpers
   const handleFetchViabilidade = async () => {
