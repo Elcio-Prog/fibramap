@@ -39,8 +39,8 @@ export default function GeoGridTab() {
 
   const handleExportViabCsv = () => {
     if (viabFiltered.length === 0) return;
-    const headers = ["ID", "Sigla", "Item", "Portas Livres", "Latitude", "Longitude", "Recipiente ID", "Recipiente Item", "Recipiente Sigla", "Pasta"];
-    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.item, v.portasLivres, v.latitude ?? "", v.longitude ?? "", v.recipienteId, v.recipienteItem, v.recipienteSigla, v.pastaNome]);
+    const headers = ["ID", "Sigla", "Cidade", "Portas Livres", "Recipiente ID", "Recipiente Sigla", "Recipiente Item", "Latitude", "Longitude"];
+    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.pastaNome, v.portasLivres, v.recipienteId, v.recipienteSigla, v.recipienteItem, v.latitude ?? "", v.longitude ?? ""]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -148,14 +148,13 @@ export default function GeoGridTab() {
                       <TableRow className="bg-muted/50">
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[80px]">ID</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[280px]">Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[100px]">Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Cidade</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold text-center min-w-[100px]">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Latitude</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Longitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[160px]">Pasta</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -163,14 +162,13 @@ export default function GeoGridTab() {
                         <TableRow key={`${v.id}-${idx}`}>
                           <TableCell className="text-xs font-mono min-w-[80px]">{v.id}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap min-w-[280px]" title={v.sigla}>{v.sigla}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.item || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
+                          <TableCell className="text-xs font-mono">{v.recipienteId || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
-                          <TableCell className="text-xs font-mono">{v.recipienteId || <span className="text-muted-foreground">—</span>}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || <span className="text-muted-foreground">—</span>}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || <span className="text-muted-foreground">—</span>}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || <span className="text-muted-foreground">—</span>}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
