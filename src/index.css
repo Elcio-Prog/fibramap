@@ -135,6 +135,23 @@ aside *::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--sidebar-muted) / 0.5);
 }
 
+/* Scrollbar for tables */
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
 /* Leaflet overrides */
 .leaflet-container {
   width: 100%;
