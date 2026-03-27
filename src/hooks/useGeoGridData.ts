@@ -296,65 +296,88 @@ export function useGeoGridViabilidade() {
           );
         } catch { /* ignore pasta fetch errors */ }
 
-        // Process one at a time with 15s delay between calls
-        const enriched = [...filtered];
+        // Process one at a time with 1s delay between calls
+        // For each item, get ALL recipients and create separate rows for each with available ports
+        let finalItems: GeoGridViabilidadeItem[] = [];
         let updatedCount = 0;
-        for (let i = 0; i < enriched.length; i++) {
+        let processedCount = 0;
+        setEnrichProgress({ done: 0, total: filtered.length });
+
+        for (let i = 0; i < filtered.length; i++) {
           if (i > 0) {
             await new Promise((r) => setTimeout(r, 1000));
           }
+          const baseItem = filtered[i];
           try {
-            const mapaResult = await callGeoGridProxy(`itensRede/${enriched[i].id}/mapa`);
+            const mapaResult = await callGeoGridProxy(`itensRede/${baseItem.id}/mapa`);
             const mapaData = mapaResult?.registros ?? mapaResult;
 
             const recipientes = mapaData?.recipientes ?? mapaData?.recipiente ?? [];
             const recipientesList = Array.isArray(recipientes) ? recipientes : (recipientes ? [recipientes] : []);
-            const firstRecipiente = recipientesList[0];
-
-            if (firstRecipiente) {
-              enriched[i] = {
-                ...enriched[i],
-                recipienteId: String(firstRecipiente.id ?? ""),
-                recipienteItem: safeStr(firstRecipiente.item),
-                recipienteSigla: safeStr(firstRecipiente.sigla),
-              };
-            }
 
             const idPasta = String(mapaData?.idPasta ?? mapaData?.pasta?.id ?? "");
-            if (idPasta && pastasMap[idPasta]) {
-              enriched[i] = {
-                ...enriched[i],
-                pastaNome: pastasMap[idPasta],
-              };
-            }
+            const pastaNome = (idPasta && pastasMap[idPasta]) ? pastasMap[idPasta] : "";
 
-            // Fetch splitter type from /viabilidade/{recipienteId}/portas?disponivel=S
-            if (enriched[i].recipienteId) {
-              try {
-                await new Promise((r) => setTimeout(r, 1000));
-                const portasResult = await callGeoGridProxy(`viabilidade/${enriched[i].recipienteId}/portas`, { disponivel: "S" });
-                const portasReg = portasResult?.registros ?? portasResult ?? [];
-                const portasList = Array.isArray(portasReg) ? portasReg : [];
-                // Extract splitter type from equipamento.sigla
-                for (const porta of portasList) {
-                  const siglaEquip = safeStr(porta?.equipamento?.sigla ?? porta?.equipamento);
-                  const match = siglaEquip.match(/Spl\s+\d+x\d+\s+(Bal|Des)/i);
-                  if (match) {
-                    enriched[i] = { ...enriched[i], tipoSplitter: match[0] };
-                    break;
+            if (recipientesList.length === 0) {
+              // No recipients — keep base item as-is
+              finalItems.push({ ...baseItem, pastaNome });
+              await upsertItemToDb({ ...baseItem, pastaNome });
+              updatedCount++;
+            } else {
+              // Check each recipient for available ports
+              for (let r = 0; r < recipientesList.length; r++) {
+                const recip = recipientesList[r];
+                const recipId = String(recip.id ?? "");
+                const recipItem = safeStr(recip.item);
+                const recipSigla = safeStr(recip.sigla);
+
+                if (!recipId) continue;
+
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+
+                try {
+                  const portasResult = await callGeoGridProxy(`viabilidade/${recipId}/portas`, { disponivel: "S" });
+                  const portasReg = portasResult?.registros ?? portasResult ?? [];
+                  const portasList = Array.isArray(portasReg) ? portasReg : [];
+
+                  // Skip this recipient if no available ports
+                  if (portasList.length === 0) continue;
+
+                  // Extract splitter type
+                  let tipoSplitter = "";
+                  for (const porta of portasList) {
+                    const siglaEquip = safeStr(porta?.equipamento?.sigla ?? porta?.equipamento);
+                    const match = siglaEquip.match(/Spl\s+\d+x\d+\s+(Bal|Des)/i);
+                    if (match) {
+                      tipoSplitter = match[0];
+                      break;
+                    }
                   }
-                }
-              } catch { /* skip splitter fetch errors */ }
-            }
 
-            // Save enriched item to DB immediately
-            await upsertItemToDb(enriched[i]);
-            updatedCount++;
+                  const enrichedItem: GeoGridViabilidadeItem = {
+                    ...baseItem,
+                    // Use a composite ID so multiple rows from the same base item don't collide
+                    id: recipientesList.length > 1 ? `${baseItem.id}_${recipId}` : baseItem.id,
+                    recipienteId: recipId,
+                    recipienteItem: recipItem,
+                    recipienteSigla: recipSigla,
+                    pastaNome,
+                    tipoSplitter,
+                  };
+
+                  finalItems.push(enrichedItem);
+                  await upsertItemToDb(enrichedItem);
+                  updatedCount++;
+                } catch { /* skip this recipient on error */ }
+              }
+            }
           } catch {
-            // Skip enrichment for items that fail
+            // On mapa fetch failure, keep base item
+            finalItems.push(baseItem);
           }
-          setEnrichProgress({ done: i + 1, total: enriched.length });
-          setItems([...enriched]);
+          processedCount++;
+          setEnrichProgress({ done: processedCount, total: filtered.length });
+          setItems([...finalItems]);
         }
         setEnriching(false);
         setSyncStats({ added: addedCount, removed: removedIds.length, updated: updatedCount });
