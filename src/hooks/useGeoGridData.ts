@@ -184,6 +184,7 @@ export function useGeoGridViabilidade() {
           recipienteItem: row.recipiente_item,
           recipienteSigla: row.recipiente_sigla,
           pastaNome: row.pasta_nome,
+          tipoSplitter: row.tipo_splitter ?? "",
         }));
         setItems(mapped);
       }
