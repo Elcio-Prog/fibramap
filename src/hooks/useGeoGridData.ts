@@ -297,7 +297,7 @@ export function useGeoGridViabilidade() {
         let updatedCount = 0;
         for (let i = 0; i < enriched.length; i++) {
           if (i > 0) {
-            await new Promise((r) => setTimeout(r, 15000));
+            await new Promise((r) => setTimeout(r, 1000));
           }
           try {
             const mapaResult = await callGeoGridProxy(`itensRede/${enriched[i].id}/mapa`);
