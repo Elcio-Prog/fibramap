@@ -11,96 +11,10 @@ import { useGeoGridViabilidade } from "@/hooks/useGeoGridData";
 export default function GeoGridTab() {
   const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, syncStats, fetchViabilidade } = useGeoGridViabilidade();
 
-  const [selectedPasta, setSelectedPasta] = useState<string>("");
-  const [selectedItem, setSelectedItem] = useState<string>("__all__");
-  const [searchText, setSearchText] = useState("");
-  const [filterTipo, setFilterTipo] = useState<string>("__all__");
-  const [filterPortasLivres, setFilterPortasLivres] = useState<string>("__all__");
-  const [hasFetched, setHasFetched] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [viabPage, setViabPage] = useState(1);
   const [viabSearchText, setViabSearchText] = useState("");
   const [viabFetched, setViabFetched] = useState(false);
   const PAGE_SIZE = 50;
-
-  // Load pastas on mount
-  useEffect(() => {
-    fetchPastas();
-  }, [fetchPastas]);
-
-  const handleSearch = async () => {
-    if (!selectedPasta) {
-      toast({ title: "Selecione uma pasta", description: "Escolha uma pasta/cidade para buscar os itens de rede.", variant: "destructive" });
-      return;
-    }
-    setHasFetched(true);
-    const params: Record<string, any> = { idPasta: selectedPasta };
-    if (selectedItem !== "__all__") {
-      params.item = selectedItem;
-    }
-    await fetchItensRede(params);
-  };
-
-  // Unique tipos for filter
-  const tipoOptions = useMemo(() => {
-    const tipos = new Set(items.map((i) => i.tipo).filter(Boolean));
-    return Array.from(tipos).sort();
-  }, [items]);
-
-  // Reset page when filters change
-  const filtered = useMemo(() => {
-    setCurrentPage(1);
-    let result = items;
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      result = result.filter(
-        (i) =>
-          i.sigla.toLowerCase().includes(q) ||
-          i.pasta.toLowerCase().includes(q) ||
-          i.siglaRecipiente.toLowerCase().includes(q) ||
-          i.siglaPoste.toLowerCase().includes(q) ||
-          i.tipo.toLowerCase().includes(q) ||
-          String(i.id).includes(q)
-      );
-    }
-    if (filterTipo !== "__all__") {
-      result = result.filter((i) => i.tipo === filterTipo);
-    }
-    if (filterPortasLivres === "com_portas") {
-      result = result.filter((i) => i.portasLivres > 0);
-    } else if (filterPortasLivres === "sem_portas") {
-      result = result.filter((i) => i.portasLivres === 0);
-    }
-    return result;
-  }, [items, searchText, filterTipo, filterPortasLivres]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, currentPage]);
-
-  const hasActiveFilters = searchText || filterTipo !== "__all__" || filterPortasLivres !== "__all__";
-
-  const clearFilters = () => {
-    setSearchText("");
-    setFilterTipo("__all__");
-    setFilterPortasLivres("__all__");
-  };
-
-  const handleExportCsv = () => {
-    if (filtered.length === 0) return;
-    const headers = ["Id", "Sigla", "Pasta", "Sigla (recipiente)", "Sigla (poste)", "Valor", "Tipo", "Quantidade portas de entrada", "Quantidade portas", "Total portas reservadas", "Portas reservadas (cliente)", "Portas atendimento cliente", "Portas ocupadas", "Portas livres", "latitude", "longitude"];
-    const rows = filtered.map((i) => [i.id, i.sigla, i.pasta, i.siglaRecipiente, i.siglaPoste, i.valor, i.tipo, i.quantidadePortasEntrada, i.quantidadePortas, i.totalPortasReservadas, i.portasReservadasCliente, i.portasAtendimentoCliente, i.portasOcupadas, i.portasLivres, i.latitude ?? "", i.longitude ?? ""]);
-    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `geogrid_itens_rede_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   // Viabilidade helpers
   const handleFetchViabilidade = async () => {
@@ -139,7 +53,6 @@ export default function GeoGridTab() {
 
   return (
     <div className="space-y-4">
-      {/* Main GeoGrid Card */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -147,7 +60,6 @@ export default function GeoGridTab() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Consulta de Itens de Rede */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold">Consulta de Itens de Rede</h3>
             <div className="flex flex-col sm:flex-row gap-2">
