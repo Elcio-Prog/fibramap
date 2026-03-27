@@ -425,6 +425,15 @@ export default function GeoGridTab() {
               </div>
             )}
 
+            {syncStats && !loadingViab && !enrichingViab && (
+              <div className="flex items-center gap-3 text-xs">
+                {syncStats.added > 0 && <Badge variant="default" className="text-[10px]">+{syncStats.added} novos</Badge>}
+                {syncStats.removed > 0 && <Badge variant="destructive" className="text-[10px]">-{syncStats.removed} removidos</Badge>}
+                {syncStats.updated > 0 && <Badge variant="outline" className="text-[10px]">{syncStats.updated} enriquecidos</Badge>}
+                {syncStats.added === 0 && syncStats.removed === 0 && <span className="text-muted-foreground">Nenhuma alteração detectada</span>}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Input
                 placeholder="Buscar por ID, sigla..."
