@@ -135,15 +135,15 @@ export default function SettingsPage() {
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="integracoes">
+        <TabsContent value="integracoes" forceMount className="data-[state=inactive]:hidden">
           <IntegracoesTab />
         </TabsContent>
 
-        <TabsContent value="logs">
+        <TabsContent value="logs" forceMount className="data-[state=inactive]:hidden">
           <ApiLogsTab />
         </TabsContent>
 
-        <TabsContent value="geogrid">
+        <TabsContent value="geogrid" forceMount className="data-[state=inactive]:hidden">
           <GeoGridTab />
         </TabsContent>
 
