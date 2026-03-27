@@ -305,7 +305,7 @@ export function useGeoGridViabilidade() {
 
         for (let i = 0; i < filtered.length; i++) {
           if (i > 0) {
-            await new Promise((r) => setTimeout(r, 1000));
+            await new Promise((r) => setTimeout(r, 600));
           }
           const baseItem = filtered[i];
           try {
