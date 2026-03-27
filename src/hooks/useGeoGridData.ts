@@ -124,6 +124,7 @@ export interface GeoGridViabilidadeItem {
   recipienteItem: string;
   recipienteSigla: string;
   pastaNome: string;
+  tipoSplitter: string;
 }
 
 function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
