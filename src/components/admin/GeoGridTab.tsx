@@ -165,6 +165,7 @@ export default function GeoGridTab() {
                           <TableCell className="text-xs whitespace-nowrap min-w-[280px]" title={v.sigla}>{v.sigla}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.tipoSplitter || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs font-mono">{v.recipienteId || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || <span className="text-muted-foreground">—</span>}</TableCell>
