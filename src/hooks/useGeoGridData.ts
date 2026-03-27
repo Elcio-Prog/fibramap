@@ -257,11 +257,14 @@ export function useGeoGridViabilidade() {
       const { data: dbItems } = await supabase
         .from("geogrid_viabilidade_cache")
         .select("geogrid_id");
-      const existingIds = new Set((dbItems ?? []).map((r: any) => r.geogrid_id));
-      const newIds = new Set(filtered.map((i) => i.id));
+      const existingDbIds = (dbItems ?? []).map((r: any) => r.geogrid_id as string);
+      const newBaseIds = new Set(filtered.map((i) => i.id));
 
-      // Remove items no longer present in API
-      const removedIds = [...existingIds].filter((id) => !newIds.has(id));
+      // Extract base ID from composite IDs (e.g. "123_456" -> "123")
+      const getBaseId = (id: string) => id.includes("_") ? id.split("_")[0] : id;
+
+      // Remove items whose BASE id is no longer present in API
+      const removedIds = existingDbIds.filter((id) => !newBaseIds.has(getBaseId(id)));
       if (removedIds.length > 0) {
         for (let b = 0; b < removedIds.length; b += 50) {
           await supabase
@@ -271,7 +274,8 @@ export function useGeoGridViabilidade() {
         }
       }
 
-      const addedCount = [...newIds].filter((id) => !existingIds.has(id)).length;
+      const existingBaseIds = new Set(existingDbIds.map(getBaseId));
+      const addedCount = [...newBaseIds].filter((id) => !existingBaseIds.has(id)).length;
 
       // Save base data for all items immediately (without enrichment)
       setItems(filtered);
