@@ -39,8 +39,8 @@ export default function GeoGridTab() {
 
   const handleExportViabCsv = () => {
     if (viabFiltered.length === 0) return;
-    const headers = ["ID", "Sigla", "Cidade", "Portas Livres", "Recipiente ID", "Recipiente Sigla", "Recipiente Item", "Latitude", "Longitude"];
-    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.pastaNome, v.portasLivres, v.recipienteId, v.recipienteSigla, v.recipienteItem, v.latitude ?? "", v.longitude ?? ""]);
+    const headers = ["ID", "Sigla", "Cidade", "Portas Livres", "Tipo do Splitter", "Recipiente ID", "Recipiente Sigla", "Recipiente Item", "Latitude", "Longitude"];
+    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.pastaNome, v.portasLivres, v.tipoSplitter, v.recipienteId, v.recipienteSigla, v.recipienteItem, v.latitude ?? "", v.longitude ?? ""]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -142,7 +142,7 @@ export default function GeoGridTab() {
               </div>
             ) : (
               <>
-                <ScrollableTable totalScrollableColumns={9}>
+                <ScrollableTable totalScrollableColumns={10}>
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -150,6 +150,7 @@ export default function GeoGridTab() {
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[280px]">Sigla</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Cidade</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold text-center min-w-[100px]">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Tipo do Splitter</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
@@ -164,6 +165,7 @@ export default function GeoGridTab() {
                           <TableCell className="text-xs whitespace-nowrap min-w-[280px]" title={v.sigla}>{v.sigla}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.tipoSplitter || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs font-mono">{v.recipienteId || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || <span className="text-muted-foreground">—</span>}</TableCell>

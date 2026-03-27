@@ -1,0 +1,1 @@
+ALTER TABLE public.geogrid_viabilidade_cache ADD COLUMN tipo_splitter text NOT NULL DEFAULT '';
