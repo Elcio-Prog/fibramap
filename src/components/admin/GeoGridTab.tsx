@@ -377,7 +377,7 @@ export default function GeoGridTab() {
               <div className="flex items-center gap-2">
                 <Zap className="h-4 w-4 text-green-600" />
                 <h3 className="text-sm font-semibold">Busca de Portas Livres</h3>
-                {viabFetched && (
+                {(viabFetched || viabItems.length > 0) && (
                   <Badge variant="secondary" className="text-xs">
                     {viabFiltered.length} itens
                   </Badge>
