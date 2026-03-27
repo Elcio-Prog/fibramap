@@ -222,6 +222,7 @@ export function useGeoGridViabilidade() {
         recipiente_item: item.recipienteItem,
         recipiente_sigla: item.recipienteSigla,
         pasta_nome: item.pastaNome,
+        tipo_splitter: item.tipoSplitter,
         enriched: !!(item.recipienteId || item.pastaNome),
         updated_at: new Date().toISOString(),
       };
