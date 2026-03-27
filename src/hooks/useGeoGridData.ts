@@ -154,8 +154,9 @@ export function useGeoGridViabilidade() {
   const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [dbLoaded, setDbLoaded] = useState(false);
+  const [syncStats, setSyncStats] = useState<{ added: number; removed: number; updated: number } | null>(null);
 
-  // Load cached data from DB on mount
+  // Load persisted data from DB on mount
   const loadFromDb = useCallback(async () => {
     try {
       const { data, error: dbErr } = await supabase
@@ -191,40 +192,44 @@ export function useGeoGridViabilidade() {
     }
   }, []);
 
-  // Save items to DB (upsert)
-  const saveToDb = useCallback(async (viabItems: GeoGridViabilidadeItem[]) => {
+  // Upsert a single item to DB
+  const upsertItemToDb = useCallback(async (item: GeoGridViabilidadeItem) => {
     try {
-      // Delete old data first, then insert fresh
-      await supabase.from("geogrid_viabilidade_cache").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      // Check if exists
+      const { data: existing } = await supabase
+        .from("geogrid_viabilidade_cache")
+        .select("id")
+        .eq("geogrid_id", item.id)
+        .maybeSingle();
 
-      if (viabItems.length === 0) return;
+      const row = {
+        geogrid_id: item.id,
+        sigla: item.sigla,
+        portas_livres: item.portasLivres,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        status_viabilidade: item.statusViabilidade,
+        item: item.item,
+        portas: item.portas,
+        portas_ocupadas: item.portasOcupadas,
+        fibras: item.fibras,
+        fibras_livres: item.fibrasLivres,
+        fibras_ocupadas: item.fibrasOcupadas,
+        recipiente_id: item.recipienteId,
+        recipiente_item: item.recipienteItem,
+        recipiente_sigla: item.recipienteSigla,
+        pasta_nome: item.pastaNome,
+        enriched: !!(item.recipienteId || item.pastaNome),
+        updated_at: new Date().toISOString(),
+      };
 
-      const rows = viabItems.map((i) => ({
-        geogrid_id: i.id,
-        sigla: i.sigla,
-        portas_livres: i.portasLivres,
-        latitude: i.latitude,
-        longitude: i.longitude,
-        status_viabilidade: i.statusViabilidade,
-        item: i.item,
-        portas: i.portas,
-        portas_ocupadas: i.portasOcupadas,
-        fibras: i.fibras,
-        fibras_livres: i.fibrasLivres,
-        fibras_ocupadas: i.fibrasOcupadas,
-        recipiente_id: i.recipienteId,
-        recipiente_item: i.recipienteItem,
-        recipiente_sigla: i.recipienteSigla,
-        pasta_nome: i.pastaNome,
-        enriched: !!(i.recipienteId || i.pastaNome),
-      }));
-
-      // Insert in batches of 50
-      for (let b = 0; b < rows.length; b += 50) {
-        await supabase.from("geogrid_viabilidade_cache").insert(rows.slice(b, b + 50));
+      if (existing) {
+        await supabase.from("geogrid_viabilidade_cache").update(row).eq("id", existing.id);
+      } else {
+        await supabase.from("geogrid_viabilidade_cache").insert(row);
       }
     } catch {
-      // Silently fail on save
+      // Silently fail on individual save
     }
   }, []);
 
@@ -234,6 +239,7 @@ export function useGeoGridViabilidade() {
   const fetchViabilidade = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSyncStats(null);
     try {
       const result = await callGeoGridProxy("viabilidade");
       const registros = result?.registros ?? result ?? [];
@@ -242,7 +248,33 @@ export function useGeoGridViabilidade() {
       const filtered = parsed.filter(
         (i) => i.portasLivres > 0 && i.statusViabilidade.toLowerCase() === "possui"
       );
+
+      // Load existing DB items for diff
+      const { data: dbItems } = await supabase
+        .from("geogrid_viabilidade_cache")
+        .select("geogrid_id");
+      const existingIds = new Set((dbItems ?? []).map((r: any) => r.geogrid_id));
+      const newIds = new Set(filtered.map((i) => i.id));
+
+      // Remove items no longer present in API
+      const removedIds = [...existingIds].filter((id) => !newIds.has(id));
+      if (removedIds.length > 0) {
+        for (let b = 0; b < removedIds.length; b += 50) {
+          await supabase
+            .from("geogrid_viabilidade_cache")
+            .delete()
+            .in("geogrid_id", removedIds.slice(b, b + 50));
+        }
+      }
+
+      const addedCount = [...newIds].filter((id) => !existingIds.has(id)).length;
+
+      // Save base data for all items immediately (without enrichment)
       setItems(filtered);
+      for (let b = 0; b < filtered.length; b += 50) {
+        const batch = filtered.slice(b, b + 50);
+        await Promise.all(batch.map((item) => upsertItemToDb(item)));
+      }
 
       // Enrich with /itensRede/{id}/mapa + /pastas
       if (filtered.length > 0) {
@@ -262,8 +294,8 @@ export function useGeoGridViabilidade() {
 
         // Process one at a time with 15s delay between calls
         const enriched = [...filtered];
+        let updatedCount = 0;
         for (let i = 0; i < enriched.length; i++) {
-          // Wait 15s before each call (except the first)
           if (i > 0) {
             await new Promise((r) => setTimeout(r, 15000));
           }
@@ -291,6 +323,10 @@ export function useGeoGridViabilidade() {
                 pastaNome: pastasMap[idPasta],
               };
             }
+
+            // Save enriched item to DB immediately
+            await upsertItemToDb(enriched[i]);
+            updatedCount++;
           } catch {
             // Skip enrichment for items that fail
           }
@@ -298,21 +334,20 @@ export function useGeoGridViabilidade() {
           setItems([...enriched]);
         }
         setEnriching(false);
-
-        // Save enriched data to DB
-        await saveToDb(enriched);
+        setSyncStats({ added: addedCount, removed: removedIds.length, updated: updatedCount });
       } else {
-        // No items — clear cache
-        await saveToDb([]);
+        // No items — clear DB
+        await supabase.from("geogrid_viabilidade_cache").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        setSyncStats({ added: 0, removed: removedIds.length, updated: 0 });
       }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [saveToDb]);
+  }, [upsertItemToDb]);
 
-  return { items, loading, enriching, enrichProgress, error, dbLoaded, fetchViabilidade };
+  return { items, loading, enriching, enrichProgress, error, dbLoaded, syncStats, fetchViabilidade };
 }
 
 export function useGeoGridItensRede() {

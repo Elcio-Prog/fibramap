@@ -109,7 +109,7 @@ export default function ScrollableTable({ children, className = "", totalScrolla
       </div>
 
       {/* Scrollable container */}
-      <div ref={scrollRef} className="overflow-x-auto max-h-[600px] border rounded-md">
+      <div ref={scrollRef} className="overflow-x-auto overflow-y-auto max-h-[75vh] border rounded-md">
         {children}
       </div>
     </div>

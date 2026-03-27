@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function GeoGridTab() {
   const { pastas, loading: loadingPastas, fetchPastas } = useGeoGridPastas();
   const { items, loading: loadingItems, error, rawResponse, fetchItensRede } = useGeoGridItensRede();
-  const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, fetchViabilidade } = useGeoGridViabilidade();
+  const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, syncStats, fetchViabilidade } = useGeoGridViabilidade();
   const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
@@ -425,6 +425,15 @@ export default function GeoGridTab() {
               </div>
             )}
 
+            {syncStats && !loadingViab && !enrichingViab && (
+              <div className="flex items-center gap-3 text-xs">
+                {syncStats.added > 0 && <Badge variant="default" className="text-[10px]">+{syncStats.added} novos</Badge>}
+                {syncStats.removed > 0 && <Badge variant="destructive" className="text-[10px]">-{syncStats.removed} removidos</Badge>}
+                {syncStats.updated > 0 && <Badge variant="outline" className="text-[10px]">{syncStats.updated} enriquecidos</Badge>}
+                {syncStats.added === 0 && syncStats.removed === 0 && <span className="text-muted-foreground">Nenhuma alteração detectada</span>}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Input
                 placeholder="Buscar por ID, sigla..."
@@ -445,26 +454,26 @@ export default function GeoGridTab() {
             ) : (
               <>
                 <ScrollableTable totalScrollableColumns={8}>
-                  <Table>
+                  <Table className="min-w-[1400px]">
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-0 z-10 bg-muted/95 backdrop-blur-sm min-w-[80px]">ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-[80px] z-10 bg-muted/95 backdrop-blur-sm min-w-[180px] border-r">Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-[80px] z-10 bg-muted/95 backdrop-blur-sm min-w-[220px] border-r">Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[100px]">Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center min-w-[100px]">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Longitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[160px]">Pasta</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {viabPaginated.map((v, idx) => (
                         <TableRow key={`${v.id}-${idx}`}>
                           <TableCell className="text-xs font-mono sticky left-0 z-10 bg-background min-w-[80px]">{v.id}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap sticky left-[80px] z-10 bg-background min-w-[180px] border-r max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap sticky left-[80px] z-10 bg-background min-w-[220px] border-r max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{v.item || "—"}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
                           <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
