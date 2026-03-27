@@ -142,7 +142,7 @@ export default function GeoGridTab() {
               </div>
             ) : (
               <>
-                <ScrollableTable totalScrollableColumns={9}>
+                <ScrollableTable totalScrollableColumns={10}>
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -150,6 +150,7 @@ export default function GeoGridTab() {
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[280px]">Sigla</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Cidade</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold text-center min-w-[100px]">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Tipo do Splitter</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
