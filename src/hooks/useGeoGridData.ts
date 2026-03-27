@@ -328,6 +328,25 @@ export function useGeoGridViabilidade() {
               };
             }
 
+            // Fetch splitter type from /viabilidade/{recipienteId}/portas?disponivel=S
+            if (enriched[i].recipienteId) {
+              try {
+                await new Promise((r) => setTimeout(r, 1000));
+                const portasResult = await callGeoGridProxy(`viabilidade/${enriched[i].recipienteId}/portas`, { disponivel: "S" });
+                const portasReg = portasResult?.registros ?? portasResult ?? [];
+                const portasList = Array.isArray(portasReg) ? portasReg : [];
+                // Extract splitter type from equipamento.sigla
+                for (const porta of portasList) {
+                  const siglaEquip = safeStr(porta?.equipamento?.sigla ?? porta?.equipamento);
+                  const match = siglaEquip.match(/Spl\s+\d+x\d+\s+(Bal|Des)/i);
+                  if (match) {
+                    enriched[i] = { ...enriched[i], tipoSplitter: match[0] };
+                    break;
+                  }
+                }
+              } catch { /* skip splitter fetch errors */ }
+            }
+
             // Save enriched item to DB immediately
             await upsertItemToDb(enriched[i]);
             updatedCount++;
