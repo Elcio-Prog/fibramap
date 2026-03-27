@@ -39,8 +39,8 @@ export default function GeoGridTab() {
 
   const handleExportViabCsv = () => {
     if (viabFiltered.length === 0) return;
-    const headers = ["ID", "Sigla", "Item", "Portas Livres", "Latitude", "Longitude", "Recipiente ID", "Recipiente Item", "Recipiente Sigla", "Pasta"];
-    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.item, v.portasLivres, v.latitude ?? "", v.longitude ?? "", v.recipienteId, v.recipienteItem, v.recipienteSigla, v.pastaNome]);
+    const headers = ["ID", "Sigla", "Cidade", "Portas Livres", "Recipiente ID", "Recipiente Sigla", "Recipiente Item", "Latitude", "Longitude"];
+    const rows = viabFiltered.map((v) => [v.id, v.sigla, v.pastaNome, v.portasLivres, v.recipienteId, v.recipienteSigla, v.recipienteItem, v.latitude ?? "", v.longitude ?? ""]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
