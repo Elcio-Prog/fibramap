@@ -180,12 +180,17 @@ export default function GeoGridTab() {
                     <span className="text-xs text-muted-foreground">
                       {(viabPage - 1) * PAGE_SIZE + 1}–{Math.min(viabPage * PAGE_SIZE, viabFiltered.length)} de {viabFiltered.length}
                     </span>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage <= 1} onClick={() => setViabPage((p) => p - 1)}>
-                        <ChevronLeft className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="h-8 px-3 gap-1" disabled={viabPage <= 1} onClick={() => setViabPage((p) => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
                       </Button>
-                      <Button variant="outline" size="icon" className="h-7 w-7" disabled={viabPage >= viabTotalPages} onClick={() => setViabPage((p) => p + 1)}>
-                        <ChevronRight className="h-3.5 w-3.5" />
+                      <span className="text-xs text-muted-foreground">
+                        Página {viabPage} de {viabTotalPages}
+                      </span>
+                      <Button variant="outline" size="sm" className="h-8 px-3 gap-1" disabled={viabPage >= viabTotalPages} onClick={() => setViabPage((p) => p + 1)}>
+                        Próxima
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
