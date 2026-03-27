@@ -448,8 +448,8 @@ export default function GeoGridTab() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-0 z-10 bg-muted/95 backdrop-blur-sm min-w-[80px]">ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-[80px] z-10 bg-muted/95 backdrop-blur-sm min-w-[180px] border-r">Sigla</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
                         <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
@@ -463,16 +463,16 @@ export default function GeoGridTab() {
                     <TableBody>
                       {viabPaginated.map((v, idx) => (
                         <TableRow key={`${v.id}-${idx}`}>
-                          <TableCell className="text-xs font-mono">{v.id}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.item}</TableCell>
+                          <TableCell className="text-xs font-mono sticky left-0 z-10 bg-background min-w-[80px]">{v.id}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap sticky left-[80px] z-10 bg-background min-w-[180px] border-r max-w-[300px] truncate" title={v.sigla}>{v.sigla}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.item || "—"}</TableCell>
                           <TableCell className="text-xs text-center font-semibold text-green-600">{v.portasLivres}</TableCell>
                           <TableCell className="text-xs font-mono">{v.latitude ?? "—"}</TableCell>
                           <TableCell className="text-xs font-mono">{v.longitude ?? "—"}</TableCell>
-                          <TableCell className="text-xs font-mono">{v.recipienteId || "—"}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || "—"}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || "—"}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono">{v.recipienteId || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteItem || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.recipienteSigla || <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{v.pastaNome || <span className="text-muted-foreground">—</span>}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
