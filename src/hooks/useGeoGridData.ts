@@ -145,6 +145,7 @@ function parseViabilidadeItem(raw: any): GeoGridViabilidadeItem {
     recipienteItem: "",
     recipienteSigla: "",
     pastaNome: "",
+    tipoSplitter: "",
   };
 }
 
