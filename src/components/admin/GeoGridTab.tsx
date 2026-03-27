@@ -454,19 +454,19 @@ export default function GeoGridTab() {
             ) : (
               <>
                 <ScrollableTable totalScrollableColumns={8}>
-                  <Table>
+                  <Table className="min-w-[1400px]">
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-0 z-10 bg-muted/95 backdrop-blur-sm min-w-[80px]">ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-[80px] z-10 bg-muted/95 backdrop-blur-sm min-w-[180px] border-r">Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Item</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center">Portas Livres</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Latitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Longitude</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente ID</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Item</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Recipiente Sigla</TableHead>
-                        <TableHead className="whitespace-nowrap text-xs font-semibold">Pasta</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold sticky left-[80px] z-10 bg-muted/95 backdrop-blur-sm min-w-[220px] border-r">Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[100px]">Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold text-center min-w-[100px]">Portas Livres</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Latitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[120px]">Longitude</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[110px]">Recipiente ID</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[130px]">Recipiente Item</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[150px]">Recipiente Sigla</TableHead>
+                        <TableHead className="whitespace-nowrap text-xs font-semibold min-w-[160px]">Pasta</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
