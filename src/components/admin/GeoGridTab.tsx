@@ -1,20 +1,15 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, RefreshCw, Download, Filter, X, ChevronLeft, ChevronRight, Zap } from "lucide-react";
-import { useGeoGridPastas, useGeoGridItensRede, useGeoGridViabilidade, GeoGridItemRede } from "@/hooks/useGeoGridData";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2, Search, Download, ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { useGeoGridViabilidade } from "@/hooks/useGeoGridData";
 
 export default function GeoGridTab() {
-  const { pastas, loading: loadingPastas, fetchPastas } = useGeoGridPastas();
-  const { items, loading: loadingItems, error, rawResponse, fetchItensRede } = useGeoGridItensRede();
   const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, syncStats, fetchViabilidade } = useGeoGridViabilidade();
-  const { toast } = useToast();
 
   const [selectedPasta, setSelectedPasta] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<string>("__all__");
