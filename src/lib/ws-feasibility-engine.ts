@@ -270,7 +270,7 @@ async function processItem(
         // Se sim, confirma presença de rede e habilita retries agressivos na Fase 2.
         const NTT_PRESCAN_RADIUS = 5000; // 5km
         const nttNetworkNearby = hasNetworkInRadius(lat, lng, elMapped, NTT_PRESCAN_RADIUS);
-        const MAX_ATTEMPTS = nttNetworkNearby ? 3 : 1; // Retry agressivo se rede confirmada
+        const MAX_ATTEMPTS = nttNetworkNearby ? 2 : 1; // Retry se rede confirmada
         
         console.log(`[WS] NTT Phase 1: network within ${NTT_PRESCAN_RADIUS}m = ${nttNetworkNearby}. Will attempt up to ${MAX_ATTEMPTS} route searches.`);
 
