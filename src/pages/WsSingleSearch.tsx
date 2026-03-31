@@ -522,14 +522,12 @@ export default function WsSingleSearch() {
     for (const opt of options) {
       if (opt.nearest_point) {
         const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
-        // Draw off-road segment: pin → snapped road point (gray dashed line)
         if (opt.snap_point) {
           L.polyline(
             [[geoResult.lat, geoResult.lng], [opt.snap_point[0], opt.snap_point[1]]],
             { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
           ).addTo(layerGroup);
         }
-        // Draw route line only when we have real road geometry
         if (opt.route_geometry) {
           try {
             const geojsonData = opt.route_geometry.type === "Feature" || opt.route_geometry.type === "FeatureCollection"
@@ -540,21 +538,18 @@ export default function WsSingleSearch() {
             }).addTo(layerGroup);
           } catch {}
         }
-        // Draw off-road segment: box → snapped road point (gray dashed line)
         if (opt.dest_snap_point && opt.nearest_point) {
           L.polyline(
             [[opt.nearest_point[0], opt.nearest_point[1]], [opt.dest_snap_point[0], opt.dest_snap_point[1]]],
             { color: "#6b7280", weight: 2, opacity: 0.7, dashArray: "4 6" }
           ).addTo(layerGroup);
         }
-        // Connection point marker
         L.circleMarker(opt.nearest_point, { radius: 6, fillColor: routeColor, color: "#fff", weight: 2, fillOpacity: 0.9 })
           .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m<br/>${opt.ta_info || ""}`);
         bounds.extend(L.latLng(opt.nearest_point[0], opt.nearest_point[1]));
       }
     }
 
-    // Draw LM radius results
     if (radiusResults) {
       const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c"];
       const partnerColors: Record<string, string> = {};
@@ -571,7 +566,6 @@ export default function WsSingleSearch() {
       }
     }
 
-    // Extend bounds to include radius circle
     const radiusM = radius * 1000;
     const latOffset = radiusM / 111320;
     const lngOffset = radiusM / (111320 * Math.cos(geoResult.lat * Math.PI / 180));
@@ -582,9 +576,23 @@ export default function WsSingleSearch() {
       map.fitBounds(bounds, { padding: [40, 40] });
     }
 
-    setTimeout(() => map.invalidateSize(), 100);
-    setTimeout(() => map.invalidateSize(), 300);
-    setTimeout(() => map.invalidateSize(), 600);
+    const invalidateIfMounted = () => {
+      if (mapInstance.current !== map) return;
+      const pane = map.getPane("mapPane");
+      if (!pane) return;
+      map.invalidateSize();
+    };
+
+    const timers = [100, 300, 600].map(delay => window.setTimeout(invalidateIfMounted, delay));
+
+    return () => {
+      timers.forEach(window.clearTimeout);
+      if (mapInstance.current === map) {
+        map.remove();
+        mapInstance.current = null;
+        mapLayers.current = null;
+      }
+    };
   }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
 
   useEffect(() => {

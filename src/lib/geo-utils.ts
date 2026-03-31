@@ -723,7 +723,7 @@ async function snapToRoad(
   try {
     const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
@@ -755,10 +755,10 @@ export async function getRouteDistance(
 
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(url, { signal: controller.signal });
+        const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return null; // rate limited — signal retry
       const data = await res.json();
@@ -939,7 +939,7 @@ export async function getRouteDistancePreSnapped(
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return undefined as any;
@@ -1017,7 +1017,7 @@ export async function getRouteDistanceFast(
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return 'rate_limited';
