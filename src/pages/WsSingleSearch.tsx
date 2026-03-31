@@ -542,7 +542,7 @@ export default function WsSingleSearch() {
                 ? rawGeometry.coordinates?.flat?.().length ?? 0
                 : 0;
 
-            if (pointCount > 2) {
+            if (pointCount >= 2) {
               L.geoJSON(geojsonData, {
                 style: () => ({ color: routeColor, weight: 4, opacity: 0.85, dashArray: "10 6" }),
               }).addTo(layerGroup);
