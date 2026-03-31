@@ -363,6 +363,7 @@ export default function WsSingleSearch() {
 
   const handleSearch = async () => {
     setLoading(true);
+    setSearchPhase("Geocodificando endereço...");
     setOptions([]);
     setRadiusResults(null);
     setGeoResult(null);
