@@ -507,7 +507,7 @@ export async function findBestConnectionPointByRoute(
   console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
   const t0 = performance.now();
-  const route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
+  let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
   const elapsed = Math.round(performance.now() - t0);
 
   if (route) {
