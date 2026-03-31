@@ -79,6 +79,8 @@ export interface ViableOption {
   is_check_om?: boolean;
   /** True when OSRM route calculation failed — DO NOT draw straight line */
   route_failed?: boolean;
+  /** True when a short-distance simplified route was used after snap/OSRM fallback */
+  simplified_route?: boolean;
 }
 
 export interface WsResult {
