@@ -531,9 +531,12 @@ export async function findBestConnectionPointByRoute(
 
   if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
+  // All OSRM route attempts failed — DO NOT return straight-line fallback as viable.
+  // Mark result with routeFailed=true so the UI can show an appropriate error.
   const fallback = searchList[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
-  const verificationPending = routeFetchSucceeded === 0;
+
+  console.warn(`[GEO] ⚠ Todas as tentativas OSRM falharam (${routeFetchSucceeded} succeeded, ${searchList.length} tried). Retornando fallback SEM geometria de rota.`);
 
   return {
     taResult: {
@@ -551,7 +554,8 @@ export async function findBestConnectionPointByRoute(
     },
     routeDistance: fallback.distance,
     routeGeometry: null,
-    verificationPending,
+    verificationPending: true,
+    routeFailed: true,
   };
 }
 
