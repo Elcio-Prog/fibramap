@@ -537,6 +537,13 @@ export default function WsSingleSearch() {
               style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
             }).addTo(layerGroup);
           } catch {}
+        } else if (opt.nearest_point) {
+          // Fallback: draw straight line when OSRM route geometry is unavailable
+          const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
+          const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
+          L.polyline([fromPt, toPt], {
+            color: routeColor, weight: 3, opacity: 0.6, dashArray: "6 8",
+          }).addTo(layerGroup);
         }
         if (opt.dest_snap_point && opt.nearest_point) {
           L.polyline(
