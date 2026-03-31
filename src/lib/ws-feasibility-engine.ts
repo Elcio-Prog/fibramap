@@ -386,14 +386,40 @@ async function processItem(
               ? `${Math.round(cpByRoute.routeDistance)}m em linha reta`
               : `${Math.round(cpByRoute.routeDistance)}m`;
             
+            // === PRINCÍPIO: "Rota falhou ≠ Rede inviável" ===
+            // Se existe caixa APTA (válida pelas regras de negócio), a rede é VIÁVEL
+            // independente do sucesso da rota OSRM.
+            const boxIsApt = cpByRoute.taResult.aptoNovoCliente;
+            const straightLineDistance = cpByRoute.taResult.distance; // Haversine distance
+            
+            // Fallback inteligente: caixa apta < 200m = viabilidade direta
+            const isDirectViability = boxIsApt && straightLineDistance <= 200;
+            
             let noteText: string;
-            if (routeFailed) {
-              noteText = `Não foi possível calcular rota viária. Caixa encontrada a ~${distanceLabel} (distância direta). ${taNote}. Verifique restrições geográficas.`;
-            } else if (verificationPending) {
-              noteText = `Caixa/TA próxima encontrada a ${distanceLabel}, mas ${pendingReasons}. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`;
+            let isCheckOm = false;
+            
+            if (boxIsApt && !routeFailed && !verificationPending) {
+              // Cenário ideal: caixa apta + rota confirmada
+              noteText = `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
+            } else if (boxIsApt && isDirectViability) {
+              // Caixa apta muito próxima (<200m) — viável mesmo sem rota
+              noteText = `Rede própria viável - caixa a ~${Math.round(straightLineDistance)}m (viabilidade direta). ${taNote}`;
+              if (routeFailed) {
+                noteText += ` Rota não confirmada automaticamente — necessário validação O&M.`;
+              }
+            } else if (boxIsApt && (routeFailed || verificationPending)) {
+              // Caixa apta mas rota falhou — VIÁVEL, rota complementar
+              noteText = `Rede própria viável - caixa apta a ~${distanceLabel}. ${taNote}. Rota não confirmada automaticamente — necessário validação O&M.`;
+              // NÃO marca como check_om — a rede é viável
+            } else if (!boxIsApt) {
+              // Caixa não apta — checar O&M
+              noteText = `Caixa encontrada a ~${distanceLabel}, porém não apta. ${taNote}. Checar com O&M.`;
+              isCheckOm = true;
             } else {
               noteText = `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
             }
+            
+            console.log(`[WS-ENGINE] NTT Result: boxApt=${boxIsApt}, routeFailed=${routeFailed}, distance=${Math.round(cpByRoute.routeDistance)}m, straightLine=${Math.round(straightLineDistance)}m, directViability=${isDirectViability}, isCheckOm=${isCheckOm}`);
             
             allOptions.push({
               stage: "Rede Própria",
@@ -410,7 +436,7 @@ async function processItem(
               snap_point: cpByRoute.snapPoint,
               dest_snap_point: cpByRoute.destSnapPoint,
               is_own_network: true,
-              is_check_om: verificationPending || routeFailed,
+              is_check_om: isCheckOm,
               route_failed: routeFailed,
             });
           } else if (lastBlockedMsg) {
