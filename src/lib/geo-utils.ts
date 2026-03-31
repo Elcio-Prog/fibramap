@@ -525,7 +525,7 @@ export async function findBestConnectionPointByRoute(
     console.log(`[GEO] ✓ Geometria retornada:`, JSON.stringify(route.geometry).substring(0, 500));
 
     if (!hasValidRouteGeometry(route.geometry)) {
-      console.warn(`[GEO] ✗ Geometria inválida: rota com 2 pontos ou menos não será desenhada.`);
+      console.warn(`[GEO] ✗ Geometria inválida: rota sem coordenadas válidas — não será desenhada.`);
       route = null;
     }
   }
