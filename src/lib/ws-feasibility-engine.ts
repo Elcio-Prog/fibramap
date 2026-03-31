@@ -297,7 +297,7 @@ async function processItem(
               elMapped,
               netTurboProvider.max_lpu_distance_m,
               rules,
-              10,
+              15,
               async (_candidate, route) => {
                 if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
                   const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);

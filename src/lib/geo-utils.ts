@@ -424,7 +424,7 @@ export async function findBestConnectionPointByRoute(
   let routeFilterRejected = 0;
 
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
-  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 8));
+  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 12));
   const aptForRoute = preFiltered.filter((c) => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
   const searchList = (aptForRoute.length > 0 ? aptForRoute : preFiltered).slice(0, ROUTE_CALC_LIMIT);
   const BATCH_SIZE = 4;
