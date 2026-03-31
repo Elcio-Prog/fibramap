@@ -438,13 +438,15 @@ export async function findBestConnectionPointByRoute(
   ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; routeFailed?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   const hasValidRouteGeometry = (geometry: any): boolean => {
+    if (!geometry) return false;
     const candidateGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
     const coordinates = candidateGeometry?.type === "LineString"
       ? candidateGeometry.coordinates
       : candidateGeometry?.type === "MultiLineString"
         ? candidateGeometry.coordinates?.flat?.() ?? []
         : [];
-    return Array.isArray(coordinates) && coordinates.length > 2;
+    // ANY route returned by OSRM is valid — even 2-point routes follow the road network
+    return Array.isArray(coordinates) && coordinates.length >= 2;
   };
 
   // === ETAPA 1: BUSCA — todas as caixas dentro do raio ===
@@ -523,7 +525,7 @@ export async function findBestConnectionPointByRoute(
     console.log(`[GEO] ✓ Geometria retornada:`, JSON.stringify(route.geometry).substring(0, 500));
 
     if (!hasValidRouteGeometry(route.geometry)) {
-      console.warn(`[GEO] ✗ Geometria inválida: rota com 2 pontos ou menos não será desenhada.`);
+      console.warn(`[GEO] ✗ Geometria inválida: rota sem coordenadas válidas — não será desenhada.`);
       route = null;
     }
   }
@@ -794,7 +796,7 @@ async function snapToRoad(
   try {
     const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
