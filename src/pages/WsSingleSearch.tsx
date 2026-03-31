@@ -543,12 +543,22 @@ export default function WsSingleSearch() {
               style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
             }).addTo(layerGroup);
           } catch {}
-        } else if (opt.nearest_point) {
-          // Fallback: draw straight line when OSRM route geometry is unavailable
+        } else if (opt.nearest_point && !opt.route_failed) {
+          // Only draw a dashed indicator if route didn't explicitly fail
+          // (e.g. inside coverage with no route needed)
           const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
           const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
           L.polyline([fromPt, toPt], {
-            color: routeColor, weight: 3, opacity: 0.6, dashArray: "6 8",
+            color: "#ef4444", weight: 2, opacity: 0.5, dashArray: "4 8",
+          }).addTo(layerGroup);
+          // Add error label on the map
+          const midLat = (fromPt[0] + toPt[0]) / 2;
+          const midLng = (fromPt[1] + toPt[1]) / 2;
+          L.marker([midLat, midLng], {
+            icon: L.divIcon({
+              className: '',
+              html: '<div style="background:#ef4444;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">Rota viária indisponível</div>',
+            }),
           }).addTo(layerGroup);
         }
         if (opt.dest_snap_point && opt.nearest_point) {
