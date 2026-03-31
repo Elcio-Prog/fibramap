@@ -254,7 +254,7 @@ function buildConnectionCandidates(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   rules: ProviderRules
 ): ConnectionCandidate[] {
-  const candidates: ConnectionCandidate[] = [];
+  const raw: ConnectionCandidate[] = [];
 
   for (const el of elements) {
     const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
@@ -272,7 +272,7 @@ function buildConnectionCandidates(
     const d = haversineDistance(lat, lng, lat2, lng2);
     const aptCheck = evaluateConnectionAptness(props, rules);
 
-    candidates.push({
+    raw.push({
       lat: lat2,
       lng: lng2,
       nome: props.nome || tipo,
@@ -284,7 +284,26 @@ function buildConnectionCandidates(
     });
   }
 
+  // Deduplicate by box name — keep the best entry (prefer apt, then most ports)
+  const byName = new Map<string, ConnectionCandidate>();
+  for (const c of raw) {
+    const existing = byName.get(c.nome);
+    if (!existing) {
+      byName.set(c.nome, c);
+    } else {
+      // Prefer apt over non-apt, then prefer closer distance
+      const existingBetter =
+        (existing.aptoNovoCliente && !c.aptoNovoCliente) ||
+        (existing.aptoNovoCliente === c.aptoNovoCliente && existing.distance <= c.distance);
+      if (!existingBetter) {
+        byName.set(c.nome, c);
+      }
+    }
+  }
+
+  const candidates = Array.from(byName.values());
   candidates.sort((a, b) => a.distance - b.distance);
+  console.log(`[GEO] buildConnectionCandidates: ${raw.length} raw → ${candidates.length} unique (closest: ${candidates[0]?.nome} @ ${Math.round(candidates[0]?.distance || 0)}m, apt=${candidates[0]?.aptoNovoCliente})`);
   return candidates;
 }
 
@@ -405,7 +424,7 @@ export async function findBestConnectionPointByRoute(
   let routeFilterRejected = 0;
 
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
-  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 8));
+  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 12));
   const aptForRoute = preFiltered.filter((c) => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
   const searchList = (aptForRoute.length > 0 ? aptForRoute : preFiltered).slice(0, ROUTE_CALC_LIMIT);
   const BATCH_SIZE = 4;
