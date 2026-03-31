@@ -217,8 +217,16 @@ async function processItem(
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
-  // Pre-snap origin ONCE — reused across all route calculations
-  const originSnap = await snapToRoadCached(lat, lng);
+  // Pre-snap origin AND prefetch Overpass in PARALLEL
+  const originSnapPromise = snapToRoadCached(lat, lng);
+  
+  // Start Overpass prefetch early (runs concurrently with snap)
+  let overpassPromise: Promise<{ ways: any; success: boolean }> | null = null;
+  if (netTurboProvider) {
+    overpassPromise = prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000);
+  }
+
+  const originSnap = await originSnapPromise;
 
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
@@ -239,11 +247,9 @@ async function processItem(
       const inside = isInsideCoverage(lat, lng, elements);
       const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
-      // Pre-fetch highways/railways ONCE for the customer area to avoid Overpass rate limiting
-      const [overpassResult, nttCables] = await Promise.all([
-        prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000),
-        Promise.resolve(extractNttCables(elMapped)),
-      ]);
+      // Wait for Overpass (started in parallel with snap above)
+      const overpassResult = await overpassPromise!;
+      const nttCables = extractNttCables(elMapped);
       const cachedWays = overpassResult.ways;
       const overpassFailed = !overpassResult.success;
       const highwayVerificationPending = rules.regras_bloquear_cruzamento_rodovia && overpassFailed;
@@ -281,7 +287,7 @@ async function processItem(
           
           for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             if (attempt > 1) {
-              const delay = 800 + (attempt - 1) * 500; // 800ms, 1.3s
+             const delay = 500; // reduced from 800ms
               console.log(`[WS] NTT Phase 2: retry attempt ${attempt}/${MAX_ATTEMPTS} after ${delay}ms delay...`);
               await new Promise(r => setTimeout(r, delay));
             }

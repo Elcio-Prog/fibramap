@@ -398,17 +398,22 @@ export async function findBestConnectionPointByRoute(
     ? Math.max(1, Math.floor(maxCandidates))
     : orderedCandidates.length;
 
-  // Pre-filter by straight-line distance (cheap), then only compute expensive
-  // route distances for the top few apt candidates
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
   
-  // Among pre-filtered, pick top apt candidates to compute routes for
-  // Use a generous limit so that if early candidates are blocked by route filters
-  // (CPFL, highway/railway), the system continues trying further candidates
-  const ROUTE_CALC_LIMIT = 10;
+  // Reduced from 10 to 5 candidates for faster processing
+  const ROUTE_CALC_LIMIT = 5;
   const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
-  // If no apt candidates, fall back to top candidates overall
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
+
+  // PARALLEL route calculation — all candidates at once instead of sequential
+  const routeResults = await Promise.all(searchList.map(async (candidate) => {
+    let route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+    if (!route) {
+      await new Promise(r => setTimeout(r, 600));
+      route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+    }
+    return { candidate, route };
+  }));
 
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
@@ -416,13 +421,7 @@ export async function findBestConnectionPointByRoute(
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
 
-  for (const candidate of searchList) {
-    let route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
-    // Retry once if route failed (OSRM rate-limit or transient error)
-    if (!route) {
-      await new Promise(r => setTimeout(r, 800));
-      route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
-    }
+  for (const { candidate, route } of routeResults) {
     if (!route) continue;
     routeFetchSucceeded++;
 
@@ -465,13 +464,8 @@ export async function findBestConnectionPointByRoute(
     };
   }
 
-  // With a route filter, only return null when we actually managed to compute routes
-  // and all of them were rejected by technical rules. If routing was unavailable,
-  // fall back to nearest candidate and flag the result for revalidation instead of
-  // producing a false negative.
   if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
-  // If routing fails for all candidates, fallback to nearest candidate by straight-line
   const fallback = preFiltered[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
   const verificationPending = routeFetchSucceeded === 0;
@@ -683,7 +677,7 @@ function _osrmCacheKey(fromLat: number, fromLng: number, toLat: number, toLng: n
 
 // Simple semaphore to limit concurrent OSRM requests
 let _osrmInFlight = 0;
-const _osrmMaxConcurrent = 6;
+const _osrmMaxConcurrent = 10;
 
 async function _osrmThrottle(): Promise<void> {
   while (_osrmInFlight >= _osrmMaxConcurrent) {
@@ -904,67 +898,43 @@ export async function getRouteDistancePreSnapped(
     return _osrmCache.get(cacheKey) ?? null;
   }
 
-  const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (res.status === 429) return null;
-      const data = await res.json();
-      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-        return data.routes
-          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
-          .map((r: any) => ({ distance: r.distance as number, geometry: r.geometry }));
-      }
-      return [] as Array<{ distance: number; geometry: any }>;
-    } catch {
-      return [] as Array<{ distance: number; geometry: any }>;
-    }
-  };
-
-  const reverseGeometry = (geometry: any) => {
-    if (!geometry) return geometry;
-    if (geometry.type === "LineString" && Array.isArray(geometry.coordinates)) {
-      return { ...geometry, coordinates: [...geometry.coordinates].reverse() };
-    }
-    if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
-      return { ...geometry, coordinates: [...geometry.coordinates].reverse().map((line: number[][]) => [...line].reverse()) };
-    }
-    return geometry;
-  };
-
-  // Use pre-snapped origin, only snap destination
+  // Use pre-snapped origin, cache destination snap
   const snapLat = originSnap?.lat ?? fromLat;
   const snapLng = originSnap?.lng ?? fromLng;
   const snapOffsetMeters = originSnap?.offsetMeters ?? 0;
   const snapPoint: [number, number] | undefined =
     originSnap && snapOffsetMeters > 1 ? [originSnap.lat, originSnap.lng] : undefined;
 
-  const snappedDest = await snapToRoad(toLat, toLng);
+  const snappedDest = await snapToRoadCached(toLat, toLng);
   const destSnapLat = snappedDest?.lat ?? toLat;
   const destSnapLng = snappedDest?.lng ?? toLng;
   const destSnapOffsetMeters = snappedDest?.offsetMeters ?? 0;
   const destSnapPoint: [number, number] | undefined =
     snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
 
+  // Single forward-only OSRM call (no reverse, no alternatives) for speed
   const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
-      const [forwardRoutes, reverseRoutes] = await Promise.all([
-        fetchDrivingAlternatives(snapLat, snapLng, destSnapLat, destSnapLng),
-        fetchDrivingAlternatives(destSnapLat, destSnapLng, snapLat, snapLng),
-      ]);
-      if (forwardRoutes === null || reverseRoutes === null) return undefined as any;
-      const normalized = [
-        ...(forwardRoutes || []).map((r) => ({ distance: r.distance, geometry: r.geometry })),
-        ...(reverseRoutes || []).map((r) => ({ distance: r.distance, geometry: reverseGeometry(r.geometry) })),
-      ];
-      if (normalized.length === 0) return null;
-      normalized.sort((a, b) => a.distance - b.distance);
-      const best = normalized[0];
-      return { ...best, distance: best.distance + snapOffsetMeters + destSnapOffsetMeters, snapPoint, destSnapPoint };
+      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.status === 429) return undefined as any;
+      const data = await res.json();
+      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        const best = data.routes[0];
+        return {
+          distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
+          geometry: best.geometry,
+          snapPoint,
+          destSnapPoint,
+        };
+      }
+      return null;
+    } catch {
+      return null;
     } finally {
       _osrmRelease();
     }
@@ -973,7 +943,7 @@ export async function getRouteDistancePreSnapped(
   try {
     let result = await attemptFetch();
     if (result === undefined) {
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 800));
       result = await attemptFetch();
       if (result === undefined) result = null;
     }
@@ -984,6 +954,69 @@ export async function getRouteDistancePreSnapped(
     return result;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Fast single-direction OSRM route (no alternatives, no reverse).
+ * Used for candidate screening in findBestConnectionPointByRoute.
+ */
+export async function getRouteDistanceFast(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
+  const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
+  const cachedTs = _osrmCacheTimestamps.get(cacheKey);
+  if (cachedTs && Date.now() - cachedTs < _osrmCacheMaxAge && _osrmCache.has(cacheKey)) {
+    return _osrmCache.get(cacheKey) ?? null;
+  }
+
+  // Snap both endpoints using cache
+  const [snapped, snappedDest] = await Promise.all([
+    snapToRoadCached(fromLat, fromLng),
+    snapToRoadCached(toLat, toLng),
+  ]);
+  
+  const snapLat = snapped?.lat ?? fromLat;
+  const snapLng = snapped?.lng ?? fromLng;
+  const snapOffsetMeters = snapped?.offsetMeters ?? 0;
+  const snapPoint: [number, number] | undefined =
+    snapped && snapOffsetMeters > 1 ? [snapped.lat, snapped.lng] : undefined;
+
+  const destSnapLat = snappedDest?.lat ?? toLat;
+  const destSnapLng = snappedDest?.lng ?? toLng;
+  const destSnapOffsetMeters = snappedDest?.offsetMeters ?? 0;
+  const destSnapPoint: [number, number] | undefined =
+    snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
+
+  await _osrmThrottle();
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.status === 429) return null;
+    const data = await res.json();
+    if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+      const best = data.routes[0];
+      const result = {
+        distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
+        geometry: best.geometry,
+        snapPoint,
+        destSnapPoint,
+      };
+      _osrmCache.set(cacheKey, result);
+      _osrmCacheTimestamps.set(cacheKey, Date.now());
+      return result;
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    _osrmRelease();
   }
 }
 
