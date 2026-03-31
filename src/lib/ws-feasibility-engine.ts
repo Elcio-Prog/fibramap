@@ -723,14 +723,20 @@ export async function processWsSingleItem(
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
   preProviders: PreProviderWithCities[] = [],
+  cachedElementsByProvider?: Record<string, GeoElement[]>,
 ): Promise<WsResult> {
-  const elementsByProvider: Record<string, GeoElement[]> = {};
-  for (const el of geoElements) {
-    if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
-    elementsByProvider[el.provider_id].push(el);
-  }
-
+  const elementsByProvider = cachedElementsByProvider ?? buildElementsByProvider(geoElements);
   return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+}
+
+/** Build elementsByProvider map — call once and reuse for multiple items */
+export function buildElementsByProvider(geoElements: GeoElement[]): Record<string, GeoElement[]> {
+  const map: Record<string, GeoElement[]> = {};
+  for (const el of geoElements) {
+    if (!map[el.provider_id]) map[el.provider_id] = [];
+    map[el.provider_id].push(el);
+  }
+  return map;
 }
 
 /** Helper to process a single item with resolved geo */
