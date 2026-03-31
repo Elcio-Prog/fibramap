@@ -400,20 +400,41 @@ export async function findBestConnectionPointByRoute(
 
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
   
-  // Reduced from 10 to 5 candidates for faster processing
+  // Process candidates in batches of 2 to avoid OSRM rate-limiting
   const ROUTE_CALC_LIMIT = 5;
   const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
 
-  // PARALLEL route calculation — all candidates at once instead of sequential
-  const routeResults = await Promise.all(searchList.map(async (candidate) => {
-    let route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
-    if (!route) {
-      await new Promise(r => setTimeout(r, 600));
-      route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+  const BATCH_SIZE = 2;
+  const routeResults: Array<{ candidate: ConnectionCandidate; route: Awaited<ReturnType<typeof getRouteDistanceFast>> }> = [];
+  
+  for (let i = 0; i < searchList.length; i += BATCH_SIZE) {
+    const batch = searchList.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map(async (candidate) => {
+      let route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+      if (!route) {
+        await new Promise(r => setTimeout(r, 800));
+        route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+      }
+      return { candidate, route };
+    }));
+    routeResults.push(...batchResults);
+    
+    // Check if we already have a viable result — skip remaining batches
+    const viableFound = batchResults.some(r => r.route && r.route.distance <= limitMeters);
+    if (viableFound && i + BATCH_SIZE < searchList.length) {
+      // Found viable in this batch, process one more batch for comparison then stop
+      const nextBatch = searchList.slice(i + BATCH_SIZE, i + BATCH_SIZE * 2);
+      if (nextBatch.length > 0) {
+        const nextResults = await Promise.all(nextBatch.map(async (candidate) => {
+          const route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+          return { candidate, route };
+        }));
+        routeResults.push(...nextResults);
+      }
+      break;
     }
-    return { candidate, route };
-  }));
+  }
 
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
