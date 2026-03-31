@@ -449,32 +449,29 @@ export default function WsSingleSearch() {
   useEffect(() => {
     if (!geoResult || !mapRef.current) return;
 
-    // Destroy previous map to avoid stale state
-    if (mapInstance.current) {
-      mapInstance.current.remove();
-      mapInstance.current = null;
-      mapLayers.current = null;
+    const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
+
+    if (!mapInstance.current) {
+      if (container._leaflet_id) container._leaflet_id = undefined;
+      const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
+      mapLayers.current = L.layerGroup().addTo(map);
+      mapInstance.current = map;
+    } else {
+      mapInstance.current.setView([geoResult.lat, geoResult.lng], mapInstance.current.getZoom());
+      mapLayers.current?.clearLayers();
     }
 
-    const container = mapRef.current as HTMLDivElement & { _leaflet_id?: number };
-    if (container._leaflet_id) container._leaflet_id = undefined;
-    const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
-    mapLayers.current = L.layerGroup().addTo(map);
-    mapInstance.current = map;
-
+    const map = mapInstance.current;
     const layerGroup = mapLayers.current;
-    if (!layerGroup) return;
+    if (!map || !layerGroup) return;
 
     const bounds = L.latLngBounds([[geoResult.lat, geoResult.lng]]);
 
-    // Client marker
     L.marker([geoResult.lat, geoResult.lng]).addTo(layerGroup).bindPopup(`<b>Cliente</b><br/>${cliente || geoResult.display}`);
 
-    // Radius circle
     L.circle([geoResult.lat, geoResult.lng], { radius: radius * 1000, color: "#3388ff", fillOpacity: 0.05, weight: 1, dashArray: "8 4" }).addTo(layerGroup);
 
-    // Draw provider coverages near the point
     if (allGeoElements) {
       const maxRenderDist = 10000;
       const nearbyElements = allGeoElements.filter(el => {
@@ -524,10 +521,9 @@ export default function WsSingleSearch() {
       }
     }
 
-    // Draw routes from options
     for (const opt of options) {
       if (opt.nearest_point) {
-        const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
+        const routeColor = opt.simplified_route ? "#0ea5e9" : opt.is_own_network ? "#3b82f6" : "#22c55e";
         if (opt.snap_point) {
           L.polyline(
             [[geoResult.lat, geoResult.lng], [opt.snap_point[0], opt.snap_point[1]]],
@@ -539,20 +535,31 @@ export default function WsSingleSearch() {
             const geojsonData = opt.route_geometry.type === "Feature" || opt.route_geometry.type === "FeatureCollection"
               ? opt.route_geometry
               : { type: "Feature", geometry: opt.route_geometry, properties: {} };
+            const isSimplifiedRoute = !!opt.simplified_route || opt.route_geometry?.properties?.source === "short-distance-fallback";
             L.geoJSON(geojsonData, {
-              style: () => ({ color: routeColor, weight: 4, opacity: 0.8, dashArray: "10 6" }),
+              style: () => ({ color: routeColor, weight: isSimplifiedRoute ? 3 : 4, opacity: 0.85, dashArray: isSimplifiedRoute ? "6 6" : "10 6" }),
             }).addTo(layerGroup);
+
+            if (isSimplifiedRoute) {
+              const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
+              const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
+              const midLat = (fromPt[0] + toPt[0]) / 2;
+              const midLng = (fromPt[1] + toPt[1]) / 2;
+              L.marker([midLat, midLng], {
+                icon: L.divIcon({
+                  className: '',
+                  html: `<div style="background:#0ea5e9;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">Rota simplificada</div>`,
+                }),
+              }).addTo(layerGroup);
+            }
           } catch {}
         } else if (opt.nearest_point && !opt.route_failed) {
-          // Only draw a dashed indicator if route didn't explicitly fail
-          // (e.g. inside coverage with no route needed)
           const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
           const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
           L.polyline([fromPt, toPt], {
             color: "#ef4444", weight: 2, opacity: 0.5, dashArray: "4 8",
           }).addTo(layerGroup);
         } else if (opt.nearest_point && opt.route_failed) {
-          // Route failed but box may be viable — draw orange dashed line (not red error)
           const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
           const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
           const isViableBox = opt.is_own_network && !opt.is_check_om && !opt.is_blocked;
@@ -562,7 +569,6 @@ export default function WsSingleSearch() {
           L.polyline([fromPt, toPt], {
             color: lineColor, weight: 3, opacity: 0.6, dashArray: "6 8",
           }).addTo(layerGroup);
-          // Add label on the map
           const midLat = (fromPt[0] + toPt[0]) / 2;
           const midLng = (fromPt[1] + toPt[1]) / 2;
           L.marker([midLat, midLng], {
@@ -610,22 +616,12 @@ export default function WsSingleSearch() {
       map.fitBounds(bounds, { padding: [40, 40] });
     }
 
-    const invalidateIfMounted = () => {
-      if (mapInstance.current !== map) return;
-      const pane = map.getPane("mapPane");
-      if (!pane) return;
-      map.invalidateSize();
-    };
-
-    const timers = [100, 300, 600].map(delay => window.setTimeout(invalidateIfMounted, delay));
+    const timers = [100, 300, 600].map(delay => window.setTimeout(() => {
+      if (mapInstance.current === map) map.invalidateSize();
+    }, delay));
 
     return () => {
       timers.forEach(window.clearTimeout);
-      if (mapInstance.current === map) {
-        map.remove();
-        mapInstance.current = null;
-        mapLayers.current = null;
-      }
     };
   }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
 
