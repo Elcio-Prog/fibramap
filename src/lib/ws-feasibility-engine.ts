@@ -247,12 +247,10 @@ async function processItem(
       const inside = isInsideCoverage(lat, lng, elements);
       const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
 
-      // Wait for Overpass (started in parallel with snap above)
-      const overpassResult = await overpassPromise!;
       const nttCables = extractNttCables(elMapped);
-      const cachedWays = overpassResult.ways;
-      const overpassFailed = !overpassResult.success;
-      const highwayVerificationPending = rules.regras_bloquear_cruzamento_rodovia && overpassFailed;
+      let cachedWays: any[] = [];
+      let overpassFailed = false;
+      let highwayVerificationPending = false;
 
       if (inside) {
         const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
@@ -309,7 +307,7 @@ async function processItem(
                   }
                 }
 
-                if (rules.regras_bloquear_cruzamento_rodovia && route.geometry && !highwayVerificationPending) {
+                if (rules.regras_bloquear_cruzamento_rodovia && route.geometry && cachedWays.length > 0 && !highwayVerificationPending) {
                   const hwCheck = checkRouteHighwayRailwayWithCache(route.geometry, cachedWays, nttCables, overpassFailed);
                   if (hwCheck.blocked) {
                     lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
@@ -334,6 +332,44 @@ async function processItem(
           }
 
           if (cpByRoute && cpByRoute.routeDistance <= netTurboProvider.max_lpu_distance_m) {
+            if (rules.regras_bloquear_cruzamento_rodovia && overpassPromise) {
+              const overpassResult = await overpassPromise;
+              cachedWays = overpassResult.ways;
+              overpassFailed = !overpassResult.success;
+              highwayVerificationPending = overpassFailed;
+
+              if (cpByRoute.routeGeometry && cachedWays.length > 0 && !highwayVerificationPending) {
+                const hwCheck = checkRouteHighwayRailwayWithCache(cpByRoute.routeGeometry, cachedWays, nttCables, overpassFailed);
+                if (hwCheck.blocked) {
+                  lastBlockedMsg = hwCheck.message || "Cruzamento rodovia/ferrovia";
+                  allOptions.push({
+                    stage: "Rede Própria",
+                    provider_name: netTurboProvider.name,
+                    provider_id: netTurboProvider.id,
+                    provider_color: netTurboProvider.color,
+                    distance_m: Math.round(cpByRoute.routeDistance),
+                    lpu_value: null,
+                    final_value: null,
+                    notes: `Rede própria próxima, mas bloqueada por regra técnica: ${lastBlockedMsg}`,
+                    is_own_network: true,
+                    is_blocked: true,
+                  });
+                  return {
+                    best: {
+                      stage: "Rede Própria",
+                      provider_name: netTurboProvider.name,
+                      distance_m: Math.round(cpByRoute.routeDistance),
+                      lpu_value: null,
+                      final_value: null,
+                      is_viable: false,
+                      notes: `INVIÁVEL - Rede própria próxima, mas bloqueada por regra técnica: ${lastBlockedMsg}`,
+                    },
+                    all_options: allOptions,
+                  };
+                }
+              }
+            }
+
             const taNote = `${cpByRoute.taResult.tipo}: ${cpByRoute.taResult.nome}`;
             const verificationPending = !!cpByRoute.verificationPending || highwayVerificationPending;
             const pendingReasons = [
