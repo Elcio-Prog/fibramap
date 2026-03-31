@@ -254,7 +254,20 @@ function buildConnectionCandidates(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   rules: ProviderRules
 ): ConnectionCandidate[] {
+  const t0 = performance.now();
   const raw: ConnectionCandidate[] = [];
+
+  // Bounding box pre-filter: skip elements obviously too far (10km)
+  const PRE_FILTER_M = 10000;
+  const degLat = PRE_FILTER_M / 111320;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const degLng = PRE_FILTER_M / (111320 * (cosLat || 0.01));
+  const minLat = lat - degLat;
+  const maxLat = lat + degLat;
+  const minLng = lng - degLng;
+  const maxLng = lng + degLng;
+
+  let skippedBbox = 0;
 
   for (const el of elements) {
     const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
@@ -269,6 +282,13 @@ function buildConnectionCandidates(
     if (geo?.type !== "Point") continue;
 
     const [lng2, lat2] = geo.coordinates;
+
+    // Fast bounding box rejection before expensive haversine
+    if (lat2 < minLat || lat2 > maxLat || lng2 < minLng || lng2 > maxLng) {
+      skippedBbox++;
+      continue;
+    }
+
     const d = haversineDistance(lat, lng, lat2, lng2);
     const aptCheck = evaluateConnectionAptness(props, rules);
 
@@ -303,7 +323,15 @@ function buildConnectionCandidates(
 
   const candidates = Array.from(byName.values());
   candidates.sort((a, b) => a.distance - b.distance);
-  console.log(`[GEO] buildConnectionCandidates: ${raw.length} raw → ${candidates.length} unique (closest: ${candidates[0]?.nome} @ ${Math.round(candidates[0]?.distance || 0)}m, apt=${candidates[0]?.aptoNovoCliente})`);
+  const elapsed = Math.round(performance.now() - t0);
+  console.log(`[GEO] buildConnectionCandidates: ${raw.length} raw → ${candidates.length} unique (bbox skipped ${skippedBbox}) in ${elapsed}ms. Closest: ${candidates[0]?.nome} @ ${Math.round(candidates[0]?.distance || 0)}m, apt=${candidates[0]?.aptoNovoCliente}`);
+  
+  // Log top 5 candidates for debugging
+  for (let i = 0; i < Math.min(5, candidates.length); i++) {
+    const c = candidates[i];
+    console.log(`  [GEO] #${i+1} ${c.nome} (${c.tipo}) ${Math.round(c.distance)}m apt=${c.aptoNovoCliente}${c.motivoBloqueio ? ` [${c.motivoBloqueio}]` : ''}`);
+  }
+  
   return candidates;
 }
 
