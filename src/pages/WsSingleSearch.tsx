@@ -397,10 +397,12 @@ export default function WsSingleSearch() {
       }
 
       setGeoResult(geo);
+      setSearchPhase("Buscando caixas e calculando rota...");
 
       if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
         toast({ title: "Dados de rede ainda carregando, aguarde...", variant: "destructive" });
         setLoading(false);
+        setSearchPhase("");
         return;
       }
 
