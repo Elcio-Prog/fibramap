@@ -958,7 +958,7 @@ export async function getRouteDistancePreSnapped(
 }
 
 /**
- * Fast single-direction OSRM route (no alternatives, no reverse).
+ * Fast OSRM route with alternatives for accuracy and retry on rate-limit.
  * Used for candidate screening in findBestConnectionPointByRoute.
  */
 export async function getRouteDistanceFast(
@@ -991,32 +991,55 @@ export async function getRouteDistanceFast(
   const destSnapPoint: [number, number] | undefined =
     snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
 
-  await _osrmThrottle();
+  const doFetch = async (): Promise<{ distance: number; geometry: any } | null | 'rate_limited'> => {
+    await _osrmThrottle();
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.status === 429) return 'rate_limited';
+      const data = await res.json();
+      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        // Pick shortest among alternatives
+        const sorted = data.routes
+          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+          .sort((a: any, b: any) => a.distance - b.distance);
+        if (sorted.length > 0) {
+          return { distance: sorted[0].distance, geometry: sorted[0].geometry };
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      _osrmRelease();
+    }
+  };
+
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (res.status === 429) return null;
-    const data = await res.json();
-    if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-      const best = data.routes[0];
-      const result = {
-        distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
-        geometry: best.geometry,
+    let result = await doFetch();
+    // Retry once on rate-limit with backoff
+    if (result === 'rate_limited') {
+      await new Promise(r => setTimeout(r, 1200));
+      result = await doFetch();
+      if (result === 'rate_limited') result = null;
+    }
+    if (result && result !== 'rate_limited') {
+      const final = {
+        distance: result.distance + snapOffsetMeters + destSnapOffsetMeters,
+        geometry: result.geometry,
         snapPoint,
         destSnapPoint,
       };
-      _osrmCache.set(cacheKey, result);
+      _osrmCache.set(cacheKey, final);
       _osrmCacheTimestamps.set(cacheKey, Date.now());
-      return result;
+      return final;
     }
     return null;
   } catch {
     return null;
-  } finally {
-    _osrmRelease();
   }
 }
 
