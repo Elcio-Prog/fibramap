@@ -419,7 +419,14 @@ async function processItem(
               noteText = `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
             }
             
-            console.log(`[WS-ENGINE] NTT Result: boxApt=${boxIsApt}, routeFailed=${routeFailed}, distance=${Math.round(cpByRoute.routeDistance)}m, straightLine=${Math.round(straightLineDistance)}m, directViability=${isDirectViability}, isCheckOm=${isCheckOm}`);
+            console.log(`[WS-ENGINE] ═══════════════════════════════════════════════`);
+            console.log(`[WS-ENGINE] Selected Box: ${cpByRoute.taResult.nome} (${cpByRoute.taResult.tipo})`);
+            console.log(`[WS-ENGINE]   Lat/Lng: ${cpByRoute.taResult.point[0].toFixed(6)}, ${cpByRoute.taResult.point[1].toFixed(6)}`);
+            console.log(`[WS-ENGINE]   boxApt=${boxIsApt}, routeFailed=${routeFailed}`);
+            console.log(`[WS-ENGINE]   routeDistance=${Math.round(cpByRoute.routeDistance)}m, straightLine=${Math.round(straightLineDistance)}m`);
+            console.log(`[WS-ENGINE]   directViability=${isDirectViability}, isCheckOm=${isCheckOm}`);
+            console.log(`[WS-ENGINE]   routeGeometry=${cpByRoute.routeGeometry ? 'PRESENT' : 'NULL'}`);
+            console.log(`[WS-ENGINE] ═══════════════════════════════════════════════`);
             
             allOptions.push({
               stage: "Rede Própria",
