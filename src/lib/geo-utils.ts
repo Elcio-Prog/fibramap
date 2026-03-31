@@ -398,64 +398,61 @@ export async function findBestConnectionPointByRoute(
     ? Math.max(1, Math.floor(maxCandidates))
     : orderedCandidates.length;
 
-  const preFiltered = orderedCandidates.slice(0, candidateLimit);
-  
-  // Process candidates in batches of 2 to avoid OSRM rate-limiting
-  const ROUTE_CALC_LIMIT = 5;
-  const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
-  const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
-
-  const BATCH_SIZE = 2;
-  const routeResults: Array<{ candidate: ConnectionCandidate; route: Awaited<ReturnType<typeof getRouteDistanceFast>> }> = [];
-  
-  for (let i = 0; i < searchList.length; i += BATCH_SIZE) {
-    const batch = searchList.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(batch.map(async (candidate) => {
-      let route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
-      if (!route) {
-        await new Promise(r => setTimeout(r, 800));
-        route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
-      }
-      return { candidate, route };
-    }));
-    routeResults.push(...batchResults);
-    
-    // Check if we already have a viable result — skip remaining batches
-    const viableFound = batchResults.some(r => r.route && r.route.distance <= limitMeters);
-    if (viableFound && i + BATCH_SIZE < searchList.length) {
-      // Found viable in this batch, process one more batch for comparison then stop
-      const nextBatch = searchList.slice(i + BATCH_SIZE, i + BATCH_SIZE * 2);
-      if (nextBatch.length > 0) {
-        const nextResults = await Promise.all(nextBatch.map(async (candidate) => {
-          const route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
-          return { candidate, route };
-        }));
-        routeResults.push(...nextResults);
-      }
-      break;
-    }
-  }
-
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
     | null = null;
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
 
-  for (const { candidate, route } of routeResults) {
-    if (!route) continue;
-    routeFetchSucceeded++;
+  const preFiltered = orderedCandidates.slice(0, candidateLimit);
+  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 8));
+  const aptForRoute = preFiltered.filter((c) => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
+  const searchList = (aptForRoute.length > 0 ? aptForRoute : preFiltered).slice(0, ROUTE_CALC_LIMIT);
+  const BATCH_SIZE = 4;
+  const originSnap = await snapToRoadCached(lat, lng);
 
-    if (routeFilter) {
-      const accepted = await routeFilter(candidate, route);
-      if (!accepted) {
-        routeFilterRejected++;
-        continue;
+  const processBatch = async (batch: ConnectionCandidate[]) => {
+    const batchResults = await Promise.all(batch.map(async (candidate) => {
+      let route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
+      if (!route) {
+        await new Promise((r) => setTimeout(r, 450));
+        route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
+      }
+      return { candidate, route };
+    }));
+
+    let viableFound = false;
+
+    for (const { candidate, route } of batchResults) {
+      if (!route) continue;
+      routeFetchSucceeded++;
+
+      if (routeFilter) {
+        const accepted = await routeFilter(candidate, route);
+        if (!accepted) {
+          routeFilterRejected++;
+          continue;
+        }
+      }
+
+      if (route.distance <= limitMeters) viableFound = true;
+
+      if (!best || route.distance < best.route.distance) {
+        best = { candidate, route };
       }
     }
 
-    if (!best || route.distance < best.route.distance) {
-      best = { candidate, route };
+    return viableFound;
+  };
+
+  for (let i = 0; i < searchList.length; i += BATCH_SIZE) {
+    const viableFound = await processBatch(searchList.slice(i, i + BATCH_SIZE));
+    if (viableFound && i + BATCH_SIZE < searchList.length) {
+      const nextBatch = searchList.slice(i + BATCH_SIZE, i + BATCH_SIZE * 2);
+      if (nextBatch.length > 0) {
+        await processBatch(nextBatch);
+      }
+      break;
     }
   }
 
@@ -933,19 +930,22 @@ export async function getRouteDistancePreSnapped(
   const destSnapPoint: [number, number] | undefined =
     snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
 
-  // Single forward-only OSRM call (no reverse, no alternatives) for speed
+  // Single forward OSRM call with alternatives for better accuracy at lower cost than double-direction routing
   const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return undefined as any;
       const data = await res.json();
       if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-        const best = data.routes[0];
+        const best = data.routes
+          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+          .sort((a: any, b: any) => a.distance - b.distance)[0];
+        if (!best) return null;
         return {
           distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
           geometry: best.geometry,
@@ -964,7 +964,7 @@ export async function getRouteDistancePreSnapped(
   try {
     let result = await attemptFetch();
     if (result === undefined) {
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 1000));
       result = await attemptFetch();
       if (result === undefined) result = null;
     }
@@ -1390,9 +1390,13 @@ async function fetchHighwaysAndRailwaysWithStatus(
   minLat: number, minLng: number, maxLat: number, maxLng: number
 ): Promise<OverpassFetchResult> {
   try {
-    const { data, error } = await supabase.functions.invoke("overpass-proxy", {
+    const invokePromise = supabase.functions.invoke("overpass-proxy", {
       body: { minLat, minLng, maxLat, maxLng },
     });
+    const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+      setTimeout(() => resolve({ data: null, error: { message: "overpass timeout" } }), 4000);
+    });
+    const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as Awaited<typeof invokePromise> | { data: null; error: { message: string } };
 
     if (error) {
       console.error("overpass-proxy invoke failed:", error);
