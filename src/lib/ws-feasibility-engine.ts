@@ -11,6 +11,8 @@ import {
   findBestConnectionPointByRoute,
   findNearestConnectionPointAny,
   getRouteDistance,
+  getRouteDistancePreSnapped,
+  snapToRoadCached,
   isInsideCoverage,
   findNearestBoundaryPoint,
   routeCrossesCPFL,
@@ -215,6 +217,9 @@ async function processItem(
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
+  // Pre-snap origin ONCE — reused across all route calculations
+  const originSnap = await snapToRoadCached(lat, lng);
+
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
     const elements = elementsByProvider[netTurboProvider.id] || [];
@@ -265,7 +270,7 @@ async function processItem(
         // Se sim, confirma presença de rede e habilita retries agressivos na Fase 2.
         const NTT_PRESCAN_RADIUS = 5000; // 5km
         const nttNetworkNearby = hasNetworkInRadius(lat, lng, elMapped, NTT_PRESCAN_RADIUS);
-        const MAX_ATTEMPTS = nttNetworkNearby ? 3 : 1; // Retry agressivo se rede confirmada
+        const MAX_ATTEMPTS = nttNetworkNearby ? 2 : 1; // Retry se rede confirmada
         
         console.log(`[WS] NTT Phase 1: network within ${NTT_PRESCAN_RADIUS}m = ${nttNetworkNearby}. Will attempt up to ${MAX_ATTEMPTS} route searches.`);
 
@@ -276,8 +281,7 @@ async function processItem(
           
           for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             if (attempt > 1) {
-              // Wait before retry — give OSRM time to recover
-              const delay = 1500 + (attempt - 1) * 1000; // 1.5s, 2.5s
+              const delay = 800 + (attempt - 1) * 500; // 800ms, 1.3s
               console.log(`[WS] NTT Phase 2: retry attempt ${attempt}/${MAX_ATTEMPTS} after ${delay}ms delay...`);
               await new Promise(r => setTimeout(r, delay));
             }
@@ -410,12 +414,11 @@ async function processItem(
     }
   }
 
-  // === Etapa 2: Rede Expandida (TODOS provedores) ===
-  for (const provider of providers) {
-    if (provider.id === netTurboProvider?.id) continue;
-    const elements = elementsByProvider[provider.id] || [];
-    if (elements.length === 0) continue;
-
+  // === Etapa 2: Rede Expandida (TODOS provedores em PARALELO) ===
+  const expandedProviders = providers.filter(p => p.id !== netTurboProvider?.id && (elementsByProvider[p.id]?.length ?? 0) > 0);
+  
+  const expandedResults = await Promise.all(expandedProviders.map(async (provider): Promise<ViableOption | null> => {
+    const elements = elementsByProvider[provider.id];
     const providerLpu = lpuItems.filter(l => l.provider_id === provider.id);
     const lpuItem = providerLpu.length > 0 ? providerLpu[0] : null;
     const lpuValue = lpuItem?.value || 0;
@@ -426,7 +429,7 @@ async function processItem(
     const inside = isInsideCoverage(lat, lng, elements);
     if (inside) {
       const stage = provider.has_cross_ntt ? "Cross NTT" : "Dentro Cobertura";
-      allOptions.push({
+      return {
         stage,
         provider_name: provider.name,
         provider_id: provider.id,
@@ -436,13 +439,12 @@ async function processItem(
         final_value: Math.round(finalValue * 100) / 100,
         notes: `${stage} - ${provider.name}`,
         has_cross_ntt: provider.has_cross_ntt,
-      });
-      continue;
+      };
     }
 
     try {
       const nearest = findNearestBoundaryPoint(lat, lng, elements);
-      if (!nearest) continue;
+      if (!nearest) return null;
       const nearestAny = findNearestPoint(lat, lng, elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
       const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
@@ -450,18 +452,22 @@ async function processItem(
       let routeGeometry: any = null;
       let snapPoint: [number, number] | undefined = undefined;
       let destSnapPoint: [number, number] | undefined = undefined;
-      try {
-        const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
-        if (route) {
-          distance = route.distance;
-          routeGeometry = route.geometry;
-          snapPoint = route.snapPoint;
-          destSnapPoint = route.destSnapPoint;
-        }
-      } catch {}
+      
+      // Quick haversine pre-filter: skip expensive OSRM call if straight-line is already > maxDist * 1.5
+      if (distance <= maxDist * 1.5) {
+        try {
+          const route = await getRouteDistancePreSnapped(lat, lng, bestNearest.point[0], bestNearest.point[1], originSnap);
+          if (route) {
+            distance = route.distance;
+            routeGeometry = route.geometry;
+            snapPoint = route.snapPoint;
+            destSnapPoint = route.destSnapPoint;
+          }
+        } catch {}
+      }
 
       if (distance <= maxDist) {
-        allOptions.push({
+        return {
           stage: "LPU Viável",
           provider_name: provider.name,
           provider_id: provider.id,
@@ -475,11 +481,16 @@ async function processItem(
           snap_point: snapPoint,
           dest_snap_point: destSnapPoint,
           has_cross_ntt: provider.has_cross_ntt,
-        });
+        };
       }
     } catch {
       // skip
     }
+    return null;
+  }));
+
+  for (const opt of expandedResults) {
+    if (opt) allOptions.push(opt);
   }
 
   // === Etapa 3: LM Histórico ===
@@ -645,14 +656,10 @@ export async function processWsBatch(
   startIndex: number = 0,
   preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult[]> {
-  const elementsByProvider: Record<string, GeoElement[]> = {};
-  for (const el of geoElements) {
-    if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
-    elementsByProvider[el.provider_id].push(el);
-  }
+  const elementsByProvider = buildElementsByProvider(geoElements);
 
   const results: WsResult[] = [];
-  const PARALLEL_BATCH = 3;
+  const PARALLEL_BATCH = 5;
 
   for (let i = startIndex; i < items.length; i += PARALLEL_BATCH) {
     const batch = items.slice(i, Math.min(i + PARALLEL_BATCH, items.length));
@@ -712,14 +719,20 @@ export async function processWsSingleItem(
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
   preProviders: PreProviderWithCities[] = [],
+  cachedElementsByProvider?: Record<string, GeoElement[]>,
 ): Promise<WsResult> {
-  const elementsByProvider: Record<string, GeoElement[]> = {};
-  for (const el of geoElements) {
-    if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
-    elementsByProvider[el.provider_id].push(el);
-  }
-
+  const elementsByProvider = cachedElementsByProvider ?? buildElementsByProvider(geoElements);
   return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+}
+
+/** Build elementsByProvider map — call once and reuse for multiple items */
+export function buildElementsByProvider(geoElements: GeoElement[]): Record<string, GeoElement[]> {
+  const map: Record<string, GeoElement[]> = {};
+  for (const el of geoElements) {
+    if (!map[el.provider_id]) map[el.provider_id] = [];
+    map[el.provider_id].push(el);
+  }
+  return map;
 }
 
 /** Helper to process a single item with resolved geo */

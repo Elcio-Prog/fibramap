@@ -15,7 +15,7 @@ import {
   haversineDistance,
   closedLineToPolygon,
 } from "@/lib/geo-utils";
-import { processWsSingleItem, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
+import { processWsSingleItem, buildElementsByProvider, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -266,26 +266,57 @@ export default function WsSingleSearch() {
     return null;
   };
 
+  // Pre-build elementsByProvider once (memoized via ref to avoid rebuilding on every search)
+  const elementsByProviderRef = useRef<Record<string, any[]> | null>(null);
+  const lastGeoElementsRef = useRef<any[] | null>(null);
+  
+  const getElementsByProvider = useCallback(() => {
+    if (allGeoElements && allGeoElements !== lastGeoElementsRef.current) {
+      elementsByProviderRef.current = buildElementsByProvider(allGeoElements as any);
+      lastGeoElementsRef.current = allGeoElements;
+    }
+    return elementsByProviderRef.current;
+  }, [allGeoElements]);
+
   const executeSearch = async (geo: { lat: number; lng: number; display: string }): Promise<{ options: SingleSearchOption[]; radiusResults: RadiusResult[] }> => {
-    // Resolve cidade/uf from available data
+    // Resolve cidade/uf and run radius search in parallel with the main search
     let cidadeResolved: string | null = null;
     let ufResolved: string | null = null;
-    if (inputMode === "cep" && cepData) {
-      cidadeResolved = cepData.localidade;
-      ufResolved = cepData.uf;
-    } else {
-      try {
-        const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
-        const revData = await revRes.json();
-        if (revData?.address) {
-          cidadeResolved = revData.address.city || revData.address.town || revData.address.municipality || null;
-          ufResolved = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
-          if (revData.address["ISO3166-2-lvl4"]) {
-            ufResolved = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
-          }
-        }
-      } catch {}
-    }
+    
+    // Start reverse geocode (only if needed) concurrently
+    const reverseGeoPromise = (inputMode === "cep" && cepData) 
+      ? Promise.resolve({ cidade: cepData.localidade, uf: cepData.uf })
+      : (async () => {
+          try {
+            const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+            const revData = await revRes.json();
+            if (revData?.address) {
+              const cidade = revData.address.city || revData.address.town || revData.address.municipality || null;
+              let uf = revData.address.state ? revData.address.state.substring(0, 2).toUpperCase() : null;
+              if (revData.address["ISO3166-2-lvl4"]) {
+                uf = revData.address["ISO3166-2-lvl4"].replace("BR-", "");
+              }
+              return { cidade, uf };
+            }
+          } catch {}
+          return { cidade: null as string | null, uf: null as string | null };
+        })();
+
+    // Start radius search concurrently
+    const radiusPromise = (async () => {
+      if (!comprasLM) return [];
+      const radiusM = radius * 1000;
+      return comprasLM
+        .filter(c => c.lat != null && c.lng != null)
+        .map(c => ({ compra: c, distanceM: haversineDistance(geo.lat, geo.lng, c.lat!, c.lng!) }))
+        .filter(r => r.distanceM <= radiusM)
+        .sort((a, b) => a.distanceM - b.distanceM);
+    })();
+
+    // Wait for cidade/uf before building wsItem
+    const geoInfo = await reverseGeoPromise;
+    cidadeResolved = geoInfo.cidade;
+    ufResolved = geoInfo.uf;
 
     const wsItem: WsItemInput = {
       id: `single-${Date.now()}`,
@@ -310,25 +341,21 @@ export default function WsSingleSearch() {
       row_number: 1,
     };
 
-    const wsResult = await processWsSingleItem(
-      wsItem,
-      { lat: geo.lat, lng: geo.lng, source: inputMode === "coords" ? "coordenada" : "endereco" },
-      providers as any,
-      allGeoElements as any,
-      (allLpuItems || []) as any,
-      (comprasLM || []) as any,
-      preProvidersWithCities,
-    );
+    const cachedElByProvider = getElementsByProvider();
 
-    let radResults: RadiusResult[] = [];
-    if (comprasLM) {
-      const radiusM = radius * 1000;
-      radResults = comprasLM
-        .filter(c => c.lat != null && c.lng != null)
-        .map(c => ({ compra: c, distanceM: haversineDistance(geo.lat, geo.lng, c.lat!, c.lng!) }))
-        .filter(r => r.distanceM <= radiusM)
-        .sort((a, b) => a.distanceM - b.distanceM);
-    }
+    const [wsResult, radResults] = await Promise.all([
+      processWsSingleItem(
+        wsItem,
+        { lat: geo.lat, lng: geo.lng, source: inputMode === "coords" ? "coordenada" : "endereco" },
+        providers as any,
+        allGeoElements as any,
+        (allLpuItems || []) as any,
+        (comprasLM || []) as any,
+        preProvidersWithCities,
+        cachedElByProvider || undefined,
+      ),
+      radiusPromise,
+    ]);
 
     return { options: wsResult.all_options as SingleSearchOption[], radiusResults: radResults };
   };
@@ -375,52 +402,16 @@ export default function WsSingleSearch() {
         return;
       }
 
-      // First attempt
+      // Single attempt — retries are now handled inside the engine (NTT Phase 2)
+      // and OSRM route cache prevents redundant calls
       let result: { options: SingleSearchOption[]; radiusResults: RadiusResult[] };
       try {
         result = await executeSearch(geo);
       } catch (firstErr: any) {
         // Auto-retry once on network/fetch failures
         console.warn("Busca unitária: primeira tentativa falhou, retentando...", firstErr?.message);
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 800));
         result = await executeSearch(geo);
-      }
-
-      // Auto-retry if NTT own network wasn't found or if validation hit a transient service issue
-      const hasNttOption = result.options.some(o => o.is_own_network);
-      const hasTransientOwnNetworkIssue = result.options.some(o =>
-        o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
-      );
-
-      if ((!hasNttOption || hasTransientOwnNetworkIssue) && result.options.length >= 0) {
-        // Check if there are NTT elements nearby (straight-line) that should have been found
-        const netTurboProvider = providers?.find(p => p.name.toLowerCase().includes("net turbo"));
-        if (netTurboProvider) {
-          const nttElements = (allGeoElements || []).filter(el => el.provider_id === netTurboProvider.id);
-          const hasNearbyNttBox = nttElements.some(el => {
-            const elGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry as string) : el.geometry;
-            if (elGeo?.type !== "Point") return false;
-            const [eLng, eLat] = elGeo.coordinates;
-            return haversineDistance(geo.lat, geo.lng, eLat, eLng) <= netTurboProvider.max_lpu_distance_m;
-          });
-
-          if (hasNearbyNttBox) {
-            console.info("Busca unitária: caixas NTT próximas detectadas mas não encontradas na busca. Retentando...");
-            await new Promise(r => setTimeout(r, 1200));
-            const retryResult = await executeSearch(geo);
-            const retryResolvedTransientIssue = !retryResult.options.some(o =>
-              o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
-            );
-            // Use retry result if it found NTT options, improved the transient state, or has more total options
-            if (
-              retryResult.options.some(o => o.is_own_network) ||
-              retryResolvedTransientIssue ||
-              retryResult.options.length > result.options.length
-            ) {
-              result = retryResult;
-            }
-          }
-        }
       }
 
       setOptions(result.options);
