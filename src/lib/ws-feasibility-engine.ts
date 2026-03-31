@@ -77,6 +77,8 @@ export interface ViableOption {
   is_blocked?: boolean;
   /** True when NTT box is nearby but unavailable — needs O&M check */
   is_check_om?: boolean;
+  /** True when OSRM route calculation failed — DO NOT draw straight line */
+  route_failed?: boolean;
 }
 
 export interface WsResult {
