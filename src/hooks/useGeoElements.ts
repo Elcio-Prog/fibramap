@@ -13,7 +13,12 @@ async function fetchAllGeoElements(providerId?: string): Promise<GeoElement[]> {
   let hasMore = true;
 
   while (hasMore) {
-    let q = supabase.from("geo_elements").select("*").range(from, from + PAGE_SIZE - 1);
+    let q = supabase
+      .from("geo_elements")
+      .select("*")
+      .order("provider_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
     if (providerId) q = q.eq("provider_id", providerId);
     const { data, error } = await q;
     if (error) throw error;
