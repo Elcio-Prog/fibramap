@@ -415,12 +415,11 @@ async function processItem(
     }
   }
 
-  // === Etapa 2: Rede Expandida (TODOS provedores) ===
-  for (const provider of providers) {
-    if (provider.id === netTurboProvider?.id) continue;
-    const elements = elementsByProvider[provider.id] || [];
-    if (elements.length === 0) continue;
-
+  // === Etapa 2: Rede Expandida (TODOS provedores em PARALELO) ===
+  const expandedProviders = providers.filter(p => p.id !== netTurboProvider?.id && (elementsByProvider[p.id]?.length ?? 0) > 0);
+  
+  const expandedResults = await Promise.all(expandedProviders.map(async (provider): Promise<ViableOption | null> => {
+    const elements = elementsByProvider[provider.id];
     const providerLpu = lpuItems.filter(l => l.provider_id === provider.id);
     const lpuItem = providerLpu.length > 0 ? providerLpu[0] : null;
     const lpuValue = lpuItem?.value || 0;
@@ -431,7 +430,7 @@ async function processItem(
     const inside = isInsideCoverage(lat, lng, elements);
     if (inside) {
       const stage = provider.has_cross_ntt ? "Cross NTT" : "Dentro Cobertura";
-      allOptions.push({
+      return {
         stage,
         provider_name: provider.name,
         provider_id: provider.id,
@@ -441,13 +440,12 @@ async function processItem(
         final_value: Math.round(finalValue * 100) / 100,
         notes: `${stage} - ${provider.name}`,
         has_cross_ntt: provider.has_cross_ntt,
-      });
-      continue;
+      };
     }
 
     try {
       const nearest = findNearestBoundaryPoint(lat, lng, elements);
-      if (!nearest) continue;
+      if (!nearest) return null;
       const nearestAny = findNearestPoint(lat, lng, elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties })));
       const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
@@ -455,18 +453,22 @@ async function processItem(
       let routeGeometry: any = null;
       let snapPoint: [number, number] | undefined = undefined;
       let destSnapPoint: [number, number] | undefined = undefined;
-      try {
-        const route = await getRouteDistance(lat, lng, bestNearest.point[0], bestNearest.point[1]);
-        if (route) {
-          distance = route.distance;
-          routeGeometry = route.geometry;
-          snapPoint = route.snapPoint;
-          destSnapPoint = route.destSnapPoint;
-        }
-      } catch {}
+      
+      // Quick haversine pre-filter: skip expensive OSRM call if straight-line is already > maxDist * 1.5
+      if (distance <= maxDist * 1.5) {
+        try {
+          const route = await getRouteDistancePreSnapped(lat, lng, bestNearest.point[0], bestNearest.point[1], originSnap);
+          if (route) {
+            distance = route.distance;
+            routeGeometry = route.geometry;
+            snapPoint = route.snapPoint;
+            destSnapPoint = route.destSnapPoint;
+          }
+        } catch {}
+      }
 
       if (distance <= maxDist) {
-        allOptions.push({
+        return {
           stage: "LPU Viável",
           provider_name: provider.name,
           provider_id: provider.id,
@@ -480,11 +482,16 @@ async function processItem(
           snap_point: snapPoint,
           dest_snap_point: destSnapPoint,
           has_cross_ntt: provider.has_cross_ntt,
-        });
+        };
       }
     } catch {
       // skip
     }
+    return null;
+  }));
+
+  for (const opt of expandedResults) {
+    if (opt) allOptions.push(opt);
   }
 
   // === Etapa 3: LM Histórico ===
