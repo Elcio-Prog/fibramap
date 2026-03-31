@@ -437,124 +437,107 @@ export async function findBestConnectionPointByRoute(
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; routeFailed?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
+  // === ETAPA 1: BUSCA — todas as caixas dentro do raio ===
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
 
+  // === ETAPA 2 + 3: FILTRO + ORDENAÇÃO (já feito em buildConnectionCandidates) ===
   const aptWithinLimit = candidates.filter((c) => c.aptoNovoCliente && c.distance <= limitMeters);
   const withinLimit = candidates.filter((c) => c.distance <= limitMeters);
 
-  const inAptPhase = aptWithinLimit.length > 0;
-  const inLimitPhase = !inAptPhase && withinLimit.length > 0;
+  console.log(`[GEO] Pipeline: ${candidates.length} total, ${aptWithinLimit.length} aptas no limite, ${withinLimit.length} no limite`);
 
-  const orderedCandidates = inAptPhase
-    ? aptWithinLimit
-    : inLimitPhase
-      ? withinLimit
-      : candidates;
+  // === ETAPA 4: SELEÇÃO — EXATAMENTE UMA caixa (selected_box) ===
+  // Prioridade: 1) Apta mais próxima no limite, 2) Qualquer no limite, 3) Mais próxima geral
+  let selectedBox: ConnectionCandidate;
+  if (aptWithinLimit.length > 0) {
+    selectedBox = aptWithinLimit[0]; // Primeira apta = mais próxima (já ordenada por Haversine)
+  } else if (withinLimit.length > 0) {
+    selectedBox = withinLimit[0];
+  } else {
+    selectedBox = candidates[0];
+  }
 
-  let best:
-    | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
-    | null = null;
-  let routeFetchSucceeded = 0;
-  let routeFilterRejected = 0;
+  console.log(`[GEO] ═══════════════════════════════════════════════════`);
+  console.log(`[GEO] Selected Box: ${selectedBox.nome} (${selectedBox.tipo})`);
+  console.log(`[GEO]   Lat/Lng: ${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}`);
+  console.log(`[GEO]   Distância Haversine: ${Math.round(selectedBox.distance)}m`);
+  console.log(`[GEO]   Apta: ${selectedBox.aptoNovoCliente}${selectedBox.motivoBloqueio ? ` [${selectedBox.motivoBloqueio}]` : ''}`);
+  console.log(`[GEO] ═══════════════════════════════════════════════════`);
 
-  // Route candidates SEQUENTIALLY — stop on first viable route (huge perf win)
-  const MAX_ROUTE = Math.min(3, maxCandidates === Number.POSITIVE_INFINITY ? 3 : Math.max(1, Math.floor(maxCandidates)));
-  const aptCandidates = orderedCandidates.filter(c => c.aptoNovoCliente).slice(0, MAX_ROUTE);
-  const searchList = aptCandidates.length > 0 ? aptCandidates : orderedCandidates.slice(0, MAX_ROUTE);
+  // === ETAPA 5: VALIDAÇÃO DE DISTÂNCIA ===
+  const isDirectViability = selectedBox.aptoNovoCliente && selectedBox.distance <= 200;
+  if (isDirectViability) {
+    console.log(`[GEO] ✓ Viabilidade direta (drop curto): caixa apta a ${Math.round(selectedBox.distance)}m (<= 200m)`);
+  }
 
-  console.log(`[GEO] findBestConnectionPointByRoute: routing ${searchList.length} candidates sequentially (apt=${aptCandidates.length > 0}, limit=${limitMeters}m)`);
+  // === ETAPA 6: CÁLCULO DE ROTA — SOMENTE para selected_box ===
+  console.log(`[GEO] Routing from:`);
+  console.log(`[GEO]   Lat/Lng origem: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  console.log(`[GEO]   Lat/Lng destino: ${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}`);
 
   const originSnap = await snapToRoadCached(lat, lng);
+  const t0 = performance.now();
 
-  for (const candidate of searchList) {
-    const t0 = performance.now();
-    console.log(`[GEO] 🔄 Calculando rota OSRM: [${lat.toFixed(5)},${lng.toFixed(5)}] → [${candidate.lat.toFixed(5)},${candidate.lng.toFixed(5)}] (${candidate.nome})`);
-    let route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
-    if (!route) {
-      console.log(`[GEO]   ⏳ Retry OSRM para ${candidate.nome}...`);
-      await new Promise(r => setTimeout(r, 300));
-      route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
-    }
-    const elapsed = Math.round(performance.now() - t0);
+  let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
+  if (!route) {
+    console.log(`[GEO]   ⏳ Retry OSRM para ${selectedBox.nome}...`);
+    await new Promise(r => setTimeout(r, 300));
+    route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
+  }
+  const elapsed = Math.round(performance.now() - t0);
 
-    if (!route) {
-      console.warn(`[GEO]   ✗ ${candidate.nome}: OSRM falhou após retry (${elapsed}ms) — NÃO será usado fallback de linha reta`);
-      continue;
-    }
-    routeFetchSucceeded++;
-    console.log(`[GEO]   ✓ ${candidate.nome}: rota viária=${Math.round(route.distance)}m, geometria=${route.geometry ? 'OK' : 'NULA'} (${elapsed}ms)`);
+  // === ETAPA 7: RESULTADO ===
+  if (route) {
+    console.log(`[GEO] ✓ Rota OSRM OK: ${Math.round(route.distance)}m, geometria=${route.geometry ? 'OK' : 'NULA'} (${elapsed}ms)`);
 
+    // Apply route filter (CPFL, highway/railway checks)
     if (routeFilter) {
-      const accepted = await routeFilter(candidate, route);
+      const accepted = await routeFilter(selectedBox, route);
       if (!accepted) {
-        routeFilterRejected++;
-        console.log(`[GEO]   ✗ ${candidate.nome}: rejected by route filter`);
-        continue;
+        console.log(`[GEO] ✗ Rota rejeitada pelo filtro de regras técnicas`);
+        return null; // Blocked by technical rule
       }
     }
 
-    if (!best || route.distance < best.route.distance) {
-      best = { candidate, route };
-    }
-
-    // Early exit: viable route found — no need to route more candidates
-    if (route.distance <= limitMeters) {
-      console.log(`[GEO] ✓ Viable route found: ${candidate.nome} @ ${Math.round(route.distance)}m — stopping search`);
-      break;
-    }
-  }
-
-  if (best) {
-    const isApto = inAptPhase ? true : best.candidate.aptoNovoCliente;
-    const isSemApto = !isApto;
-
+    const isApto = selectedBox.aptoNovoCliente;
     return {
       taResult: {
-        distance: best.route.distance,
-        point: [best.candidate.lat, best.candidate.lng],
-        nome: best.candidate.nome,
-        tipo: best.candidate.tipo,
-        portaDisponivel: best.candidate.portaDisponivel,
+        distance: selectedBox.distance,
+        point: [selectedBox.lat, selectedBox.lng],
+        nome: selectedBox.nome,
+        tipo: selectedBox.tipo,
+        portaDisponivel: selectedBox.portaDisponivel,
         aptoNovoCliente: isApto,
-        motivoBloqueio: best.candidate.motivoBloqueio,
-        motivo: isSemApto ? "sem_apto" : "mais_proximo",
-        mensagem: isSemApto
-          ? "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery."
-          : undefined,
+        motivoBloqueio: selectedBox.motivoBloqueio,
+        motivo: isApto ? "mais_proximo" : "sem_apto",
+        mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
       },
-      routeDistance: best.route.distance,
-      routeGeometry: best.route.geometry,
-      snapPoint: best.route.snapPoint,
-      destSnapPoint: best.route.destSnapPoint,
+      routeDistance: route.distance,
+      routeGeometry: route.geometry,
+      snapPoint: route.snapPoint,
+      destSnapPoint: route.destSnapPoint,
       verificationPending: false,
     };
   }
 
-  if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
+  // CASO 2: Rota falhou — NÃO invalida a rede
+  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). routeFailed=true, caixa ainda pode ser viável.`);
 
-  // All OSRM route attempts failed — DO NOT return straight-line fallback as viable.
-  // Mark result with routeFailed=true so the UI can show an appropriate error.
-  const fallback = searchList[0] ?? candidates[0];
-  const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
-
-  console.warn(`[GEO] ⚠ Todas as tentativas OSRM falharam (${routeFetchSucceeded} succeeded, ${searchList.length} tried). Retornando fallback SEM geometria de rota.`);
-
+  const isApto = selectedBox.aptoNovoCliente;
   return {
     taResult: {
-      distance: fallback.distance,
-      point: [fallback.lat, fallback.lng],
-      nome: fallback.nome,
-      tipo: fallback.tipo,
-      portaDisponivel: fallback.portaDisponivel,
-      aptoNovoCliente: fallbackIsApto,
-      motivoBloqueio: fallback.motivoBloqueio,
-      motivo: fallbackIsApto ? "mais_proximo" : "sem_apto",
-      mensagem: fallbackIsApto
-        ? undefined
-        : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+      distance: selectedBox.distance,
+      point: [selectedBox.lat, selectedBox.lng],
+      nome: selectedBox.nome,
+      tipo: selectedBox.tipo,
+      portaDisponivel: selectedBox.portaDisponivel,
+      aptoNovoCliente: isApto,
+      motivoBloqueio: selectedBox.motivoBloqueio,
+      motivo: isApto ? "mais_proximo" : "sem_apto",
+      mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
     },
-    routeDistance: fallback.distance,
+    routeDistance: selectedBox.distance, // Haversine as fallback distance
     routeGeometry: null,
     verificationPending: true,
     routeFailed: true,
