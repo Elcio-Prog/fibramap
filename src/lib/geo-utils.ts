@@ -852,6 +852,141 @@ export async function getRouteDistance(
   }
 }
 
+// Snap-to-road cache — avoids redundant OSRM /nearest calls for the same origin
+const _snapCache = new Map<string, { lat: number; lng: number; offsetMeters: number } | null>();
+const _snapCacheMaxAge = 5 * 60 * 1000;
+const _snapCacheTimestamps = new Map<string, number>();
+
+function _snapCacheKey(lat: number, lng: number): string {
+  return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+}
+
+/**
+ * Snap-to-road with caching. Use this to pre-snap the customer origin once
+ * and reuse across multiple route calculations.
+ */
+export async function snapToRoadCached(
+  lat: number,
+  lng: number
+): Promise<{ lat: number; lng: number; offsetMeters: number } | null> {
+  const key = _snapCacheKey(lat, lng);
+  const ts = _snapCacheTimestamps.get(key);
+  if (ts && Date.now() - ts < _snapCacheMaxAge && _snapCache.has(key)) {
+    return _snapCache.get(key) ?? null;
+  }
+  const result = await snapToRoad(lat, lng);
+  _snapCache.set(key, result);
+  _snapCacheTimestamps.set(key, Date.now());
+  // Evict old
+  if (_snapCache.size > 200) {
+    const now = Date.now();
+    for (const [k, t] of _snapCacheTimestamps) {
+      if (now - t > _snapCacheMaxAge) { _snapCache.delete(k); _snapCacheTimestamps.delete(k); }
+    }
+  }
+  return result;
+}
+
+/**
+ * getRouteDistance variant that accepts a pre-snapped origin to avoid redundant /nearest calls.
+ * This saves 1 OSRM call per route calculation when the origin is the same (customer location).
+ */
+export async function getRouteDistancePreSnapped(
+  fromLat: number,
+  fromLng: number,
+  toLat: number,
+  toLng: number,
+  originSnap: { lat: number; lng: number; offsetMeters: number } | null
+): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
+  const cacheKey = _osrmCacheKey(fromLat, fromLng, toLat, toLng);
+  const cachedTs = _osrmCacheTimestamps.get(cacheKey);
+  if (cachedTs && Date.now() - cachedTs < _osrmCacheMaxAge && _osrmCache.has(cacheKey)) {
+    return _osrmCache.get(cacheKey) ?? null;
+  }
+
+  const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.status === 429) return null;
+      const data = await res.json();
+      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        return data.routes
+          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+          .map((r: any) => ({ distance: r.distance as number, geometry: r.geometry }));
+      }
+      return [] as Array<{ distance: number; geometry: any }>;
+    } catch {
+      return [] as Array<{ distance: number; geometry: any }>;
+    }
+  };
+
+  const reverseGeometry = (geometry: any) => {
+    if (!geometry) return geometry;
+    if (geometry.type === "LineString" && Array.isArray(geometry.coordinates)) {
+      return { ...geometry, coordinates: [...geometry.coordinates].reverse() };
+    }
+    if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+      return { ...geometry, coordinates: [...geometry.coordinates].reverse().map((line: number[][]) => [...line].reverse()) };
+    }
+    return geometry;
+  };
+
+  // Use pre-snapped origin, only snap destination
+  const snapLat = originSnap?.lat ?? fromLat;
+  const snapLng = originSnap?.lng ?? fromLng;
+  const snapOffsetMeters = originSnap?.offsetMeters ?? 0;
+  const snapPoint: [number, number] | undefined =
+    originSnap && snapOffsetMeters > 1 ? [originSnap.lat, originSnap.lng] : undefined;
+
+  const snappedDest = await snapToRoad(toLat, toLng);
+  const destSnapLat = snappedDest?.lat ?? toLat;
+  const destSnapLng = snappedDest?.lng ?? toLng;
+  const destSnapOffsetMeters = snappedDest?.offsetMeters ?? 0;
+  const destSnapPoint: [number, number] | undefined =
+    snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
+
+  const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
+    await _osrmThrottle();
+    try {
+      const [forwardRoutes, reverseRoutes] = await Promise.all([
+        fetchDrivingAlternatives(snapLat, snapLng, destSnapLat, destSnapLng),
+        fetchDrivingAlternatives(destSnapLat, destSnapLng, snapLat, snapLng),
+      ]);
+      if (forwardRoutes === null || reverseRoutes === null) return undefined as any;
+      const normalized = [
+        ...(forwardRoutes || []).map((r) => ({ distance: r.distance, geometry: r.geometry })),
+        ...(reverseRoutes || []).map((r) => ({ distance: r.distance, geometry: reverseGeometry(r.geometry) })),
+      ];
+      if (normalized.length === 0) return null;
+      normalized.sort((a, b) => a.distance - b.distance);
+      const best = normalized[0];
+      return { ...best, distance: best.distance + snapOffsetMeters + destSnapOffsetMeters, snapPoint, destSnapPoint };
+    } finally {
+      _osrmRelease();
+    }
+  };
+
+  try {
+    let result = await attemptFetch();
+    if (result === undefined) {
+      await new Promise(r => setTimeout(r, 1200));
+      result = await attemptFetch();
+      if (result === undefined) result = null;
+    }
+    if (result) {
+      _osrmCache.set(cacheKey, result);
+      _osrmCacheTimestamps.set(cacheKey, Date.now());
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 /** Check if a route LineString crosses any CPFL exclusion polygon */
 export function routeCrossesCPFL(
   routeGeometry: any,
