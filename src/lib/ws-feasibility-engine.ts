@@ -228,6 +228,9 @@ async function processItem(
 
   const originSnap = await originSnapPromise;
 
+  const t0Engine = performance.now();
+  console.log(`[WS-ENGINE] Starting processItem at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
+
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
     const elements = elementsByProvider[netTurboProvider.id] || [];

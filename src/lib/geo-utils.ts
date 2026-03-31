@@ -147,11 +147,22 @@ export function hasNetworkInRadius(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   radiusMeters: number,
 ): boolean {
+  // Bounding box pre-filter
+  const degLat = radiusMeters / 111320;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const degLng = radiusMeters / (111320 * (cosLat || 0.01));
+  const minLat = lat - degLat;
+  const maxLat = lat + degLat;
+  const minLng = lng - degLng;
+  const maxLng = lng + degLng;
+
   for (const el of elements) {
     const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
     if (!geo) continue;
     const points = extractPoints(geo);
     for (const p of points) {
+      // Fast bbox check before haversine
+      if (p[1] < minLat || p[1] > maxLat || p[0] < minLng || p[0] > maxLng) continue;
       const d = haversineDistance(lat, lng, p[1], p[0]);
       if (d <= radiusMeters) return true;
     }
