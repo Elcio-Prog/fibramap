@@ -469,19 +469,21 @@ export async function findBestConnectionPointByRoute(
 
   for (const candidate of searchList) {
     const t0 = performance.now();
+    console.log(`[GEO] 🔄 Calculando rota OSRM: [${lat.toFixed(5)},${lng.toFixed(5)}] → [${candidate.lat.toFixed(5)},${candidate.lng.toFixed(5)}] (${candidate.nome})`);
     let route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
     if (!route) {
+      console.log(`[GEO]   ⏳ Retry OSRM para ${candidate.nome}...`);
       await new Promise(r => setTimeout(r, 300));
       route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
     }
     const elapsed = Math.round(performance.now() - t0);
 
     if (!route) {
-      console.log(`[GEO]   ✗ ${candidate.nome}: route failed (${elapsed}ms)`);
+      console.warn(`[GEO]   ✗ ${candidate.nome}: OSRM falhou após retry (${elapsed}ms) — NÃO será usado fallback de linha reta`);
       continue;
     }
     routeFetchSucceeded++;
-    console.log(`[GEO]   → ${candidate.nome}: route=${Math.round(route.distance)}m (${elapsed}ms)`);
+    console.log(`[GEO]   ✓ ${candidate.nome}: rota viária=${Math.round(route.distance)}m, geometria=${route.geometry ? 'OK' : 'NULA'} (${elapsed}ms)`);
 
     if (routeFilter) {
       const accepted = await routeFilter(candidate, route);
