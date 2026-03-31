@@ -399,16 +399,14 @@ async function processItem(
             let isCheckOm = false;
             
             if (boxIsApt && !routeFailed && !verificationPending) {
-              noteText = cpByRoute.routeGeometry?.properties?.source === "short-distance-fallback"
-                ? `Rede própria viável por proximidade — rota simplificada. ${taNote}`
-                : `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
+              noteText = `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
             } else if (boxIsApt && isDirectViability) {
               noteText = `Rede própria viável - caixa a ~${Math.round(straightLineDistance)}m (viabilidade direta). ${taNote}`;
               if (routeFailed) {
-                noteText += ` Rota não confirmada automaticamente — necessário validação O&M.`;
+                noteText += ` Rota não disponível automaticamente.`;
               }
             } else if (boxIsApt && (routeFailed || verificationPending)) {
-              noteText = `Rede própria viável - caixa apta a ~${distanceLabel}. ${taNote}. Rota não confirmada automaticamente — necessário validação O&M.`;
+              noteText = `Rede própria viável - caixa apta a ~${distanceLabel}. ${taNote}. Rota não disponível automaticamente.`;
             } else if (!boxIsApt) {
               noteText = `Caixa encontrada a ~${distanceLabel}, porém não apta. ${taNote}. Checar com O&M.`;
               isCheckOm = true;
@@ -442,7 +440,6 @@ async function processItem(
               is_own_network: true,
               is_check_om: isCheckOm,
               route_failed: routeFailed,
-              simplified_route: cpByRoute.routeGeometry?.properties?.source === "short-distance-fallback",
             });
           } else if (lastBlockedMsg) {
             allOptions.push({
