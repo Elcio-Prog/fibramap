@@ -755,10 +755,10 @@ export async function getRouteDistance(
 
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(url, { signal: controller.signal });
+        const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return null; // rate limited — signal retry
       const data = await res.json();
