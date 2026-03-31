@@ -520,7 +520,7 @@ export async function findBestConnectionPointByRoute(
 
   if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
-  const fallback = preFiltered[0] ?? candidates[0];
+  const fallback = searchList[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
   const verificationPending = routeFetchSucceeded === 0;
 
