@@ -402,52 +402,16 @@ export default function WsSingleSearch() {
         return;
       }
 
-      // First attempt
+      // Single attempt — retries are now handled inside the engine (NTT Phase 2)
+      // and OSRM route cache prevents redundant calls
       let result: { options: SingleSearchOption[]; radiusResults: RadiusResult[] };
       try {
         result = await executeSearch(geo);
       } catch (firstErr: any) {
         // Auto-retry once on network/fetch failures
         console.warn("Busca unitária: primeira tentativa falhou, retentando...", firstErr?.message);
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 800));
         result = await executeSearch(geo);
-      }
-
-      // Auto-retry if NTT own network wasn't found or if validation hit a transient service issue
-      const hasNttOption = result.options.some(o => o.is_own_network);
-      const hasTransientOwnNetworkIssue = result.options.some(o =>
-        o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
-      );
-
-      if ((!hasNttOption || hasTransientOwnNetworkIssue) && result.options.length >= 0) {
-        // Check if there are NTT elements nearby (straight-line) that should have been found
-        const netTurboProvider = providers?.find(p => p.name.toLowerCase().includes("net turbo"));
-        if (netTurboProvider) {
-          const nttElements = (allGeoElements || []).filter(el => el.provider_id === netTurboProvider.id);
-          const hasNearbyNttBox = nttElements.some(el => {
-            const elGeo = typeof el.geometry === "string" ? JSON.parse(el.geometry as string) : el.geometry;
-            if (elGeo?.type !== "Point") return false;
-            const [eLng, eLat] = elGeo.coordinates;
-            return haversineDistance(geo.lat, geo.lng, eLat, eLng) <= netTurboProvider.max_lpu_distance_m;
-          });
-
-          if (hasNearbyNttBox) {
-            console.info("Busca unitária: caixas NTT próximas detectadas mas não encontradas na busca. Retentando...");
-            await new Promise(r => setTimeout(r, 1200));
-            const retryResult = await executeSearch(geo);
-            const retryResolvedTransientIssue = !retryResult.options.some(o =>
-              o.is_own_network && /indisponível nesta tentativa|serviço indisponível|não foi possível verificar/i.test(o.notes)
-            );
-            // Use retry result if it found NTT options, improved the transient state, or has more total options
-            if (
-              retryResult.options.some(o => o.is_own_network) ||
-              retryResolvedTransientIssue ||
-              retryResult.options.length > result.options.length
-            ) {
-              result = retryResult;
-            }
-          }
-        }
       }
 
       setOptions(result.options);
