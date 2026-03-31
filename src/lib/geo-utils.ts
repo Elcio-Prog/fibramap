@@ -939,7 +939,7 @@ export async function getRouteDistancePreSnapped(
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return undefined as any;
