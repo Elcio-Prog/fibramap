@@ -551,13 +551,24 @@ export default function WsSingleSearch() {
           L.polyline([fromPt, toPt], {
             color: "#ef4444", weight: 2, opacity: 0.5, dashArray: "4 8",
           }).addTo(layerGroup);
-          // Add error label on the map
+        } else if (opt.nearest_point && opt.route_failed) {
+          // Route failed but box may be viable — draw orange dashed line (not red error)
+          const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
+          const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
+          const isViableBox = opt.is_own_network && !opt.is_check_om && !opt.is_blocked;
+          const lineColor = isViableBox ? "#f59e0b" : "#ef4444";
+          const labelText = isViableBox ? "Rota pendente validação" : "Rota viária indisponível";
+          const labelBg = isViableBox ? "#f59e0b" : "#ef4444";
+          L.polyline([fromPt, toPt], {
+            color: lineColor, weight: 3, opacity: 0.6, dashArray: "6 8",
+          }).addTo(layerGroup);
+          // Add label on the map
           const midLat = (fromPt[0] + toPt[0]) / 2;
           const midLng = (fromPt[1] + toPt[1]) / 2;
           L.marker([midLat, midLng], {
             icon: L.divIcon({
               className: '',
-              html: '<div style="background:#ef4444;color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">Rota viária indisponível</div>',
+              html: `<div style="background:${labelBg};color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">${labelText}</div>`,
             }),
           }).addTo(layerGroup);
         }
