@@ -428,6 +428,7 @@ export default function WsSingleSearch() {
       toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
+      setSearchPhase("");
     }
   };
 
