@@ -752,9 +752,9 @@ export default function WsSingleSearch() {
           </div>
 
            <Button onClick={handleSearch} disabled={loading || dataLoading} className="w-full gap-2">
-             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-             {loading ? "Buscando..." : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
-          </Button>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {loading ? (searchPhase || "Buscando...") : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
+           </Button>
         </CardContent>
       </Card>
 
