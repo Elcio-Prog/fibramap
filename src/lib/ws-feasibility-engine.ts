@@ -656,14 +656,10 @@ export async function processWsBatch(
   startIndex: number = 0,
   preProviders: PreProviderWithCities[] = [],
 ): Promise<WsResult[]> {
-  const elementsByProvider: Record<string, GeoElement[]> = {};
-  for (const el of geoElements) {
-    if (!elementsByProvider[el.provider_id]) elementsByProvider[el.provider_id] = [];
-    elementsByProvider[el.provider_id].push(el);
-  }
+  const elementsByProvider = buildElementsByProvider(geoElements);
 
   const results: WsResult[] = [];
-  const PARALLEL_BATCH = 3;
+  const PARALLEL_BATCH = 5;
 
   for (let i = startIndex; i < items.length; i += PARALLEL_BATCH) {
     const batch = items.slice(i, Math.min(i + PARALLEL_BATCH, items.length));
