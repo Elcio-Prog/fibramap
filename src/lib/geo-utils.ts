@@ -438,13 +438,15 @@ export async function findBestConnectionPointByRoute(
   ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; routeFailed?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
   const hasValidRouteGeometry = (geometry: any): boolean => {
+    if (!geometry) return false;
     const candidateGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
     const coordinates = candidateGeometry?.type === "LineString"
       ? candidateGeometry.coordinates
       : candidateGeometry?.type === "MultiLineString"
         ? candidateGeometry.coordinates?.flat?.() ?? []
         : [];
-    return Array.isArray(coordinates) && coordinates.length > 2;
+    // ANY route returned by OSRM is valid — even 2-point routes follow the road network
+    return Array.isArray(coordinates) && coordinates.length >= 2;
   };
 
   // === ETAPA 1: BUSCA — todas as caixas dentro do raio ===
