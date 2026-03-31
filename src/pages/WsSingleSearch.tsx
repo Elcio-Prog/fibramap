@@ -121,6 +121,7 @@ export default function WsSingleSearch() {
 
   // Results
   const [loading, setLoading] = useState(false);
+  const [searchPhase, setSearchPhase] = useState("");
   const [options, setOptions] = useState<SingleSearchOption[]>([]);
   const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(null);
 
