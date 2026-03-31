@@ -217,6 +217,9 @@ async function processItem(
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
+  // Pre-snap origin ONCE — reused across all route calculations
+  const originSnap = await snapToRoadCached(lat, lng);
+
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
     const elements = elementsByProvider[netTurboProvider.id] || [];
