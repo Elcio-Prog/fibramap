@@ -683,7 +683,7 @@ function _osrmCacheKey(fromLat: number, fromLng: number, toLat: number, toLng: n
 
 // Simple semaphore to limit concurrent OSRM requests
 let _osrmInFlight = 0;
-const _osrmMaxConcurrent = 4;
+const _osrmMaxConcurrent = 6;
 
 async function _osrmThrottle(): Promise<void> {
   while (_osrmInFlight >= _osrmMaxConcurrent) {
