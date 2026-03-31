@@ -381,9 +381,20 @@ async function processItem(
               cpByRoute.verificationPending ? "a validação automática de rota ficou indisponível nesta tentativa" : null,
               highwayVerificationPending ? "a verificação de cruzamento de rodovias/ferrovias ficou indisponível nesta tentativa" : null,
             ].filter(Boolean).join(" e ");
-            const distanceLabel = cpByRoute.verificationPending
+            const routeFailed = !!cpByRoute.routeFailed;
+            const distanceLabel = (cpByRoute.verificationPending || routeFailed)
               ? `${Math.round(cpByRoute.routeDistance)}m em linha reta`
               : `${Math.round(cpByRoute.routeDistance)}m`;
+            
+            let noteText: string;
+            if (routeFailed) {
+              noteText = `Não foi possível calcular rota viária. Caixa encontrada a ~${distanceLabel} (distância direta). ${taNote}. Verifique restrições geográficas.`;
+            } else if (verificationPending) {
+              noteText = `Caixa/TA próxima encontrada a ${distanceLabel}, mas ${pendingReasons}. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`;
+            } else {
+              noteText = `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`;
+            }
+            
             allOptions.push({
               stage: "Rede Própria",
               provider_name: netTurboProvider.name,
@@ -392,16 +403,15 @@ async function processItem(
               distance_m: Math.round(cpByRoute.routeDistance),
               lpu_value: null,
               final_value: null,
-              notes: verificationPending
-                ? `Caixa/TA próxima encontrada a ${distanceLabel}, mas ${pendingReasons}. ${taNote}. Reprocessar/validar com O&M antes de tratar como inviável.`
-                : `Rede própria viável - ${Math.round(cpByRoute.routeDistance)}m. ${taNote}`,
+              notes: noteText,
               ta_info: taNote,
               nearest_point: cpByRoute.taResult.point,
               route_geometry: cpByRoute.routeGeometry,
               snap_point: cpByRoute.snapPoint,
               dest_snap_point: cpByRoute.destSnapPoint,
               is_own_network: true,
-              is_check_om: verificationPending,
+              is_check_om: verificationPending || routeFailed,
+              route_failed: routeFailed,
             });
           } else if (lastBlockedMsg) {
             allOptions.push({
