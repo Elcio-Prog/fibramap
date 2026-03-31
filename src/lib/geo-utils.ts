@@ -796,7 +796,7 @@ async function snapToRoad(
   try {
     const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
