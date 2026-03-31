@@ -476,11 +476,33 @@ export async function findBestConnectionPointByRoute(
   const originSnap = await snapToRoadCached(lat, lng);
   const destSnap = await snapToRoadCached(selectedBox.lat, selectedBox.lng);
 
-  console.log(`[GEO] Routing from:`);
-  console.log(`[GEO]   Origem original: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-  console.log(`[GEO]   Origem após snap: ${originSnap ? `${originSnap.lat.toFixed(6)}, ${originSnap.lng.toFixed(6)} (offset ${Math.round(originSnap.offsetMeters)}m)` : 'snap indisponível'}`);
-  console.log(`[GEO]   Destino original: ${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}`);
-  console.log(`[GEO]   Destino após snap: ${destSnap ? `${destSnap.lat.toFixed(6)}, ${destSnap.lng.toFixed(6)} (offset ${Math.round(destSnap.offsetMeters)}m)` : 'snap indisponível'}`);
+  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
+  console.log(`[SNAP] Origem original:  lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}`);
+  if (originSnap) {
+    console.log(`[SNAP] Origem snapped:   lat=${originSnap.lat.toFixed(6)}, lng=${originSnap.lng.toFixed(6)} (offset ${Math.round(originSnap.offsetMeters)}m)`);
+    if (originSnap.offsetMeters > 50) {
+      console.warn(`[SNAP] ⚠ ALERTA: Origem está a ${Math.round(originSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento.`);
+    }
+  } else {
+    console.warn(`[SNAP] ⚠ Snap de origem FALHOU — usando coordenada original (pode causar falha no OSRM)`);
+  }
+  console.log(`[SNAP] Destino original: lat=${selectedBox.lat.toFixed(6)}, lng=${selectedBox.lng.toFixed(6)}`);
+  if (destSnap) {
+    console.log(`[SNAP] Destino snapped:  lat=${destSnap.lat.toFixed(6)}, lng=${destSnap.lng.toFixed(6)} (offset ${Math.round(destSnap.offsetMeters)}m)`);
+    if (destSnap.offsetMeters > 50) {
+      console.warn(`[SNAP] ⚠ ALERTA: Destino está a ${Math.round(destSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento da caixa.`);
+    }
+  } else {
+    console.warn(`[SNAP] ⚠ Snap de destino FALHOU — usando coordenada original da caixa`);
+  }
+
+  const usedOriginLat = originSnap?.lat ?? lat;
+  const usedOriginLng = originSnap?.lng ?? lng;
+  const usedDestLat = destSnap?.lat ?? selectedBox.lat;
+  const usedDestLng = destSnap?.lng ?? selectedBox.lng;
+  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+  console.log(`[SNAP] URL que será usada: ${routeUrl}`);
+  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
   const t0 = performance.now();
   let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
@@ -496,9 +518,9 @@ export async function findBestConnectionPointByRoute(
     const pointCount = route.geometry?.type === "Feature"
       ? route.geometry?.geometry?.coordinates?.length ?? 0
       : route.geometry?.coordinates?.length ?? 0;
-    console.log(`[GEO] ✓ Resposta OSRM: distance=${Math.round(route.distance)}m, geometry=${geometryType}, pontos=${pointCount}, snapOrigem=${route.snapPoint ? 'OK' : 'N/A'}, snapDestino=${route.destSnapPoint ? 'OK' : 'N/A'} (${elapsed}ms)`);
-    console.log(`[GEO] ✓ URL usada: https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson`);
-    console.log(`[GEO] ✓ Resposta completa da API:`, route.geometry);
+    console.log(`[GEO] ✓ Rota OSRM OK: distance=${Math.round(route.distance)}m, geometry=${geometryType}, pontos=${pointCount} (${elapsed}ms)`);
+    console.log(`[GEO] ✓ URL usada: ${routeUrl}`);
+    console.log(`[GEO] ✓ Geometria retornada:`, JSON.stringify(route.geometry).substring(0, 500));
 
     if (!hasValidRouteGeometry(route.geometry)) {
       console.warn(`[GEO] ✗ Geometria inválida: rota com 2 pontos ou menos não será desenhada.`);
