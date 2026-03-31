@@ -11,6 +11,8 @@ import {
   findBestConnectionPointByRoute,
   findNearestConnectionPointAny,
   getRouteDistance,
+  getRouteDistancePreSnapped,
+  snapToRoadCached,
   isInsideCoverage,
   findNearestBoundaryPoint,
   routeCrossesCPFL,
