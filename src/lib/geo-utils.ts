@@ -507,12 +507,7 @@ export async function findBestConnectionPointByRoute(
   console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
   const t0 = performance.now();
-  let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
-  if (!route) {
-    console.log(`[GEO]   ⏳ Retry OSRM para ${selectedBox.nome}...`);
-    await new Promise(r => setTimeout(r, 300));
-    route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
-  }
+  const route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
   const elapsed = Math.round(performance.now() - t0);
 
   if (route) {
@@ -1006,22 +1001,36 @@ export async function getRouteDistancePreSnapped(
   const destSnapPoint: [number, number] | undefined =
     snappedDest && destSnapOffsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] : undefined;
 
-  // Single forward OSRM call with alternatives for better accuracy at lower cost than double-direction routing
+  const getPointCount = (geometry: any): number => {
+    const rawGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
+    if (rawGeometry?.type === "LineString") return rawGeometry.coordinates?.length ?? 0;
+    if (rawGeometry?.type === "MultiLineString") return rawGeometry.coordinates?.flat?.().length ?? 0;
+    return 0;
+  };
+
+  // Fast path: single forward OSRM call with alternatives.
+  // If this optimized path fails, we fall back to the original full bidirectional engine.
   const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
       const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-      const res = await fetch(url, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
       clearTimeout(timeoutId);
       if (res.status === 429) return undefined as any;
+      if (!res.ok) {
+        console.warn(`[GEO] ✗ OSRM fast HTTP ${res.status} para ${url}`);
+        return null;
+      }
       const data = await res.json();
+      const routesLength = Array.isArray(data?.routes) ? data.routes.length : 0;
       if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
         const best = data.routes
           .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
           .sort((a: any, b: any) => a.distance - b.distance)[0];
         if (!best) return null;
+        console.log(`[GEO] OSRM fast response: status=${res.status}, routes=${routesLength}, distance=${Math.round(best.distance)}m, duration=${Math.round(best.duration ?? 0)}s, points=${getPointCount(best.geometry)}`);
         return {
           distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
           geometry: best.geometry,
@@ -1029,6 +1038,7 @@ export async function getRouteDistancePreSnapped(
           destSnapPoint,
         };
       }
+      console.warn(`[GEO] ✗ OSRM fast sem rota válida: status=${res.status}, routes=${routesLength}, code=${data?.code ?? "sem_code"}`);
       return null;
     } catch {
       return null;
@@ -1047,8 +1057,21 @@ export async function getRouteDistancePreSnapped(
     if (result) {
       _osrmCache.set(cacheKey, result);
       _osrmCacheTimestamps.set(cacheKey, Date.now());
+      return result;
     }
-    return result;
+
+    console.warn(`[GEO] ⚠ Fast path pré-snapped falhou; restaurando fallback OSRM completo bidirecional.`);
+    const fallbackStartedAt = performance.now();
+    const fallbackResult = await getRouteDistance(fromLat, fromLng, toLat, toLng);
+    const fallbackElapsed = Math.round(performance.now() - fallbackStartedAt);
+
+    if (fallbackResult) {
+      console.log(`[GEO] ✓ Fallback OSRM completo OK: distance=${Math.round(fallbackResult.distance)}m, points=${getPointCount(fallbackResult.geometry)} (${fallbackElapsed}ms)`);
+    } else {
+      console.warn(`[GEO] ✗ Fallback OSRM completo também falhou (${fallbackElapsed}ms).`);
+    }
+
+    return fallbackResult;
   } catch {
     return null;
   }
