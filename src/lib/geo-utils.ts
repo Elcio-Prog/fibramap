@@ -147,11 +147,22 @@ export function hasNetworkInRadius(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   radiusMeters: number,
 ): boolean {
+  // Bounding box pre-filter
+  const degLat = radiusMeters / 111320;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const degLng = radiusMeters / (111320 * (cosLat || 0.01));
+  const minLat = lat - degLat;
+  const maxLat = lat + degLat;
+  const minLng = lng - degLng;
+  const maxLng = lng + degLng;
+
   for (const el of elements) {
     const geo = typeof el.geometry === "string" ? JSON.parse(el.geometry) : el.geometry;
     if (!geo) continue;
     const points = extractPoints(geo);
     for (const p of points) {
+      // Fast bbox check before haversine
+      if (p[1] < minLat || p[1] > maxLat || p[0] < minLng || p[0] > maxLng) continue;
       const d = haversineDistance(lat, lng, p[1], p[0]);
       if (d <= radiusMeters) return true;
     }
@@ -254,7 +265,20 @@ function buildConnectionCandidates(
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   rules: ProviderRules
 ): ConnectionCandidate[] {
+  const t0 = performance.now();
   const raw: ConnectionCandidate[] = [];
+
+  // Bounding box pre-filter: skip elements obviously too far (10km)
+  const PRE_FILTER_M = 10000;
+  const degLat = PRE_FILTER_M / 111320;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  const degLng = PRE_FILTER_M / (111320 * (cosLat || 0.01));
+  const minLat = lat - degLat;
+  const maxLat = lat + degLat;
+  const minLng = lng - degLng;
+  const maxLng = lng + degLng;
+
+  let skippedBbox = 0;
 
   for (const el of elements) {
     const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
@@ -269,6 +293,13 @@ function buildConnectionCandidates(
     if (geo?.type !== "Point") continue;
 
     const [lng2, lat2] = geo.coordinates;
+
+    // Fast bounding box rejection before expensive haversine
+    if (lat2 < minLat || lat2 > maxLat || lng2 < minLng || lng2 > maxLng) {
+      skippedBbox++;
+      continue;
+    }
+
     const d = haversineDistance(lat, lng, lat2, lng2);
     const aptCheck = evaluateConnectionAptness(props, rules);
 
@@ -303,7 +334,15 @@ function buildConnectionCandidates(
 
   const candidates = Array.from(byName.values());
   candidates.sort((a, b) => a.distance - b.distance);
-  console.log(`[GEO] buildConnectionCandidates: ${raw.length} raw → ${candidates.length} unique (closest: ${candidates[0]?.nome} @ ${Math.round(candidates[0]?.distance || 0)}m, apt=${candidates[0]?.aptoNovoCliente})`);
+  const elapsed = Math.round(performance.now() - t0);
+  console.log(`[GEO] buildConnectionCandidates: ${raw.length} raw → ${candidates.length} unique (bbox skipped ${skippedBbox}) in ${elapsed}ms. Closest: ${candidates[0]?.nome} @ ${Math.round(candidates[0]?.distance || 0)}m, apt=${candidates[0]?.aptoNovoCliente}`);
+  
+  // Log top 5 candidates for debugging
+  for (let i = 0; i < Math.min(5, candidates.length); i++) {
+    const c = candidates[i];
+    console.log(`  [GEO] #${i+1} ${c.nome} (${c.tipo}) ${Math.round(c.distance)}m apt=${c.aptoNovoCliente}${c.motivoBloqueio ? ` [${c.motivoBloqueio}]` : ''}`);
+  }
+  
   return candidates;
 }
 
@@ -413,64 +452,53 @@ export async function findBestConnectionPointByRoute(
       ? withinLimit
       : candidates;
 
-  const candidateLimit = Number.isFinite(maxCandidates)
-    ? Math.max(1, Math.floor(maxCandidates))
-    : orderedCandidates.length;
-
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
     | null = null;
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
 
-  const preFiltered = orderedCandidates.slice(0, candidateLimit);
-  const ROUTE_CALC_LIMIT = Math.min(preFiltered.length, Math.min(candidateLimit, 12));
-  const aptForRoute = preFiltered.filter((c) => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
-  const searchList = (aptForRoute.length > 0 ? aptForRoute : preFiltered).slice(0, ROUTE_CALC_LIMIT);
-  const BATCH_SIZE = 4;
+  // Route candidates SEQUENTIALLY — stop on first viable route (huge perf win)
+  const MAX_ROUTE = Math.min(3, maxCandidates === Number.POSITIVE_INFINITY ? 3 : Math.max(1, Math.floor(maxCandidates)));
+  const aptCandidates = orderedCandidates.filter(c => c.aptoNovoCliente).slice(0, MAX_ROUTE);
+  const searchList = aptCandidates.length > 0 ? aptCandidates : orderedCandidates.slice(0, MAX_ROUTE);
+
+  console.log(`[GEO] findBestConnectionPointByRoute: routing ${searchList.length} candidates sequentially (apt=${aptCandidates.length > 0}, limit=${limitMeters}m)`);
+
   const originSnap = await snapToRoadCached(lat, lng);
 
-  const processBatch = async (batch: ConnectionCandidate[]) => {
-    const batchResults = await Promise.all(batch.map(async (candidate) => {
-      let route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
-      if (!route) {
-        await new Promise((r) => setTimeout(r, 450));
-        route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
-      }
-      return { candidate, route };
-    }));
+  for (const candidate of searchList) {
+    const t0 = performance.now();
+    let route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
+    if (!route) {
+      await new Promise(r => setTimeout(r, 300));
+      route = await getRouteDistancePreSnapped(lat, lng, candidate.lat, candidate.lng, originSnap);
+    }
+    const elapsed = Math.round(performance.now() - t0);
 
-    let viableFound = false;
+    if (!route) {
+      console.log(`[GEO]   ✗ ${candidate.nome}: route failed (${elapsed}ms)`);
+      continue;
+    }
+    routeFetchSucceeded++;
+    console.log(`[GEO]   → ${candidate.nome}: route=${Math.round(route.distance)}m (${elapsed}ms)`);
 
-    for (const { candidate, route } of batchResults) {
-      if (!route) continue;
-      routeFetchSucceeded++;
-
-      if (routeFilter) {
-        const accepted = await routeFilter(candidate, route);
-        if (!accepted) {
-          routeFilterRejected++;
-          continue;
-        }
-      }
-
-      if (route.distance <= limitMeters) viableFound = true;
-
-      if (!best || route.distance < best.route.distance) {
-        best = { candidate, route };
+    if (routeFilter) {
+      const accepted = await routeFilter(candidate, route);
+      if (!accepted) {
+        routeFilterRejected++;
+        console.log(`[GEO]   ✗ ${candidate.nome}: rejected by route filter`);
+        continue;
       }
     }
 
-    return viableFound;
-  };
+    if (!best || route.distance < best.route.distance) {
+      best = { candidate, route };
+    }
 
-  for (let i = 0; i < searchList.length; i += BATCH_SIZE) {
-    const viableFound = await processBatch(searchList.slice(i, i + BATCH_SIZE));
-    if (viableFound && i + BATCH_SIZE < searchList.length) {
-      const nextBatch = searchList.slice(i + BATCH_SIZE, i + BATCH_SIZE * 2);
-      if (nextBatch.length > 0) {
-        await processBatch(nextBatch);
-      }
+    // Early exit: viable route found — no need to route more candidates
+    if (route.distance <= limitMeters) {
+      console.log(`[GEO] ✓ Viable route found: ${candidate.nome} @ ${Math.round(route.distance)}m — stopping search`);
       break;
     }
   }
@@ -503,7 +531,7 @@ export async function findBestConnectionPointByRoute(
 
   if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
-  const fallback = preFiltered[0] ?? candidates[0];
+  const fallback = searchList[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
   const verificationPending = routeFetchSucceeded === 0;
 

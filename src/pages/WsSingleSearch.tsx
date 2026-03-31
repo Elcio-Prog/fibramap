@@ -121,6 +121,7 @@ export default function WsSingleSearch() {
 
   // Results
   const [loading, setLoading] = useState(false);
+  const [searchPhase, setSearchPhase] = useState("");
   const [options, setOptions] = useState<SingleSearchOption[]>([]);
   const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(null);
 
@@ -362,6 +363,7 @@ export default function WsSingleSearch() {
 
   const handleSearch = async () => {
     setLoading(true);
+    setSearchPhase("Geocodificando endereço...");
     setOptions([]);
     setRadiusResults(null);
     setGeoResult(null);
@@ -391,14 +393,17 @@ export default function WsSingleSearch() {
       if (!geo) {
         toast({ title: "Endereço não encontrado", variant: "destructive" });
         setLoading(false);
+        setSearchPhase("");
         return;
       }
 
       setGeoResult(geo);
+      setSearchPhase("Buscando caixas e calculando rota...");
 
       if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
         toast({ title: "Dados de rede ainda carregando, aguarde...", variant: "destructive" });
         setLoading(false);
+        setSearchPhase("");
         return;
       }
 
@@ -424,6 +429,7 @@ export default function WsSingleSearch() {
       toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
+      setSearchPhase("");
     }
   };
 
@@ -747,9 +753,9 @@ export default function WsSingleSearch() {
           </div>
 
            <Button onClick={handleSearch} disabled={loading || dataLoading} className="w-full gap-2">
-             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-             {loading ? "Buscando..." : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
-          </Button>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {loading ? (searchPhase || "Buscando...") : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
+           </Button>
         </CardContent>
       </Card>
 

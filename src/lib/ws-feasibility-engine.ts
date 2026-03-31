@@ -228,6 +228,9 @@ async function processItem(
 
   const originSnap = await originSnapPromise;
 
+  const t0Engine = performance.now();
+  console.log(`[WS-ENGINE] Starting processItem at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
+
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
     const elements = elementsByProvider[netTurboProvider.id] || [];
@@ -297,7 +300,7 @@ async function processItem(
               elMapped,
               netTurboProvider.max_lpu_distance_m,
               rules,
-              15,
+              5,
               async (_candidate, route) => {
                 if (rules.regras_habilitar_exclusao_cpfl && route.geometry) {
                   const cpflCheck = routeCrossesCPFL(route.geometry, elMapped);
@@ -591,6 +594,9 @@ async function processItem(
     }
   }
 
+  const elapsedTotal = Math.round(performance.now() - t0Engine);
+  console.log(`[WS-ENGINE] processItem completed in ${elapsedTotal}ms — ${allOptions.length} options found`);
+
   // === Selecionar melhor opção ===
   if (allOptions.length > 0) {
     // Prioridade: Rede Própria > Cross NTT > Dentro Cobertura > LPU Viável > LM Histórico > Pré-Cadastro
@@ -603,7 +609,6 @@ async function processItem(
       "Pré-Cadastro": 5,
     };
     const sorted = [...allOptions].sort((a, b) => {
-      // Blocked options go last, then check_om, then normal
       if (a.is_blocked && !b.is_blocked) return 1;
       if (!a.is_blocked && b.is_blocked) return -1;
       if (a.is_check_om && !b.is_check_om) return 1;
@@ -611,18 +616,17 @@ async function processItem(
       return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9) || a.distance_m - b.distance_m;
     });
     
-    // Best is first non-blocked, non-check_om option
     const bestNonBlocked = sorted.find(o => !o.is_blocked && !o.is_check_om);
-    // If no fully viable option, prefer check_om over blocked
     const bestCheckOm = !bestNonBlocked ? sorted.find(o => o.is_check_om) : null;
     const best = bestNonBlocked || bestCheckOm || sorted[0];
     const isViable = !!bestNonBlocked;
     const isCheckOm = !isViable && !!bestCheckOm;
 
-    // Build notes with all options summary
     const optionsSummary = allOptions.length > 1
       ? `\n[+${allOptions.length - 1} opções: ${allOptions.filter(o => o !== best).map(o => `${o.stage}/${o.provider_name}${o.is_blocked ? " (bloqueado)" : o.is_check_om ? " (checar O&M)" : ""}`).join(", ")}]`
       : "";
+
+    console.log(`[WS-ENGINE] Best: ${best.stage} / ${best.provider_name} @ ${best.distance_m}m (viable=${isViable})`);
 
     return {
       best: {
@@ -640,6 +644,7 @@ async function processItem(
     };
   }
 
+  console.log(`[WS-ENGINE] No viable options found (${elapsedTotal}ms)`);
   return {
     best: {
       stage: null,
