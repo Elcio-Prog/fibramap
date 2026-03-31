@@ -287,7 +287,7 @@ async function processItem(
           
           for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             if (attempt > 1) {
-              const delay = 800 + (attempt - 1) * 500; // 800ms, 1.3s
+             const delay = 500; // reduced from 800ms
               console.log(`[WS] NTT Phase 2: retry attempt ${attempt}/${MAX_ATTEMPTS} after ${delay}ms delay...`);
               await new Promise(r => setTimeout(r, delay));
             }
