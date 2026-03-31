@@ -393,6 +393,7 @@ export default function WsSingleSearch() {
       if (!geo) {
         toast({ title: "Endereço não encontrado", variant: "destructive" });
         setLoading(false);
+        setSearchPhase("");
         return;
       }
 
