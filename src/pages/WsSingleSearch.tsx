@@ -453,8 +453,8 @@ export default function WsSingleSearch() {
 
     if (!mapInstance.current) {
       if (container._leaflet_id) container._leaflet_id = undefined;
-      const map = L.map(container, { maxZoom: 50 }).setView([geoResult.lat, geoResult.lng], 14);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50 }).addTo(map);
+      const map = L.map(container, { maxZoom: 50, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView([geoResult.lat, geoResult.lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxNativeZoom: 19, maxZoom: 50, updateWhenZooming: false }).addTo(map);
       mapLayers.current = L.layerGroup().addTo(map);
       mapInstance.current = map;
     } else {
