@@ -398,17 +398,22 @@ export async function findBestConnectionPointByRoute(
     ? Math.max(1, Math.floor(maxCandidates))
     : orderedCandidates.length;
 
-  // Pre-filter by straight-line distance (cheap), then only compute expensive
-  // route distances for the top few apt candidates
   const preFiltered = orderedCandidates.slice(0, candidateLimit);
   
-  // Among pre-filtered, pick top apt candidates to compute routes for
-  // Use a generous limit so that if early candidates are blocked by route filters
-  // (CPFL, highway/railway), the system continues trying further candidates
-  const ROUTE_CALC_LIMIT = 10;
+  // Reduced from 10 to 5 candidates for faster processing
+  const ROUTE_CALC_LIMIT = 5;
   const aptForRoute = preFiltered.filter(c => c.aptoNovoCliente).slice(0, ROUTE_CALC_LIMIT);
-  // If no apt candidates, fall back to top candidates overall
   const searchList = aptForRoute.length > 0 ? aptForRoute : preFiltered.slice(0, ROUTE_CALC_LIMIT);
+
+  // PARALLEL route calculation — all candidates at once instead of sequential
+  const routeResults = await Promise.all(searchList.map(async (candidate) => {
+    let route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+    if (!route) {
+      await new Promise(r => setTimeout(r, 600));
+      route = await getRouteDistanceFast(lat, lng, candidate.lat, candidate.lng);
+    }
+    return { candidate, route };
+  }));
 
   let best:
     | { candidate: ConnectionCandidate; route: { distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } }
@@ -416,13 +421,7 @@ export async function findBestConnectionPointByRoute(
   let routeFetchSucceeded = 0;
   let routeFilterRejected = 0;
 
-  for (const candidate of searchList) {
-    let route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
-    // Retry once if route failed (OSRM rate-limit or transient error)
-    if (!route) {
-      await new Promise(r => setTimeout(r, 800));
-      route = await getRouteDistance(lat, lng, candidate.lat, candidate.lng);
-    }
+  for (const { candidate, route } of routeResults) {
     if (!route) continue;
     routeFetchSucceeded++;
 
@@ -465,13 +464,8 @@ export async function findBestConnectionPointByRoute(
     };
   }
 
-  // With a route filter, only return null when we actually managed to compute routes
-  // and all of them were rejected by technical rules. If routing was unavailable,
-  // fall back to nearest candidate and flag the result for revalidation instead of
-  // producing a false negative.
   if (routeFilter && routeFetchSucceeded > 0 && routeFilterRejected > 0) return null;
 
-  // If routing fails for all candidates, fallback to nearest candidate by straight-line
   const fallback = preFiltered[0] ?? candidates[0];
   const fallbackIsApto = inAptPhase ? true : fallback.aptoNovoCliente;
   const verificationPending = routeFetchSucceeded === 0;
