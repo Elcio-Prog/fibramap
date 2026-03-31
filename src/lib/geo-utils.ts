@@ -437,6 +437,40 @@ export async function findBestConnectionPointByRoute(
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; routeFailed?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
+  const buildShortDistanceFallbackRoute = (
+    originLat: number,
+    originLng: number,
+    destLat: number,
+    destLng: number,
+    snappedOrigin: { lat: number; lng: number; offsetMeters: number } | null,
+    snappedDest: { lat: number; lng: number; offsetMeters: number } | null,
+  ) => {
+    const roadStart: [number, number] = [snappedOrigin?.lat ?? originLat, snappedOrigin?.lng ?? originLng];
+    const roadEnd: [number, number] = [snappedDest?.lat ?? destLat, snappedDest?.lng ?? destLng];
+    const roadDistance = haversineDistance(roadStart[0], roadStart[1], roadEnd[0], roadEnd[1]);
+    const totalDistance = roadDistance + (snappedOrigin?.offsetMeters ?? 0) + (snappedDest?.offsetMeters ?? 0);
+
+    return {
+      distance: totalDistance,
+      geometry: {
+        type: "Feature",
+        properties: {
+          simplified: true,
+          source: "short-distance-fallback",
+        },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [roadStart[1], roadStart[0]],
+            [roadEnd[1], roadEnd[0]],
+          ],
+        },
+      },
+      snapPoint: snappedOrigin && snappedOrigin.offsetMeters > 1 ? [snappedOrigin.lat, snappedOrigin.lng] as [number, number] : undefined,
+      destSnapPoint: snappedDest && snappedDest.offsetMeters > 1 ? [snappedDest.lat, snappedDest.lng] as [number, number] : undefined,
+    };
+  };
+
   // === ETAPA 1: BUSCA — todas as caixas dentro do raio ===
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
   if (candidates.length === 0) return null;
@@ -448,10 +482,9 @@ export async function findBestConnectionPointByRoute(
   console.log(`[GEO] Pipeline: ${candidates.length} total, ${aptWithinLimit.length} aptas no limite, ${withinLimit.length} no limite`);
 
   // === ETAPA 4: SELEÇÃO — EXATAMENTE UMA caixa (selected_box) ===
-  // Prioridade: 1) Apta mais próxima no limite, 2) Qualquer no limite, 3) Mais próxima geral
   let selectedBox: ConnectionCandidate;
   if (aptWithinLimit.length > 0) {
-    selectedBox = aptWithinLimit[0]; // Primeira apta = mais próxima (já ordenada por Haversine)
+    selectedBox = aptWithinLimit[0];
   } else if (withinLimit.length > 0) {
     selectedBox = withinLimit[0];
   } else {
@@ -465,20 +498,22 @@ export async function findBestConnectionPointByRoute(
   console.log(`[GEO]   Apta: ${selectedBox.aptoNovoCliente}${selectedBox.motivoBloqueio ? ` [${selectedBox.motivoBloqueio}]` : ''}`);
   console.log(`[GEO] ═══════════════════════════════════════════════════`);
 
-  // === ETAPA 5: VALIDAÇÃO DE DISTÂNCIA ===
+  const originSnap = await snapToRoadCached(lat, lng);
+  const destSnap = await snapToRoadCached(selectedBox.lat, selectedBox.lng);
+
+  console.log(`[GEO] Routing from:`);
+  console.log(`[GEO]   Origem original: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  console.log(`[GEO]   Origem após snap: ${originSnap ? `${originSnap.lat.toFixed(6)}, ${originSnap.lng.toFixed(6)} (offset ${Math.round(originSnap.offsetMeters)}m)` : 'snap indisponível'}`);
+  console.log(`[GEO]   Destino original: ${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}`);
+  console.log(`[GEO]   Destino após snap: ${destSnap ? `${destSnap.lat.toFixed(6)}, ${destSnap.lng.toFixed(6)} (offset ${Math.round(destSnap.offsetMeters)}m)` : 'snap indisponível'}`);
+
+  // === ETAPA 5 + 6: VALIDAÇÃO DE DISTÂNCIA + CÁLCULO DE ROTA SOMENTE PARA selected_box ===
   const isDirectViability = selectedBox.aptoNovoCliente && selectedBox.distance <= 200;
   if (isDirectViability) {
-    console.log(`[GEO] ✓ Viabilidade direta (drop curto): caixa apta a ${Math.round(selectedBox.distance)}m (<= 200m)`);
+    console.log(`[GEO] ✓ Caixa apta em curta distância (${Math.round(selectedBox.distance)}m) — fallback inteligente habilitado se OSRM falhar`);
   }
 
-  // === ETAPA 6: CÁLCULO DE ROTA — SOMENTE para selected_box ===
-  console.log(`[GEO] Routing from:`);
-  console.log(`[GEO]   Lat/Lng origem: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
-  console.log(`[GEO]   Lat/Lng destino: ${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}`);
-
-  const originSnap = await snapToRoadCached(lat, lng);
   const t0 = performance.now();
-
   let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
   if (!route) {
     console.log(`[GEO]   ⏳ Retry OSRM para ${selectedBox.nome}...`);
@@ -487,16 +522,15 @@ export async function findBestConnectionPointByRoute(
   }
   const elapsed = Math.round(performance.now() - t0);
 
-  // === ETAPA 7: RESULTADO ===
   if (route) {
-    console.log(`[GEO] ✓ Rota OSRM OK: ${Math.round(route.distance)}m, geometria=${route.geometry ? 'OK' : 'NULA'} (${elapsed}ms)`);
+    const geometryType = route.geometry?.type ?? route.geometry?.geometry?.type ?? "desconhecida";
+    console.log(`[GEO] ✓ Resposta OSRM: distance=${Math.round(route.distance)}m, geometry=${geometryType}, snapOrigem=${route.snapPoint ? 'OK' : 'N/A'}, snapDestino=${route.destSnapPoint ? 'OK' : 'N/A'} (${elapsed}ms)`);
 
-    // Apply route filter (CPFL, highway/railway checks)
     if (routeFilter) {
       const accepted = await routeFilter(selectedBox, route);
       if (!accepted) {
         console.log(`[GEO] ✗ Rota rejeitada pelo filtro de regras técnicas`);
-        return null; // Blocked by technical rule
+        return null;
       }
     }
 
@@ -521,8 +555,31 @@ export async function findBestConnectionPointByRoute(
     };
   }
 
-  // CASO 2: Rota falhou — NÃO invalida a rede
-  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). routeFailed=true, caixa ainda pode ser viável.`);
+  if (isDirectViability) {
+    const simplifiedRoute = buildShortDistanceFallbackRoute(lat, lng, selectedBox.lat, selectedBox.lng, originSnap, destSnap);
+    console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). Ativando fallback curto por proximidade com rota simplificada.`);
+
+    return {
+      taResult: {
+        distance: selectedBox.distance,
+        point: [selectedBox.lat, selectedBox.lng],
+        nome: selectedBox.nome,
+        tipo: selectedBox.tipo,
+        portaDisponivel: selectedBox.portaDisponivel,
+        aptoNovoCliente: true,
+        motivoBloqueio: selectedBox.motivoBloqueio,
+        motivo: "mais_proximo",
+      },
+      routeDistance: simplifiedRoute.distance,
+      routeGeometry: simplifiedRoute.geometry,
+      snapPoint: simplifiedRoute.snapPoint,
+      destSnapPoint: simplifiedRoute.destSnapPoint,
+      verificationPending: true,
+      routeFailed: false,
+    };
+  }
+
+  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). Erro retornado: rota indisponível para os pontos snapped.`);
 
   const isApto = selectedBox.aptoNovoCliente;
   return {
@@ -537,7 +594,7 @@ export async function findBestConnectionPointByRoute(
       motivo: isApto ? "mais_proximo" : "sem_apto",
       mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
     },
-    routeDistance: selectedBox.distance, // Haversine as fallback distance
+    routeDistance: selectedBox.distance,
     routeGeometry: null,
     verificationPending: true,
     routeFailed: true,
