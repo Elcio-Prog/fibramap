@@ -600,7 +600,7 @@ export default function WsSingleSearch() {
     bounds.extend(L.latLng(geoResult.lat - latOffset, geoResult.lng - lngOffset));
 
     if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40] });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
     }
 
     const timers = [100, 300, 600].map(delay => window.setTimeout(() => {
