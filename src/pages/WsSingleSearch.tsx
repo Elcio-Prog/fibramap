@@ -397,7 +397,6 @@ export default function WsSingleSearch() {
         return;
       }
 
-      setGeoResult(geo);
       setSearchPhase("Buscando caixas e calculando rota...");
 
       if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
@@ -419,6 +418,7 @@ export default function WsSingleSearch() {
         result = await executeSearch(geo);
       }
 
+      setGeoResult(geo);
       setOptions(result.options);
       setRadiusResults(result.radiusResults);
 
@@ -547,7 +547,9 @@ export default function WsSingleSearch() {
                 style: () => ({ color: routeColor, weight: 4, opacity: 0.85, dashArray: "10 6" }),
               }).addTo(layerGroup);
             }
-          } catch {}
+          } catch (e) {
+            console.error('[MAP] Erro ao renderizar traçado OSRM:', e, JSON.stringify(opt.route_geometry)?.substring(0, 300));
+          }
         } else if (opt.nearest_point && opt.route_failed) {
           const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
           const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
@@ -609,6 +611,14 @@ export default function WsSingleSearch() {
       timers.forEach(window.clearTimeout);
     };
   }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
+
+  useEffect(() => {
+    if (!geoResult && mapInstance.current) {
+      mapInstance.current.remove();
+      mapInstance.current = null;
+      mapLayers.current = null;
+    }
+  }, [geoResult]);
 
   useEffect(() => {
     return () => {

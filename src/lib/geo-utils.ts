@@ -789,7 +789,7 @@ async function snapToRoad(
   lng: number
 ): Promise<{ lat: number; lng: number; offsetMeters: number } | null> {
   try {
-    const url = `https://router.project-osrm.org/nearest/v1/driving/${lng},${lat}?number=1`;
+    const url = `https://router.project-osrm.org/nearest/v1/foot/${lng},${lat}?number=1`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, { signal: controller.signal });
@@ -823,7 +823,7 @@ export async function getRouteDistance(
 
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
     try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+        const url = `https://router.project-osrm.org/route/v1/foot/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000);
         const res = await fetch(url, { signal: controller.signal });
@@ -1013,7 +1013,7 @@ export async function getRouteDistancePreSnapped(
   const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 7000);
       const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
