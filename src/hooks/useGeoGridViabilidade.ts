@@ -25,7 +25,8 @@ async function fetchGeoGridViabilidade(): Promise<GeoGridRecipiente[]> {
       .select(
         "id, geogrid_id, sigla, portas_livres, latitude, longitude, status_viabilidade, recipiente_id, recipiente_item, recipiente_sigla, pasta_nome, tipo_splitter, portas, portas_ocupadas"
       )
-      .not("tipo_splitter", "like", "%Des");
+      // Exclui splitters "Des" mas MANTÉM linhas com tipo_splitter NULL
+      .or("tipo_splitter.not.like.%Des,tipo_splitter.is.null");
 
     if (error) {
       console.error("[GeoGrid] Erro ao buscar geogrid_viabilidade_cache:", error);
