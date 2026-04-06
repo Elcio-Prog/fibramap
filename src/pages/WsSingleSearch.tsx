@@ -589,32 +589,20 @@ export default function WsSingleSearch() {
           } catch (e) {
             console.error('[MAP] Erro ao renderizar traçado OSRM:', e, JSON.stringify(opt.route_geometry)?.substring(0, 300));
           }
-        } else {
-          // FALLBACK: Se não houver geometria de rota, desenha uma linha reta tracejada
+        } else if (opt.nearest_point && opt.route_failed) {
           const fromPt: [number, number] = opt.snap_point || [geoResult.lat, geoResult.lng];
           const toPt: [number, number] = opt.dest_snap_point || opt.nearest_point;
-          
-          L.polyline([fromPt, toPt], {
-            color: routeColor,
-            weight: 3,
-            opacity: 0.6,
-            dashArray: "5 10"
+          const isViableBox = opt.is_own_network && !opt.is_check_om && !opt.is_blocked;
+          const labelText = isViableBox ? "Rota não disponível automaticamente" : "Rota viária indisponível";
+          const labelBg = isViableBox ? "#f59e0b" : "#ef4444";
+          const midLat = (fromPt[0] + toPt[0]) / 2;
+          const midLng = (fromPt[1] + toPt[1]) / 2;
+          L.marker([midLat, midLng], {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="background:${labelBg};color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">${labelText}</div>`,
+            }),
           }).addTo(layerGroup);
-
-          // Se a rota falhou e temos um ponto próximo, mostra o alerta textual
-          if (opt.nearest_point && opt.route_failed) {
-            const isViableBox = opt.is_own_network && !opt.is_check_om && !opt.is_blocked;
-            const labelText = isViableBox ? "Rota não disponível automaticamente" : "Rota viária indisponível";
-            const labelBg = isViableBox ? "#f59e0b" : "#ef4444";
-            const midLat = (fromPt[0] + toPt[0]) / 2;
-            const midLng = (fromPt[1] + toPt[1]) / 2;
-            L.marker([midLat, midLng], {
-              icon: L.divIcon({
-                className: '',
-                html: `<div style="background:${labelBg};color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;white-space:nowrap;font-weight:600;">${labelText}</div>`,
-              }),
-            }).addTo(layerGroup);
-          }
         }
         if (opt.dest_snap_point && opt.nearest_point) {
           L.polyline(
