@@ -178,25 +178,27 @@ export function useGeoGridViabilidade() {
         from += PAGE;
       }
       if (allData.length > 0) {
-        const mapped: GeoGridViabilidadeItem[] = allData.map((row: any) => ({
-          id: row.geogrid_id,
-          sigla: row.sigla,
-          portasLivres: row.portas_livres,
-          latitude: row.latitude ? Number(row.latitude) : null,
-          longitude: row.longitude ? Number(row.longitude) : null,
-          statusViabilidade: row.status_viabilidade,
-          item: row.item,
-          portas: row.portas,
-          portasOcupadas: row.portas_ocupadas,
-          fibras: row.fibras,
-          fibrasLivres: row.fibras_livres,
-          fibrasOcupadas: row.fibras_ocupadas,
-          recipienteId: row.recipiente_id,
-          recipienteItem: row.recipiente_item,
-          recipienteSigla: row.recipiente_sigla,
-          pastaNome: row.pasta_nome,
-          tipoSplitter: row.tipo_splitter ?? "",
-        }));
+        const mapped: GeoGridViabilidadeItem[] = allData
+          .map((row: any) => ({
+            id: row.geogrid_id,
+            sigla: row.sigla,
+            portasLivres: row.portas_livres,
+            latitude: row.latitude ? Number(row.latitude) : null,
+            longitude: row.longitude ? Number(row.longitude) : null,
+            statusViabilidade: row.status_viabilidade,
+            item: row.item,
+            portas: row.portas,
+            portasOcupadas: row.portas_ocupadas,
+            fibras: row.fibras,
+            fibrasLivres: row.fibras_livres,
+            fibrasOcupadas: row.fibras_ocupadas,
+            recipienteId: row.recipiente_id,
+            recipienteItem: row.recipiente_item,
+            recipienteSigla: row.recipiente_sigla,
+            pastaNome: row.pasta_nome,
+            tipoSplitter: row.tipo_splitter ?? "",
+          }))
+          .filter((item) => !!item.tipoSplitter);
         setItems(mapped);
       }
     } catch {
@@ -368,6 +370,9 @@ export function useGeoGridViabilidade() {
                       break;
                     }
                   }
+
+                  // Skip rows without a valid splitter type
+                  if (!tipoSplitter) continue;
 
                   const enrichedItem: GeoGridViabilidadeItem = {
                     ...baseItem,
