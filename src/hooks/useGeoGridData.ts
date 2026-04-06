@@ -369,6 +369,9 @@ export function useGeoGridViabilidade() {
                     }
                   }
 
+                  // Skip rows without a valid splitter type
+                  if (!tipoSplitter) continue;
+
                   const enrichedItem: GeoGridViabilidadeItem = {
                     ...baseItem,
                     // Use a composite ID so multiple rows from the same base item don't collide
