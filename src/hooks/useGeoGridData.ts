@@ -249,7 +249,7 @@ export function useGeoGridViabilidade() {
   }, []);
 
   // Load from DB on mount
-  useState(() => { loadFromDb(); });
+  useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
   const fetchViabilidade = useCallback(async () => {
     setLoading(true);
