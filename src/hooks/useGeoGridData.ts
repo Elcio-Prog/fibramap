@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GeoGridPasta {
@@ -161,13 +161,24 @@ export function useGeoGridViabilidade() {
   // Load persisted data from DB on mount
   const loadFromDb = useCallback(async () => {
     try {
-      const { data, error: dbErr } = await supabase
-        .from("geogrid_viabilidade_cache")
-        .select("*")
-        .order("sigla");
-      if (dbErr) throw dbErr;
-      if (data && data.length > 0) {
-        const mapped: GeoGridViabilidadeItem[] = data.map((row: any) => ({
+      // Paginate to avoid the 1000-row default limit
+      let allData: any[] = [];
+      let from = 0;
+      const PAGE = 1000;
+      while (true) {
+        const { data, error: dbErr } = await supabase
+          .from("geogrid_viabilidade_cache")
+          .select("*")
+          .order("sigla")
+          .range(from, from + PAGE - 1);
+        if (dbErr) throw dbErr;
+        if (!data || data.length === 0) break;
+        allData = allData.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      if (allData.length > 0) {
+        const mapped: GeoGridViabilidadeItem[] = allData.map((row: any) => ({
           id: row.geogrid_id,
           sigla: row.sigla,
           portasLivres: row.portas_livres,
@@ -238,7 +249,7 @@ export function useGeoGridViabilidade() {
   }, []);
 
   // Load from DB on mount
-  useState(() => { loadFromDb(); });
+  useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
   const fetchViabilidade = useCallback(async () => {
     setLoading(true);
