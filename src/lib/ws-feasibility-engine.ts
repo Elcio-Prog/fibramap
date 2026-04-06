@@ -215,6 +215,7 @@ async function processItem(
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
   preProviders: PreProviderWithCities[] = [],
+  geoGridElements?: Array<{ geometry: any; provider_id: string; properties: any }>,
 ): Promise<{ best: Omit<WsResult, "item" | "geo_lat" | "geo_lng" | "geo_source" | "all_options">; all_options: ViableOption[] }> {
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
@@ -236,7 +237,10 @@ async function processItem(
   // === Etapa 1: Rede Própria NTT ===
   if (netTurboProvider) {
     const elements = elementsByProvider[netTurboProvider.id] || [];
-    if (elements.length > 0) {
+    // [BACKUP GEOGRID] Verificação original: elements.length > 0
+    // Com GeoGrid, prosseguimos se temos elementos NTT OU elementos GeoGrid
+    const hasGeoGrid = geoGridElements && geoGridElements.length > 0;
+    if (elements.length > 0 || hasGeoGrid) {
       const rules: ProviderRules = {
         regras_usar_porta_disponivel: netTurboProvider.regras_usar_porta_disponivel,
         regras_considerar_ta: netTurboProvider.regras_considerar_ta,
@@ -250,7 +254,24 @@ async function processItem(
       };
 
       const inside = isInsideCoverage(lat, lng, elements);
+      // [BACKUP GEOGRID] elMapped original — preservado para cobertura, cabos e rede
       const elMapped = elements.map(e => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
+
+      // GeoGrid: quando disponível, cria array com GeoGrid CE substituindo TA/CE originais
+      // Mantém polígonos/linhas originais para isInsideCoverage, extractNttCables, hasNetworkInRadius
+      const elForConnectionSearch = hasGeoGrid
+        ? [
+            // Mantém elementos não-ponto (polígonos, linhas) do NTT para CPFL e coverage
+            ...elMapped.filter(e => {
+              const geo = typeof e.geometry === "string" ? JSON.parse(e.geometry) : e.geometry;
+              return geo?.type !== "Point";
+            }),
+            // Adiciona pontos GeoGrid como CE
+            ...geoGridElements!,
+          ]
+        : elMapped;
+
+      console.log(`[WS-ENGINE] GeoGrid: ${hasGeoGrid ? `${geoGridElements!.length} recipientes (substituindo TA/CE)` : 'não disponível, usando TA/CE originais'}`);
 
       const nttCables = extractNttCables(elMapped);
       let cachedWays: any[] = [];
@@ -258,7 +279,7 @@ async function processItem(
       let highwayVerificationPending = false;
 
       if (inside) {
-        const cp = findBestConnectionPoint(lat, lng, elMapped, netTurboProvider.max_lpu_distance_m, rules);
+        const cp = findBestConnectionPoint(lat, lng, elForConnectionSearch, netTurboProvider.max_lpu_distance_m, rules);
         const taNote = cp ? `${cp.tipo}: ${cp.nome} | ${cp.aptoNovoCliente ? "Apto" : "Não apto"}` : "";
         allOptions.push({
           stage: "Rede Própria",
@@ -299,7 +320,7 @@ async function processItem(
             cpByRoute = await findBestConnectionPointByRoute(
               lat,
               lng,
-              elMapped,
+              elForConnectionSearch,
               netTurboProvider.max_lpu_distance_m,
               rules,
               5,
@@ -457,7 +478,7 @@ async function processItem(
           } else {
             // Cenário 2: Não encontrou caixa apta — checar se existe caixa próxima indisponível
             const nearestAnyBox = findNearestConnectionPointAny(
-              lat, lng, elMapped, netTurboProvider.max_lpu_distance_m
+              lat, lng, elForConnectionSearch, netTurboProvider.max_lpu_distance_m
             );
             if (nearestAnyBox) {
               allOptions.push({
@@ -742,6 +763,7 @@ export async function processWsBatch(
   onItemResult?: (result: WsResult, index: number) => void,
   startIndex: number = 0,
   preProviders: PreProviderWithCities[] = [],
+  geoGridElements?: Array<{ geometry: any; provider_id: string; properties: any }>,
 ): Promise<WsResult[]> {
   const elementsByProvider = buildElementsByProvider(geoElements);
 
@@ -763,7 +785,7 @@ export async function processWsBatch(
     });
 
     const coordPromises = withCoords.map(async ({ item, idx }) => {
-      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+      const result = await processSingleItem(item, { lat: item.lat_a!, lng: item.lng_a!, source: "coordenada" as const }, providers, elementsByProvider, lpuItems, comprasLM, preProviders, geoGridElements);
       await saveItemResult(result);
       return { result, idx };
     });
@@ -771,7 +793,7 @@ export async function processWsBatch(
     const geoResultsArr: { result: WsResult; idx: number }[] = [];
     for (const { item, idx } of needGeo) {
       const geo = await resolveGeo(item);
-      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+      const result = await processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders, geoGridElements);
       await saveItemResult(result);
       geoResultsArr.push({ result, idx });
       if (geo.source === "endereco") {
@@ -807,9 +829,10 @@ export async function processWsSingleItem(
   comprasLM: CompraLM[],
   preProviders: PreProviderWithCities[] = [],
   cachedElementsByProvider?: Record<string, GeoElement[]>,
+  geoGridElements?: Array<{ geometry: any; provider_id: string; properties: any }>,
 ): Promise<WsResult> {
   const elementsByProvider = cachedElementsByProvider ?? buildElementsByProvider(geoElements);
-  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+  return processSingleItem(item, geo, providers, elementsByProvider, lpuItems, comprasLM, preProviders, geoGridElements);
 }
 
 /** Build elementsByProvider map — call once and reuse for multiple items */
@@ -831,6 +854,7 @@ async function processSingleItem(
   lpuItems: LpuItem[],
   comprasLM: CompraLM[],
   preProviders: PreProviderWithCities[] = [],
+  geoGridElements?: Array<{ geometry: any; provider_id: string; properties: any }>,
 ): Promise<WsResult> {
   if (geo.lat == null || geo.lng == null) {
     return {
@@ -849,7 +873,7 @@ async function processSingleItem(
     };
   }
 
-  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM, preProviders);
+  const { best, all_options } = await processItem(item, geo.lat, geo.lng, providers, elementsByProvider, lpuItems, comprasLM, preProviders, geoGridElements);
   return {
     item,
     geo_lat: geo.lat,

@@ -21,9 +21,11 @@ import {
   prefetchHighwaysForArea,
   extractNttCables,
   evaluateConnectionAptness,
+  geoGridToElements,
   type TAResult,
   type ProviderRules,
 } from "@/lib/geo-utils";
+import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
 import { fetchCep } from "@/lib/cep-utils";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +93,7 @@ export default function FeasibilityPage() {
   const createFeasibility = useCreateFeasibility();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: geoGridData } = useGeoGridViabilidade();
 
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
@@ -284,7 +287,21 @@ export default function FeasibilityPage() {
           let snapPoint: [number, number] | undefined = undefined;
           let destSnapPoint: [number, number] | undefined = undefined;
 
+          // [BACKUP GEOGRID] elMapped original — preservado para cobertura, cabos e rede
           const elMapped = providerElements.map((e) => ({ geometry: e.geometry, provider_id: e.provider_id, properties: e.properties }));
+
+          // GeoGrid: quando disponível, substitui TA/CE por recipientes GeoGrid
+          const geoGridElements = geoGridData ? geoGridToElements(geoGridData) : [];
+          const hasGeoGrid = geoGridElements.length > 0;
+          const elForConnectionSearch = hasGeoGrid
+            ? [
+                ...elMapped.filter(e => {
+                  const geo = typeof e.geometry === "string" ? JSON.parse(e.geometry) : e.geometry;
+                  return geo?.type !== "Point";
+                }),
+                ...geoGridElements,
+              ]
+            : elMapped;
 
           // Pre-fetch highways/railways ONCE for the customer area
           const [overpassResult, nttCables] = await Promise.all([
@@ -295,7 +312,7 @@ export default function FeasibilityPage() {
           const overpassFailed = !overpassResult.success;
 
           if (insideNT) {
-            const cp = findBestConnectionPoint(geo.lat, geo.lng, elMapped, maxDist, providerRules);
+            const cp = findBestConnectionPoint(geo.lat, geo.lng, elForConnectionSearch, maxDist, providerRules);
             if (cp) { taResult = cp; nearestPt = cp.point; }
             distance = 0;
             isViableNT = true;
@@ -305,7 +322,7 @@ export default function FeasibilityPage() {
             const cpByRoute = await findBestConnectionPointByRoute(
               geo.lat,
               geo.lng,
-              elMapped,
+              elForConnectionSearch,
               maxDist,
               providerRules,
               Number.POSITIVE_INFINITY,
@@ -348,10 +365,10 @@ export default function FeasibilityPage() {
                 highwayMessage = lastBlocked.message;
               }
             } else {
-              const nearest = findNearestPoint(geo.lat, geo.lng, elMapped);
+              const nearest = findNearestPoint(geo.lat, geo.lng, elForConnectionSearch);
               if (!nearest) {
                 // Check for nearby unavailable box before giving up
-                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elMapped, maxDist);
+                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elForConnectionSearch, maxDist);
                 if (nearestAnyBox) {
                   const result: FeasibilityResult = {
                     address: geo.display, lat: geo.lat, lng: geo.lng,
@@ -386,7 +403,7 @@ export default function FeasibilityPage() {
               }
               if (!highwayBlocked && distance > maxDist) {
                 // Distance exceeds limit — check for nearby unavailable box
-                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elMapped, maxDist);
+                const nearestAnyBox = findNearestConnectionPointAny(geo.lat, geo.lng, elForConnectionSearch, maxDist);
                 if (nearestAnyBox) {
                   const result: FeasibilityResult = {
                     address: geo.display, lat: geo.lat, lng: geo.lng,

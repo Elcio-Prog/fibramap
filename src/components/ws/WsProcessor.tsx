@@ -17,6 +17,8 @@ import { useComprasLM } from "@/hooks/useComprasLM";
 import { usePreProviders, useAllPreProviderCities } from "@/hooks/usePreProviders";
 import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
+import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
+import { geoGridToElements } from "@/lib/geo-utils";
 import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil } from "lucide-react";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
@@ -125,8 +127,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const { data: preProviders, isLoading: loadingPreProv } = usePreProviders();
   const { data: preProviderCities, isLoading: loadingPreCities } = useAllPreProviderCities();
   const { options: formOptions } = useFormPrecificacao();
+  const { data: geoGridData, isLoading: loadingGeoGrid } = useGeoGridViabilidade();
 
-  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities;
+  const isLoadingData = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingPreProv || loadingPreCities || loadingGeoGrid;
 
   // Pricing calculation state per item
   const [rowValorMinimo, setRowValorMinimo] = useState<Record<string, number | null>>({});
@@ -457,6 +460,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       let processedSoFar = accumulated.length;
       let failedSoFar = 0;
 
+      // GeoGrid: converter recipientes para formato de elementos do motor
+      const geoGridElements = geoGridData ? geoGridToElements(geoGridData) : [];
+
       const batchResults = await processWsBatch(
         wsItems,
         providers as any,
@@ -473,6 +479,7 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         },
         startIndex,
         preProvidersWithCities,
+        geoGridElements,
       );
 
       const allResults = [...previousResults, ...batchResults];

@@ -14,8 +14,10 @@ import {
   geocodeAddress,
   haversineDistance,
   closedLineToPolygon,
+  geoGridToElements,
 } from "@/lib/geo-utils";
 import { processWsSingleItem, buildElementsByProvider, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
+import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
 import { fetchCep } from "@/lib/cep-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,8 +87,9 @@ export default function WsSingleSearch() {
   const { data: comprasLM, isLoading: loadingLM } = useComprasLM();
   const { data: preProviders } = usePreProviders();
   const { data: preProviderCities } = useAllPreProviderCities();
+  const { data: geoGridData, isLoading: loadingGeoGrid } = useGeoGridViabilidade();
 
-  const dataLoading = loadingProviders || loadingGeo || loadingLpu || loadingLM;
+  const dataLoading = loadingProviders || loadingGeo || loadingLpu || loadingLM || loadingGeoGrid;
 
   const preProvidersWithCities: PreProviderWithCities[] = (preProviders || [])
     .filter(pp => pp.status === "pre_cadastro")
@@ -344,6 +347,9 @@ export default function WsSingleSearch() {
 
     const cachedElByProvider = getElementsByProvider();
 
+    // GeoGrid: converter recipientes para formato de elementos do motor
+    const geoGridElements = geoGridData ? geoGridToElements(geoGridData) : [];
+
     const [wsResult, radResults] = await Promise.all([
       processWsSingleItem(
         wsItem,
@@ -354,6 +360,7 @@ export default function WsSingleSearch() {
         (comprasLM || []) as any,
         preProvidersWithCities,
         cachedElByProvider || undefined,
+        geoGridElements,
       ),
       radiusPromise,
     ]);
@@ -521,6 +528,38 @@ export default function WsSingleSearch() {
       }
     }
 
+    // === Renderizar recipientes GeoGrid no mapa ===
+    if (geoGridData) {
+      const validRows = geoGridData.filter(r => {
+        if (!r.latitude || !r.longitude) return false;
+        if (r.tipo_splitter && r.tipo_splitter.trim().endsWith("Des")) return false;
+        return true;
+      });
+
+      for (const r of validRows) {
+        const portasLivres = r.portas_livres ?? 0;
+        const fillColor = portasLivres > 0 ? "#8b5cf6" : "#6b7280"; // roxo = com porta, cinza = sem porta
+
+        L.circleMarker([r.latitude, r.longitude], {
+          radius: 5,
+          fillColor,
+          color: "#fff",
+          weight: 1.5,
+          fillOpacity: 0.9,
+        })
+          .addTo(layerGroup)
+          .bindTooltip(
+            `<div style="line-height:1.6; font-size:12px;">
+              <b>${r.sigla ?? "\u2014"}</b><br/>
+              <span style="color:#6b7280">Recipiente Sigla:</span> ${r.recipiente_sigla ?? "\u2014"}<br/>
+              <span style="color:#6b7280">Tipo do Splitter:</span> ${r.tipo_splitter ?? "\u2014"}<br/>
+              <span style="color:#6b7280">Portas Livres:</span> ${portasLivres}
+            </div>`,
+            { sticky: true, direction: "top" }
+          );
+      }
+    }
+
     for (const opt of options) {
       if (opt.nearest_point) {
         const routeColor = opt.is_own_network ? "#3b82f6" : "#22c55e";
@@ -610,7 +649,7 @@ export default function WsSingleSearch() {
     return () => {
       timers.forEach(window.clearTimeout);
     };
-  }, [geoResult, options, radiusResults, radius, allGeoElements, providers]);
+  }, [geoResult, options, radiusResults, radius, allGeoElements, providers, geoGridData]);
 
   useEffect(() => {
     if (!geoResult && mapInstance.current) {

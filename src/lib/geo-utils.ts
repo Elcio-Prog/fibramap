@@ -1814,5 +1814,60 @@ export async function prefetchHighwaysForArea(
   return fetchHighwaysAndRailwaysWithStatus(lat - padDeg, lng - lngPad, lat + padDeg, lng + lngPad);
 }
 
+// ---------------------------------------------------------------------------
+// GeoGrid Viabilidade — Adapter
+// ---------------------------------------------------------------------------
+
+import type { GeoGridRecipiente } from "@/hooks/useGeoGridViabilidade";
+
+/**
+ * Converte recipientes do GeoGrid para o formato de elementos aceito pelo motor de viabilidade.
+ * Exclui recipientes com tipo_splitter terminando em "Des" (dupla proteção).
+ * Deduplica por recipiente_sigla: mantém a linha com mais portas_livres por recipiente.
+ */
+export function geoGridToElements(
+  rows: GeoGridRecipiente[]
+): Array<{ geometry: any; provider_id: string; properties: any }> {
+  // Dupla proteção: filtro no código além do filtro SQL
+  const valid = rows.filter((r) => {
+    if (!r.latitude || !r.longitude) return false;
+    if (r.tipo_splitter && r.tipo_splitter.trim().endsWith("Des")) return false;
+    return true;
+  });
+
+  // Deduplica por recipiente_sigla: mantém o melhor (mais portas livres)
+  const byRecipiente = new Map<string, GeoGridRecipiente>();
+  for (const r of valid) {
+    const key = r.recipiente_sigla || r.sigla || r.id;
+    const existing = byRecipiente.get(key);
+    if (!existing || (r.portas_livres ?? 0) > (existing.portas_livres ?? 0)) {
+      byRecipiente.set(key, r);
+    }
+  }
+
+  return Array.from(byRecipiente.values()).map((r) => ({
+    geometry: {
+      type: "Point",
+      coordinates: [r.longitude, r.latitude],
+    },
+    provider_id: "geogrid", // marcador especial — não vinculado a provider interno
+    properties: {
+      tipo: "CE", // tratado como CE no motor
+      nome: r.recipiente_sigla || r.sigla, // usado para deduplicação no motor
+      sigla: r.sigla,
+      recipiente_sigla: r.recipiente_sigla,
+      tipo_splitter: r.tipo_splitter,
+      portas_livres: r.portas_livres ?? 0,
+      // Campos esperados por evaluateConnectionAptness:
+      tem_splitter: true,
+      splitter_portas_livres: r.portas_livres ?? 0,
+      splitter_tem_des: false, // já foram filtrados os Des
+      splitter_tem_1x2: false,
+      splitter_atendimento_all_sim: true,
+      porta_disponivel: (r.portas_livres ?? 0) > 0,
+    },
+  }));
+}
+
 /** Export types for external use */
 export type { OverpassWay };
