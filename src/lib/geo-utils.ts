@@ -791,7 +791,7 @@ async function snapToRoad(
   try {
     const url = `https://router.project-osrm.org/nearest/v1/foot/${lng},${lat}?number=1`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) return null;
@@ -825,7 +825,7 @@ export async function getRouteDistance(
     try {
         const url = `https://router.project-osrm.org/route/v1/foot/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.status === 429) return null; // rate limited — signal retry
@@ -1015,7 +1015,7 @@ export async function getRouteDistancePreSnapped(
     try {
       const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
       clearTimeout(timeoutId);
       if (res.status === 429) return undefined as any;
