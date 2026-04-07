@@ -322,7 +322,7 @@ export function useGeoGridViabilidade() {
 
         for (let i = 0; i < filtered.length; i++) {
           if (i > 0) {
-            await new Promise((r) => setTimeout(r, 600));
+            await new Promise((r) => setTimeout(r, 300));
           }
           const baseItem = filtered[i];
           try {
@@ -350,7 +350,7 @@ export function useGeoGridViabilidade() {
 
                 if (!recipId) continue;
 
-                await new Promise((resolve) => setTimeout(resolve, 600));
+                await new Promise((resolve) => setTimeout(resolve, 300));
 
                 try {
                   const portasResult = await callGeoGridProxy(`viabilidade/${recipId}/portas`, { disponivel: "S" });
