@@ -263,7 +263,7 @@ export function useGeoGridViabilidade() {
       const list = Array.isArray(registros) ? registros : [];
       const parsed = list.map(parseViabilidadeItem);
       const filtered = parsed.filter(
-        (i) => i.portasLivres > 0 && i.statusViabilidade.toLowerCase() === "possui"
+        (i) => i.portasLivres > 0 && i.statusViabilidade.toLowerCase() !== "sem"
       );
 
       // Load existing DB items for diff
