@@ -129,7 +129,7 @@ export function calculateIndividualROI(ticketMensal: number | null, dp: any) {
   }
 
   const roi = numerator / denominator;
-  return Math.round(roi * 100) / 100;
+  return Math.round(roi * 10) / 10;
 }
 
 export async function recalcRoiGlobal(idGuardachuva: string | null) {

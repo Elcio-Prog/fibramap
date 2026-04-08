@@ -224,7 +224,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5"><TruncCell value={row.aprovado_por} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.nome_cliente} /></td>
                       <td className="px-2 py-1.5 text-muted-foreground">
-                        {row.previsao_roi != null ? `${row.previsao_roi.toFixed(2)} meses` : "—"}
+                        {row.previsao_roi != null ? row.previsao_roi.toFixed(1) : "—"}
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
                       <td className="px-2 py-1.5"><StatusBadge value={row.status_viabilidade} /></td>
