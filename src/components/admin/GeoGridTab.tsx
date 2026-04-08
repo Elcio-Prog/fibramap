@@ -92,7 +92,15 @@ export default function GeoGridTab() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">GeoGrid</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              GeoGrid
+              {lastSync && (
+                <span className="text-xs font-normal text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Última atualização: {formatLastSync(lastSync)}
+                </span>
+              )}
+            </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
