@@ -1,15 +1,38 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, Download, ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { Loader2, Search, Download, ChevronLeft, ChevronRight, Zap, Clock } from "lucide-react";
 import { useGeoGridViabilidade } from "@/hooks/useGeoGridData";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function GeoGridTab() {
   const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, syncStats, fetchViabilidade } = useGeoGridViabilidade();
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
+  // Load last sync timestamp
+  useEffect(() => {
+    supabase
+      .from("configuracoes")
+      .select("valor")
+      .eq("chave", "geogrid_last_sync")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.valor) {
+          const raw = typeof data.valor === "string" ? data.valor : JSON.stringify(data.valor);
+          setLastSync(raw.replace(/"/g, ""));
+        }
+      });
+  }, []);
+
+  const formatLastSync = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    } catch { return iso; }
+  };
 
   const [viabPage, setViabPage] = useState(1);
   const [viabSearchText, setViabSearchText] = useState("");
