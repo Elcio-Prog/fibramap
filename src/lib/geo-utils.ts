@@ -201,6 +201,12 @@ export interface TAResult {
   motivoBloqueio?: string;
   motivo: "mais_proximo" | "verde_mais_proximo" | "fallback_saturado" | "sem_apto";
   mensagem?: string;
+  // GeoGrid specific fields
+  sigla?: string;
+  recipiente_sigla?: string;
+  portas_livres?: number;
+  portas_ocupadas?: number;
+  tipo_splitter?: string;
 }
 
 /** Provider rules interface for feasibility logic */
@@ -225,6 +231,12 @@ type ConnectionCandidate = {
   aptoNovoCliente: boolean;
   motivoBloqueio?: string;
   distance: number;
+  // GeoGrid fields
+  sigla?: string;
+  recipiente_sigla?: string;
+  portas_livres?: number;
+  portas_ocupadas?: number;
+  tipo_splitter?: string;
 };
 
 /** Check if a connection point (TA/CE) is apt for a new client based on provider rules */
@@ -312,6 +324,11 @@ function buildConnectionCandidates(
       aptoNovoCliente: aptCheck.apto,
       motivoBloqueio: aptCheck.motivo,
       distance: d,
+      sigla: props.sigla,
+      recipiente_sigla: props.recipiente_sigla,
+      portas_livres: props.portas_livres,
+      portas_ocupadas: props.portas_ocupadas,
+      tipo_splitter: props.tipo_splitter,
     });
   }
 
@@ -368,6 +385,11 @@ export function findBestConnectionPoint(
       portaDisponivel: best.portaDisponivel,
       aptoNovoCliente: true,
       motivo: "mais_proximo",
+      sigla: best.sigla,
+      recipiente_sigla: best.recipiente_sigla,
+      portas_livres: best.portas_livres,
+      portas_ocupadas: best.portas_ocupadas,
+      tipo_splitter: best.tipo_splitter,
     };
   }
 
@@ -381,6 +403,11 @@ export function findBestConnectionPoint(
     aptoNovoCliente: false,
     motivoBloqueio: nearest.motivoBloqueio,
     motivo: "sem_apto",
+    sigla: nearest.sigla,
+    recipiente_sigla: nearest.recipiente_sigla,
+    portas_livres: nearest.portas_livres,
+    portas_ocupadas: nearest.portas_ocupadas,
+    tipo_splitter: nearest.tipo_splitter,
     mensagem: "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
   };
 }
@@ -394,8 +421,8 @@ export function findNearestConnectionPointAny(
   lng: number,
   elements: Array<{ geometry: any; provider_id: string; properties?: any }>,
   limitMeters: number,
-): { distance: number; point: [number, number]; nome: string; tipo: "TA" | "CE"; motivoBloqueio?: string } | null {
-  const candidates: Array<{ lat: number; lng: number; nome: string; tipo: "TA" | "CE"; distance: number; motivoBloqueio?: string }> = [];
+): TAResult | null {
+  const candidates: Array<{ lat: number; lng: number; nome: string; tipo: "TA" | "CE"; distance: number; motivoBloqueio?: string; portaDisponivel?: boolean; sigla?: string; recipiente_sigla?: string; portas_livres?: number; portas_ocupadas?: number; tipo_splitter?: string; }> = [];
 
   for (const el of elements) {
     const props = (typeof el.properties === "string" ? JSON.parse(el.properties) : el.properties) || {};
@@ -406,14 +433,40 @@ export function findNearestConnectionPointAny(
     const [lng2, lat2] = geo.coordinates;
     const d = haversineDistance(lat, lng, lat2, lng2);
     if (d <= limitMeters) {
-      candidates.push({ lat: lat2, lng: lng2, nome: props.nome || tipo, tipo, distance: d });
+      candidates.push({
+        lat: lat2,
+        lng: lng2,
+        nome: props.nome || tipo,
+        tipo,
+        distance: d,
+        portaDisponivel: props.porta_disponivel === true,
+        sigla: props.sigla,
+        recipiente_sigla: props.recipiente_sigla,
+        portas_livres: props.portas_livres,
+        portas_ocupadas: props.portas_ocupadas,
+        tipo_splitter: props.tipo_splitter,
+      });
     }
   }
 
   if (candidates.length === 0) return null;
   candidates.sort((a, b) => a.distance - b.distance);
   const best = candidates[0];
-  return { distance: best.distance, point: [best.lat, best.lng], nome: best.nome, tipo: best.tipo };
+  return {
+    distance: best.distance,
+    point: [best.lat, best.lng],
+    nome: best.nome,
+    tipo: best.tipo,
+    portaDisponivel: best.portaDisponivel,
+    aptoNovoCliente: false,
+    motivoBloqueio: best.motivoBloqueio,
+    motivo: "sem_apto",
+    sigla: best.sigla,
+    recipiente_sigla: best.recipiente_sigla,
+    portas_livres: best.portas_livres,
+    portas_ocupadas: best.portas_ocupadas,
+    tipo_splitter: best.tipo_splitter,
+  };
 }
 
 /**
@@ -545,6 +598,11 @@ export async function findBestConnectionPointByRoute(
         aptoNovoCliente: isApto,
         motivoBloqueio: selectedBox.motivoBloqueio,
         motivo: isApto ? "mais_proximo" : "sem_apto",
+        sigla: selectedBox.sigla,
+        recipiente_sigla: selectedBox.recipiente_sigla,
+        portas_livres: selectedBox.portas_livres,
+        portas_ocupadas: selectedBox.portas_ocupadas,
+        tipo_splitter: selectedBox.tipo_splitter,
         mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
       },
       routeDistance: route.distance,
@@ -568,6 +626,11 @@ export async function findBestConnectionPointByRoute(
       aptoNovoCliente: isApto,
       motivoBloqueio: selectedBox.motivoBloqueio,
       motivo: isApto ? "mais_proximo" : "sem_apto",
+      sigla: selectedBox.sigla,
+      recipiente_sigla: selectedBox.recipiente_sigla,
+      portas_livres: selectedBox.portas_livres,
+      portas_ocupadas: selectedBox.portas_ocupadas,
+      tipo_splitter: selectedBox.tipo_splitter,
       mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
     },
     routeDistance: selectedBox.distance,
@@ -1858,6 +1921,7 @@ export function geoGridToElements(
       recipiente_sigla: r.recipiente_sigla,
       tipo_splitter: r.tipo_splitter,
       portas_livres: r.portas_livres ?? 0,
+      portas_ocupadas: r.portas_ocupadas ?? 0,
       // Campos esperados por evaluateConnectionAptness:
       tem_splitter: true,
       splitter_portas_livres: r.portas_livres ?? 0,

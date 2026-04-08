@@ -79,6 +79,12 @@ export interface ViableOption {
   is_check_om?: boolean;
   /** True when OSRM route calculation failed — DO NOT draw straight line */
   route_failed?: boolean;
+  // GeoGrid fields
+  sigla?: string;
+  recipiente_sigla?: string;
+  portas_livres?: number;
+  portas_ocupadas?: number;
+  tipo_splitter?: string;
 }
 
 export interface WsResult {
@@ -96,6 +102,11 @@ export interface WsResult {
   is_check_om?: boolean;
   notes: string;
   ta_info?: string;
+  sigla?: string;
+  recipiente_sigla?: string;
+  portas_livres?: number;
+  portas_ocupadas?: number;
+  tipo_splitter?: string;
   // ALL viable options found
   all_options: ViableOption[];
 }
@@ -461,6 +472,11 @@ async function processItem(
               is_own_network: true,
               is_check_om: isCheckOm,
               route_failed: routeFailed,
+              sigla: cpByRoute.taResult.sigla,
+              recipiente_sigla: cpByRoute.taResult.recipiente_sigla,
+              portas_livres: cpByRoute.taResult.portas_livres,
+              portas_ocupadas: cpByRoute.taResult.portas_ocupadas,
+              tipo_splitter: cpByRoute.taResult.tipo_splitter,
             });
           } else if (lastBlockedMsg) {
             allOptions.push({
@@ -496,6 +512,11 @@ async function processItem(
                 nearest_point: nearestAnyBox.point,
                 is_own_network: true,
                 is_check_om: true,
+                sigla: nearestAnyBox.sigla,
+                recipiente_sigla: nearestAnyBox.recipiente_sigla,
+                portas_livres: nearestAnyBox.portas_livres,
+                portas_ocupadas: nearestAnyBox.portas_ocupadas,
+                tipo_splitter: nearestAnyBox.tipo_splitter,
               });
             } else if (nttNetworkNearby) {
               // Rede NTT confirmada no raio mas nenhuma caixa TA/CE encontrada
@@ -700,6 +721,11 @@ async function processItem(
         is_check_om: isCheckOm,
         notes: (best.is_blocked ? `INVIÁVEL - ${best.notes}` : best.is_check_om ? best.notes : best.notes) + optionsSummary,
         ta_info: best.ta_info,
+        sigla: best.sigla,
+        recipiente_sigla: best.recipiente_sigla,
+        portas_livres: best.portas_livres,
+        portas_ocupadas: best.portas_ocupadas,
+        tipo_splitter: best.tipo_splitter,
       },
       all_options: sorted,
     };

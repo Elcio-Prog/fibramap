@@ -611,7 +611,20 @@ export default function WsSingleSearch() {
           ).addTo(layerGroup);
         }
         L.circleMarker(opt.nearest_point, { radius: 6, fillColor: routeColor, color: "#fff", weight: 2, fillOpacity: 0.9 })
-          .addTo(layerGroup).bindPopup(`<b>${opt.provider_name}</b><br/>${opt.stage} - ${opt.distance_m}m<br/>${opt.ta_info || ""}`);
+          .addTo(layerGroup).bindPopup(
+            `<div style="line-height:1.6; font-size:12px;">
+              <b>${opt.provider_name}</b><br/>
+              ${opt.stage} - ${opt.distance_m}m
+              ${opt.sigla ? `
+                <hr style="margin: 4px 0; border: 0; border-top: 1px solid #33333333;" />
+                <span style="color:#6b7280">Sigla do poste:</span> ${opt.sigla}<br/>
+                <span style="color:#6b7280">Recipiente Sigla:</span> ${opt.recipiente_sigla || "\u2014"}<br/>
+                <span style="color:#6b7280">Portas Livres:</span> ${opt.portas_livres ?? 0}<br/>
+                <span style="color:#6b7280">Portas Ocupadas:</span> ${opt.portas_ocupadas ?? 0}<br/>
+                <span style="color:#6b7280">Tipo do Splitter:</span> ${opt.tipo_splitter || "\u2014"}
+              ` : `<br/>${opt.ta_info || ""}`}
+            </div>`
+          );
         bounds.extend(L.latLng(opt.nearest_point[0], opt.nearest_point[1]));
       }
     }
