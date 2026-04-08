@@ -142,7 +142,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
 
   return (
     <div>
-      <ScrollableTable totalScrollableColumns={24}>
+      <ScrollableTable totalScrollableColumns={25}>
         <table className="text-xs w-max min-w-full">
           <thead className="sticky top-0 bg-muted z-10">
             <tr>
@@ -174,12 +174,13 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <Th>Obs. Validação</Th>
               <SortHeader field="created_at">Data Criação</SortHeader>
               <SortHeader field="modificado_por">Modificado por</SortHeader>
+              <SortHeader field="updated_at">Modificado</SortHeader>
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={25} className="text-center py-8 text-muted-foreground">
+                <td colSpan={27} className="text-center py-8 text-muted-foreground">
                   Nenhum registro encontrado
                 </td>
               </tr>
@@ -237,6 +238,9 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                         {row.created_at ? format(new Date(row.created_at), "dd/MM/yyyy HH:mm") : "—"}
                       </td>
                       <td className="px-2 py-1.5"><TruncCell value={row.modificado_por} /></td>
+                      <td className="px-2 py-1.5 whitespace-nowrap">
+                        {row.updated_at ? format(new Date(row.updated_at), "dd/MM/yyyy HH:mm") : "—"}
+                      </td>
                     </tr>
                   </ContextMenuTrigger>
                   {isAdmin && (

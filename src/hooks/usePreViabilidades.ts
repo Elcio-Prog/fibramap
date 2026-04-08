@@ -38,6 +38,7 @@ export interface PreViabilidade {
   protocolo: string | null;
   data_reavaliacao: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 export type PreViabilidadeInsert = Omit<PreViabilidade, "id" | "created_at">;
