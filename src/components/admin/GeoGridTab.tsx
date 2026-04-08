@@ -43,6 +43,19 @@ export default function GeoGridTab() {
   const handleFetchViabilidade = async () => {
     setViabFetched(true);
     await fetchViabilidade();
+    // Save last sync timestamp
+    const now = new Date().toISOString();
+    setLastSync(now);
+    const { data: existing } = await supabase
+      .from("configuracoes")
+      .select("id")
+      .eq("chave", "geogrid_last_sync")
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("configuracoes").update({ valor: JSON.stringify(now), updated_at: now }).eq("id", existing.id);
+    } else {
+      await supabase.from("configuracoes").insert({ chave: "geogrid_last_sync", valor: JSON.stringify(now) } as any);
+    }
   };
 
   const viabFiltered = useMemo(() => {
