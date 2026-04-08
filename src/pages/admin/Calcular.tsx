@@ -482,7 +482,7 @@ export default function CalcularPage() {
                      onChange={v => {
                        const num = Number(v) || 0;
                        setField("vigencia", num);
-                       const roi = getRoiForVigencia(v);
+                       const roi = getRoiForVigencia(v, form.produto);
                        if (roi !== null) setField("roiVigencia", roi);
                      }}
                      options={VIGENCIA_OPTIONS}

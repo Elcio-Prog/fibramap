@@ -161,7 +161,10 @@ export function useFormPrecificacao() {
       const vigData = (vigRes.data ?? []) as VigenciaRoiOption[];
       setVigenciaRoi(vigData);
       // Sync ROI with initial vigencia from DB data
-      const initialRoi = vigData.find(v => v.meses === String(initialState.vigencia));
+      const lookupKey = initialState.produto === "Firewall" 
+        ? `${initialState.vigencia} Equipamento` 
+        : String(initialState.vigencia);
+      const initialRoi = vigData.find(v => v.meses === lookupKey);
       if (initialRoi?.roi != null) {
         setForm(prev => ({ ...prev, roiVigencia: initialRoi.roi! }));
       }
@@ -173,21 +176,37 @@ export function useFormPrecificacao() {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  const getRoiForVigencia = useCallback((meses: string, targetProduto?: FormState["produto"]): number | null => {
+    const activeProduto = targetProduto ?? form.produto;
+    const lookupKey = activeProduto === "Firewall" ? `${meses} Equipamento` : meses;
+    const match = vigenciaRoi.find(v => v.meses === lookupKey);
+    return match?.roi ?? null;
+  }, [vigenciaRoi, form.produto]);
+
   const setProduto = useCallback((produto: FormState["produto"]) => {
-    setForm(prev => ({
-      ...prev,
-      ...defaultSpecific,
-      produto,
-      // keep globals
-      vigencia: prev.vigencia,
-      roiVigencia: prev.roiVigencia,
-      taxaInstalacao: prev.taxaInstalacao,
-      custosMateriaisAdicionais: prev.custosMateriaisAdicionais,
-      motivo: prev.motivo,
-      projetoAvaliado: prev.projetoAvaliado,
-      valorOpex: prev.valorOpex,
-    } as FormState));
-  }, []);
+    setForm(prev => {
+      const nextState = {
+        ...prev,
+        ...defaultSpecific,
+        produto,
+        // keep globals
+        vigencia: prev.vigencia,
+        taxaInstalacao: prev.taxaInstalacao,
+        custosMateriaisAdicionais: prev.custosMateriaisAdicionais,
+        motivo: prev.motivo,
+        projetoAvaliado: prev.projetoAvaliado,
+        valorOpex: prev.valorOpex,
+      } as FormState;
+
+      // Recalculate ROI for the new product
+      const newRoi = getRoiForVigencia(String(nextState.vigencia), produto);
+      if (newRoi !== null) {
+        nextState.roiVigencia = newRoi;
+      }
+
+      return nextState;
+    });
+  }, [getRoiForVigencia]);
 
   // Derived options
   const redeOptions = redes
@@ -218,10 +237,6 @@ export function useFormPrecificacao() {
 
   const vigenciaOptions = vigenciaRoi.map(v => v.meses);
 
-  const getRoiForVigencia = useCallback((meses: string): number | null => {
-    const match = vigenciaRoi.find(v => v.meses === meses);
-    return match?.roi ?? null;
-  }, [vigenciaRoi]);
 
   // Build payload for edge function
   const buildPayload = useCallback(() => {
