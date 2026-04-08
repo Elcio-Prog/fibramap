@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade, recalcRoiGlobal, calculateIndividualROI } from "@/hooks/usePreViabilidades";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
@@ -442,6 +442,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           ticket_mensal: meta.ticket_mensal || null,
           viabilidade: meta.viabilidade || null,
           motivo_solicitacao: meta.motivo_solicitacao || null,
+          previsao_roi: calculateIndividualROI(meta.ticket_mensal, buildDadosPrecificacao()),
           observacoes: meta.observacoes || null,
           codigo_smark: meta.codigo_smark || null,
           id_guardachuva: meta.id_guardachuva || null,

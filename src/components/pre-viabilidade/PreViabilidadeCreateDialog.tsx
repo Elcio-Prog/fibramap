@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useInsertPreViabilidade, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
+import { useInsertPreViabilidade, recalcRoiGlobal, calculateIndividualROI } from "@/hooks/usePreViabilidades";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
@@ -357,7 +357,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         data_reavaliacao: meta.data_reavaliacao || null,
         viabilidade: null,
         status_viabilidade: null,
-        previsao_roi: null,
+        previsao_roi: calculateIndividualROI(meta.ticket_mensal, buildDadosPrecificacao()),
         roi_global: null,
         comentarios_aprovador: null,
         origem: "manual",

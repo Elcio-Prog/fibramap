@@ -99,6 +99,39 @@ export function useUpdatePreViabilidade() {
   });
 }
 
+export function calculateIndividualROI(ticketMensal: number | null, dp: any) {
+  if (!ticketMensal) return 0;
+  const dados = dp || {};
+  
+  // CUSTO TOTAL = taxa_instalacao_lm + lancamento_custos_materiais + custo_radio + capex + valor_total_reais
+  const custoTotal =
+    (dados.custoLastMile ?? 0) +
+    (dados.custosMateriaisAdicionais ?? 0) +
+    (dados.custo_radio ?? 0) +
+    (dados.valorCapex ?? 0) +
+    (dados.valor_total_reais ?? 0);
+
+  const usouFinder2 = dados.usou_finder2 ?? 0;
+  const campanhaComercialMeses = dados.campanha_comercial_meses ?? 0;
+  const taxaInstalacao = dados.taxaInstalacao ?? 0;
+  const mediaMensalidadeLm = dados.media_mensalidade_lm ?? 0;
+  const opex = dados.valorOpex ?? 0;
+
+  const denominator = ticketMensal - mediaMensalidadeLm - opex;
+
+  if (denominator <= 0) return 0;
+
+  let numerator: number;
+  if (usouFinder2 > 0) {
+    numerator = (custoTotal + (ticketMensal * (usouFinder2 / 100))) + campanhaComercialMeses - taxaInstalacao;
+  } else {
+    numerator = (custoTotal + campanhaComercialMeses - taxaInstalacao);
+  }
+
+  const roi = numerator / denominator;
+  return Math.round(roi * 100) / 100;
+}
+
 export async function recalcRoiGlobal(idGuardachuva: string | null) {
   if (!idGuardachuva) return;
 
