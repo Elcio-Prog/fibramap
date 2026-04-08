@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { groupByCategory, type EquipmentCategory } from "@/lib/equipment-categories";
+import { groupByCategory, CATEGORY_ORDER, type EquipmentCategory } from "@/lib/equipment-categories";
 
 const CUSTO_POR_MEGA_ORDER = [
   "Custo do Metro de rede",
@@ -58,6 +58,18 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   const [fetching, setFetching] = useState(true);
   const [newKey, setNewKey] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+
+  const isEquipamentos = config.tabela === "equipamentos_valor";
+
+  // Derive existing categories from current rows for equipamentos
+  const existingCategories = isEquipamentos
+    ? Array.from(new Set(
+        groupByCategory(rows as { equipamento: string }[]).map(g => g.category)
+      ))
+    : [];
 
   const load = useCallback(async () => {
     setFetching(true);
@@ -93,6 +105,9 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
     try {
       await addRow(config, newKey.trim());
       setNewKey("");
+      setSelectedCategory("");
+      setCustomCategory("");
+      setShowCustomCategory(false);
       setShowAddDialog(false);
       await load();
     } catch { }
@@ -105,6 +120,25 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
     } catch { }
   };
 
+  const handleOpenAddDialog = () => {
+    setNewKey("");
+    setSelectedCategory("");
+    setCustomCategory("");
+    setShowCustomCategory(false);
+    setShowAddDialog(true);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    if (value === "__custom__") {
+      setShowCustomCategory(true);
+      setSelectedCategory("");
+    } else {
+      setShowCustomCategory(false);
+      setCustomCategory("");
+      setSelectedCategory(value);
+    }
+  };
+
   if (fetching) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -112,8 +146,6 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
       </div>
     );
   }
-
-  const isEquipamentos = config.tabela === "equipamentos_valor";
 
   const renderRow = (row: any, idx: number) => (
     <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
@@ -166,7 +198,7 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 justify-end">
-        <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
+        <Button size="sm" variant="outline" onClick={handleOpenAddDialog}>
           <Plus className="h-4 w-4 mr-1" /> Adicionar
         </Button>
         <Button size="sm" onClick={handleSave} disabled={loading}>
@@ -219,13 +251,59 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar registro</DialogTitle>
-            <DialogDescription>Digite o identificador do novo registro para "{config.label}".</DialogDescription>
+            <DialogTitle>Adicionar {isEquipamentos ? "equipamento" : "registro"}</DialogTitle>
+            <DialogDescription>
+              {isEquipamentos
+                ? "Selecione a categoria e digite o nome do novo equipamento."
+                : `Digite o identificador do novo registro para "${config.label}".`}
+            </DialogDescription>
           </DialogHeader>
-          <Input placeholder={config.keyField} value={newKey} onChange={e => setNewKey(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAdd()} />
+          <div className="space-y-3">
+            {isEquipamentos && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Categoria</Label>
+                <Select
+                  value={showCustomCategory ? "__custom__" : selectedCategory}
+                  onValueChange={handleCategoryChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_ORDER.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                    <SelectItem value="__custom__">+ Nova categoria...</SelectItem>
+                  </SelectContent>
+                </Select>
+                {showCustomCategory && (
+                  <Input
+                    placeholder="Nome da nova categoria"
+                    value={customCategory}
+                    onChange={e => setCustomCategory(e.target.value)}
+                    autoFocus
+                  />
+                )}
+              </div>
+            )}
+            <div className="space-y-2">
+              {isEquipamentos && <Label className="text-sm font-medium">Nome do equipamento</Label>}
+              <Input
+                placeholder={isEquipamentos ? "Ex: FN-FG-40F" : config.keyField}
+                value={newKey}
+                onChange={e => setNewKey(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()}
+              />
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancelar</Button>
-            <Button onClick={handleAdd} disabled={!newKey.trim() || loading}>Adicionar</Button>
+            <Button
+              onClick={handleAdd}
+              disabled={!newKey.trim() || loading || (isEquipamentos && !selectedCategory && (!showCustomCategory || !customCategory.trim()))}
+            >
+              Adicionar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

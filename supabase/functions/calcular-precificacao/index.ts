@@ -106,7 +106,7 @@ interface DbCosts {
 }
 
 async function loadAllCosts(
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<DbCosts> {
   const [
     { data: megaRows },

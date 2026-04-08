@@ -85,7 +85,7 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch (error: any) {
     const durationMs = Date.now() - startTime;
 
     // Log the error
@@ -93,13 +93,13 @@ serve(async (req) => {
       integration_name: 'GeoGrid',
       endpoint: 'unknown',
       method: 'unknown',
-      error_message: error.message,
+      error_message: error?.message ?? String(error),
       response_ok: false,
       duration_ms: durationMs,
     }).then(() => {});
 
     console.error('GeoGrid proxy error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error?.message ?? String(error) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
