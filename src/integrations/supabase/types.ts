@@ -395,6 +395,7 @@ export type Database = {
           recipiente_item: string
           recipiente_sigla: string
           sigla: string
+          sigla_poste: string
           status_viabilidade: string
           tipo_splitter: string
           updated_at: string
@@ -418,6 +419,7 @@ export type Database = {
           recipiente_item?: string
           recipiente_sigla?: string
           sigla?: string
+          sigla_poste?: string
           status_viabilidade?: string
           tipo_splitter?: string
           updated_at?: string
@@ -441,6 +443,7 @@ export type Database = {
           recipiente_item?: string
           recipiente_sigla?: string
           sigla?: string
+          sigla_poste?: string
           status_viabilidade?: string
           tipo_splitter?: string
           updated_at?: string
