@@ -678,7 +678,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Pré Viabilidade</DialogTitle>
@@ -758,7 +759,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
             </Button>
           </div>
         </div>
-      </DialogContent>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -776,6 +778,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 }
