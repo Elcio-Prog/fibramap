@@ -79,7 +79,7 @@ export default function GeoGridTab() {
                 size="sm"
               >
                 {loadingViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                Buscar Viabilidade
+Buscar TAs e CEs
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
