@@ -85,7 +85,7 @@ O **FibraMap** é uma aplicação React/TypeScript desenvolvida na plataforma [L
 
 ---
 
-## 🗄️ Banco de Dados (Supabase)
+## 🗄️ Banco de Dados (Supabase).
 
 Tabelas principais gerenciadas via migrations:
 
