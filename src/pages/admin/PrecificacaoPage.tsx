@@ -15,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { groupByCategory, CATEGORY_ORDER, type EquipmentCategory } from "@/lib/equipment-categories";
+import { classifyEquipment, groupByCategory, CATEGORY_ORDER, type EquipmentCategory } from "@/lib/equipment-categories";
 
 const CUSTO_POR_MEGA_ORDER = [
   "Custo do Metro de rede",
@@ -61,8 +61,22 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [usdRate, setUsdRate] = useState<number | null>(null);
 
   const isEquipamentos = config.tabela === "equipamentos_valor";
+
+  useEffect(() => {
+    if (isEquipamentos) {
+      fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+        .then(res => res.json())
+        .then(data => {
+          if (data?.USDBRL?.bid) {
+            setUsdRate(Number(data.USDBRL.bid));
+          }
+        })
+        .catch(err => console.error("Error fetching USD rate:", err));
+    }
+  }, [isEquipamentos]);
 
   // Derive existing categories from current rows for equipamentos
   const existingCategories = isEquipamentos
@@ -78,15 +92,62 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
       if (config.tabela === "custo_por_mega") {
         data = sortByCustomOrder(data, config.keyField, CUSTO_POR_MEGA_ORDER);
       }
+      
+      // Auto-calculate for equipamentos if we have USD rate
+      if (isEquipamentos && usdRate) {
+        data = data.map(r => {
+          const cat = classifyEquipment(r.equipamento);
+          const needsAutoCalc = ["Firewall", "Firewall Licença", "Switch"].includes(cat);
+          const hasDollar = Number(r.valor_dolar) > 0;
+
+          if (needsAutoCalc && hasDollar) {
+            const valor = Number(r.valor_dolar) * usdRate;
+            const imposto = Number(r.imposto) || 0;
+            const valorFinal = valor * (1 + (imposto / 100));
+            return {
+              ...r,
+              valor: valor.toFixed(2),
+              valor_final: valorFinal.toFixed(2)
+            };
+          }
+          return r;
+        });
+      }
+
       setRows(data);
     } catch { }
     setFetching(false);
-  }, [config, fetchTabela]);
+  }, [config, fetchTabela, isEquipamentos, usdRate]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleValueChange = (rowIdx: number, field: string, value: string) => {
-    setRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
+    setRows(prev => prev.map((r, i) => {
+      if (i !== rowIdx) return r;
+      const nextRow = { ...r, [field]: value };
+
+      // Automated calculations for specific categories
+      if (isEquipamentos) {
+        const cat = classifyEquipment(nextRow.equipamento);
+        const isTargetCat = ["Firewall", "Firewall Licença", "Switch"].includes(cat);
+        
+        if (isTargetCat) {
+          if (field === "valor_dolar" && usdRate && Number(value) > 0) {
+            const valor = Number(value) * usdRate;
+            nextRow.valor = valor.toFixed(2);
+            nextRow.valor_final = (valor * (1 + (Number(nextRow.imposto) || 0) / 100)).toFixed(2);
+          } else if (field === "imposto") {
+            const valor = Number(nextRow.valor) || 0;
+            nextRow.valor_final = (valor * (1 + (Number(value) || 0) / 100)).toFixed(2);
+          } else if (field === "valor") {
+            const valor = Number(value) || 0;
+            nextRow.valor_final = (valor * (1 + (Number(nextRow.imposto) || 0) / 100)).toFixed(2);
+          }
+        }
+      }
+
+      return nextRow;
+    }));
   };
 
   const handleSave = async () => {
@@ -197,13 +258,23 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 justify-end">
-        <Button size="sm" variant="outline" onClick={handleOpenAddDialog}>
-          <Plus className="h-4 w-4 mr-1" /> Adicionar
-        </Button>
-        <Button size="sm" onClick={handleSave} disabled={loading}>
-          <Save className="h-4 w-4 mr-1" /> Salvar
-        </Button>
+      <div className="flex flex-wrap items-center gap-4 justify-between">
+        <div className="flex items-center gap-2">
+          {isEquipamentos && usdRate && (
+            <Badge variant="secondary" className="gap-1.5 py-1 px-3">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              Câmbio USD Atual: <span className="font-bold ml-1">R$ {usdRate.toLocaleString("pt-BR", { minimumFractionDigits: 4 })}</span>
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={handleOpenAddDialog}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={loading}>
+            <Save className="h-4 w-4 mr-1" /> Salvar
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card overflow-auto">
