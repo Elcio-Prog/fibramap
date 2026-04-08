@@ -1,15 +1,38 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ScrollableTable from "@/components/ui/scrollable-table";
-import { Loader2, Search, Download, ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { Loader2, Search, Download, ChevronLeft, ChevronRight, Zap, Clock } from "lucide-react";
 import { useGeoGridViabilidade } from "@/hooks/useGeoGridData";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function GeoGridTab() {
   const { items: viabItems, loading: loadingViab, enriching: enrichingViab, enrichProgress, error: errorViab, dbLoaded: viabDbLoaded, syncStats, fetchViabilidade } = useGeoGridViabilidade();
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
+  // Load last sync timestamp
+  useEffect(() => {
+    supabase
+      .from("configuracoes")
+      .select("valor")
+      .eq("chave", "geogrid_last_sync")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.valor) {
+          const raw = typeof data.valor === "string" ? data.valor : JSON.stringify(data.valor);
+          setLastSync(raw.replace(/"/g, ""));
+        }
+      });
+  }, []);
+
+  const formatLastSync = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    } catch { return iso; }
+  };
 
   const [viabPage, setViabPage] = useState(1);
   const [viabSearchText, setViabSearchText] = useState("");
@@ -20,6 +43,19 @@ export default function GeoGridTab() {
   const handleFetchViabilidade = async () => {
     setViabFetched(true);
     await fetchViabilidade();
+    // Save last sync timestamp
+    const now = new Date().toISOString();
+    setLastSync(now);
+    const { data: existing } = await supabase
+      .from("configuracoes")
+      .select("id")
+      .eq("chave", "geogrid_last_sync")
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("configuracoes").update({ valor: JSON.stringify(now), updated_at: now }).eq("id", existing.id);
+    } else {
+      await supabase.from("configuracoes").insert({ chave: "geogrid_last_sync", valor: JSON.stringify(now) } as any);
+    }
   };
 
   const viabFiltered = useMemo(() => {
@@ -56,7 +92,15 @@ export default function GeoGridTab() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">GeoGrid</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              GeoGrid
+              {lastSync && (
+                <span className="text-xs font-normal text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Última atualização: {formatLastSync(lastSync)}
+                </span>
+              )}
+            </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
