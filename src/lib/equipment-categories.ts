@@ -20,20 +20,20 @@ export const CATEGORY_ORDER: EquipmentCategory[] = [
 export function classifyEquipment(name: string): EquipmentCategory {
   const n = name.toUpperCase();
 
-  // Firewall licenses (ANUAL) must come before generic firewall check
-  if (/ANUAL/i.test(n)) return "Firewall Licença";
+  // Firewall licenses (ANUAL) or LICENÇA must come before generic firewall check
+  if (/ANUAL|LICEN[ÇC]A/i.test(n)) return "Firewall Licença";
 
-  // Firewall hardware: FN-FG-*
-  if (/^FN-FG-/i.test(n)) return "Firewall";
+  // Firewall hardware: FN-FG-* or explicitly contains Firewall
+  if (/^FN-FG-|\bFIREWALL\b/i.test(n)) return "Firewall";
 
-  // Switch: FN-FS-*
-  if (/^FN-FS-/i.test(n)) return "Switch";
+  // Switch: FN-FS-* or explicitly contains Switch
+  if (/^FN-FS-|\bSWITCH\b/i.test(n)) return "Switch";
 
-  // Wifi / AP: FN-FAP-*, AC-*, U6-*, U7-*
-  if (/^FN-FAP-|^AC[\s-]|^U[67][\s-]/i.test(n)) return "Wifi";
+  // Wifi / AP: FN-FAP-*, AC-*, U6-*, U7-*, or explicitly contains Wifi/Wireless
+  if (/^FN-FAP-|^AC[\s-]|^U[67][\s-]|\bWIFI\b|\bWIRELESS\b|\bAP\b/i.test(n)) return "Wifi";
 
   // VOZ: everything that looks like telephony + ONU
-  if (/ATA\s|GRANDSTREAM|^FIP|^TIP|TELEFONE|^V\d{4}|GATEWAY|MIKROTIK|ONU/i.test(n)) return "VOZ";
+  if (/VOZ|^ATA\s|GRANDSTREAM|^FIP|^TIP|TELEFONE|^V\d{4}|GATEWAY|MIKROTIK|ONU/i.test(n)) return "VOZ";
 
   return "Outros";
 }

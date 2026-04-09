@@ -164,7 +164,20 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   const handleAdd = async () => {
     if (!newKey.trim()) return;
     try {
-      await addRow(config, newKey.trim());
+      let keyWithPrefix = newKey.trim();
+      
+      // Auto-prefix for equipment based on selected category to ensure correct classification
+      if (isEquipamentos && selectedCategory && selectedCategory !== "Outros") {
+        const prefix = selectedCategory === "Firewall Licença" ? "Licença - " : `${selectedCategory} - `;
+        // Only prepend if not already present in some form
+        if (!keyWithPrefix.toUpperCase().includes(selectedCategory.toUpperCase()) && 
+            !keyWithPrefix.toUpperCase().includes("ANUAL") &&
+            !keyWithPrefix.toUpperCase().includes("LICEN")) {
+          keyWithPrefix = `${prefix}${keyWithPrefix}`;
+        }
+      }
+      
+      await addRow(config, keyWithPrefix);
       setNewKey("");
       setSelectedCategory("");
       setCustomCategory("");
