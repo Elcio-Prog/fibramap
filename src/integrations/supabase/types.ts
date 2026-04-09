@@ -716,6 +716,7 @@ export type Database = {
           status_viabilidade: string | null
           ticket_mensal: number | null
           tipo_solicitacao: string | null
+          updated_at: string | null
           user_id: string
           valor_minimo: number | null
           viabilidade: string | null
@@ -752,6 +753,7 @@ export type Database = {
           status_viabilidade?: string | null
           ticket_mensal?: number | null
           tipo_solicitacao?: string | null
+          updated_at?: string | null
           user_id: string
           valor_minimo?: number | null
           viabilidade?: string | null
@@ -788,6 +790,7 @@ export type Database = {
           status_viabilidade?: string | null
           ticket_mensal?: number | null
           tipo_solicitacao?: string | null
+          updated_at?: string | null
           user_id?: string
           valor_minimo?: number | null
           viabilidade?: string | null
