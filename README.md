@@ -6,7 +6,7 @@
 
 ## 📋 Sobre o Projeto
 
-O **FibraMap** é uma aplicação React/TypeScript desenvolvida na plataforma [Lovable](https://lovable.dev), com Supabase como backend. Ela centraliza o processo de consulta de viabilidade técnica de instalação de fibra óptica, permitindo que times admin e WS (Wireless/Field) consultem endereços, importem planilhas, visualizem coberturas em mapa e enviem resultados via webhook para o Microsoft SharePoint / Lists.
+O **FibraMap** é uma aplicação React/TypeScript desenvolvida na plataforma [Lovable](https://lovable.dev), com Supabase como backend. Ela centraliza o processo de consulta de viabilidade técnica de instalação de fibra óptica, permitindo que times admin e WS (Wireless/Field) consultem endereços, importem planilhas, visualizem coberturas em mapa e enviem resultados via webhook para o Microsoft SharePoint / Lists
 
 ---
 
