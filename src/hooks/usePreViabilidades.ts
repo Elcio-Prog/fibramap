@@ -41,7 +41,7 @@ export interface PreViabilidade {
   updated_at?: string | null;
 }
 
-export type PreViabilidadeInsert = Omit<PreViabilidade, "id" | "created_at">;
+export type PreViabilidadeInsert = Omit<PreViabilidade, "id" | "created_at" | "numero"> & { numero?: number };
 
 export type PreViabilidadeUpdate = Partial<Omit<PreViabilidade, "id" | "created_at" | "user_id">>;
 

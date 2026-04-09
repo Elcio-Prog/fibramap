@@ -330,7 +330,6 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     try {
       await insertMutation.mutateAsync([{
         user_id: user.id,
-        numero: 0,
         status: meta.status || "Aberto",
         produto_nt: calcForm.produto || null,
         valor_minimo: valorMinimo,
