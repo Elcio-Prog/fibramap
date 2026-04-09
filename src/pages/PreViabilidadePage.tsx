@@ -5,7 +5,8 @@ import PreViabilidadeTable from "@/components/pre-viabilidade/PreViabilidadeTabl
 import PreViabilidadeFilters from "@/components/pre-viabilidade/PreViabilidadeFilters";
 import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidadeEditDrawer";
 import PreViabilidadeCreateDialog from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
-import { Loader2, FileCheck, X, Plus } from "lucide-react";
+import RoiGlobalReportDialog from "@/components/pre-viabilidade/RoiGlobalReportDialog";
+import { Loader2, FileCheck, X, Plus, BarChart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,7 @@ export default function PreViabilidadePage() {
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
   const [guardaChuvaFilter, setGuardaChuvaFilter] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   return (
     <div className="p-6 space-y-4">
@@ -30,10 +32,17 @@ export default function PreViabilidadePage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Criar Pré Viabilidade
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setReportOpen(true)} className="gap-2 bg-background">
+            <BarChart className="h-4 w-4 text-primary" />
+            <span className="hidden sm:inline">Gerar Relatório Roi Global</span>
+          </Button>
+          <Button onClick={() => setCreateOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Criar Pré Viabilidade</span>
+            <span className="sm:hidden">Criar</span>
+          </Button>
+        </div>
       </div>
 
       <PreViabilidadeFilters
@@ -78,6 +87,7 @@ export default function PreViabilidadePage() {
       )}
 
       <PreViabilidadeCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <RoiGlobalReportDialog open={reportOpen} onOpenChange={setReportOpen} data={data || []} />
     </div>
   );
 }
