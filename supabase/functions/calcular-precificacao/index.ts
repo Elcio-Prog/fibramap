@@ -18,6 +18,7 @@ interface CalcInput {
   blocoIp?: string;
   custoLastMile?: number;
   valorLastMile?: number;
+  tecnologia?: string;
   qtdFibrasDarkFiber?: number;
   togDistancia?: boolean;
   projetoAvaliado?: boolean;
@@ -184,7 +185,8 @@ async function loadAllCosts(
 
 // ── Calculation per product ─────────────────────────────────────────────────
 
-function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva = false): CalcOutput {
+function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mile: number, regra_projetista_ativa: boolean }): CalcOutput {
+  const regraProjetistaAtiva = setup.regra_projetista_ativa;
   const {
     subproduto = "",
     rede,
@@ -285,7 +287,12 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
   if (subproduto !== "NT DARK FIBER") {
     linkcustoLancamento = togDistancia ? custoMetroRede * (distancia ?? 0) : 0;
   }
-  const valorCapex = linkcustoONU + linkcustoLancamento;
+  
+  const baseCapex = input.tecnologia === "LAST MILE" 
+    ? setup.capex_last_mile 
+    : linkcustoONU;
+
+  const valorCapex = baseCapex + linkcustoLancamento;
 
   // ── 3.2.4 custosGerais ──
   const custosGerais = Math.max(
@@ -656,7 +663,7 @@ Deno.serve(async (req) => {
 
     // Load setup config
     let fatorAjuste = 1.0;
-    let regraProjetistaAtiva = false;
+    let setupConfig = { capex_last_mile: 750, regra_projetista_ativa: false };
     try {
       const { data: setupRow } = await supabase
         .from("configuracoes")
@@ -664,16 +671,17 @@ Deno.serve(async (req) => {
         .eq("chave", "setup_precificacao")
         .maybeSingle();
       if (setupRow?.valor) {
-        const setup = setupRow.valor as { fator_ajuste?: number; regra_projetista_ativa?: boolean };
+        const setup = setupRow.valor as { fator_ajuste?: number; capex_last_mile?: number; regra_projetista_ativa?: boolean };
         fatorAjuste = (setup.fator_ajuste ?? 100) / 100;
-        regraProjetistaAtiva = setup.regra_projetista_ativa ?? false;
+        setupConfig.capex_last_mile = setup.capex_last_mile ?? 750;
+        setupConfig.regra_projetista_ativa = setup.regra_projetista_ativa ?? false;
       }
     } catch { /* use defaults */ }
 
     let result: CalcOutput;
     switch (input.produto) {
       case "Conectividade":
-        result = calcConectividade(input, db, regraProjetistaAtiva);
+        result = calcConectividade(input, db, setupConfig);
         break;
       case "Firewall":
         result = calcFirewall(input, db);

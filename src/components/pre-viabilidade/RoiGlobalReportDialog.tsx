@@ -224,14 +224,14 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           </div>
 
           {filteredData.length > 0 ? (
-            <div className="rounded-md border flex-1 overflow-auto bg-white p-4" ref={reportRef}>
-              <div className="mb-4">
+            <div className="rounded-md border flex-1 overflow-auto bg-white px-4 pb-4" ref={reportRef}>
+              <div className="mb-4 pt-4">
                 <h2 className="text-lg font-bold">Relatório Consolidado - ID: {selectedId}</h2>
                 <p className="text-sm text-muted-foreground">Data de geração: {new Date().toLocaleDateString("pt-BR")}</p>
               </div>
               <Table>
-                <TableHeader className="bg-muted break-normal">
-                  <TableRow>
+                <TableHeader className="bg-muted break-normal sticky top-0 z-10 shadow-sm">
+                  <TableRow className="h-14">
                     <TableHead className="whitespace-nowrap">Id</TableHead>
                     <TableHead className="whitespace-nowrap">Produto</TableHead>
                     <TableHead className="whitespace-nowrap">Banda/Modelo</TableHead>

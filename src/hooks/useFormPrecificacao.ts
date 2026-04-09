@@ -265,6 +265,7 @@ export function useFormPrecificacao() {
           blocoIp: p.blocoIp || undefined,
           custoLastMile: p.custoLastMile,
           valorLastMile: p.valorLastMile,
+          tecnologia: p.tecnologia,
           qtdFibrasDarkFiber: p.subproduto === "NT DARK FIBER" ? p.qtdFibrasDarkFiber : undefined,
         };
       case "Firewall":

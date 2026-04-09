@@ -397,6 +397,7 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
 
 function SetupTab() {
   const [fatorAjuste, setFatorAjuste] = useState(100);
+  const [capexLastMile, setCapexLastMile] = useState(750);
   const [regraProjetista, setRegraProjetista] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -412,6 +413,7 @@ function SetupTab() {
       if (setupRes.data) {
         const val = (setupRes.data as any).valor;
         setFatorAjuste(val?.fator_ajuste ?? 100);
+        setCapexLastMile(val?.capex_last_mile ?? 750);
         setRegraProjetista(val?.regra_projetista_ativa ?? false);
       }
       if (projRes.data) {
@@ -442,7 +444,11 @@ function SetupTab() {
       const { error } = await supabase
         .from("configuracoes" as any)
         .update({
-          valor: { fator_ajuste: fatorAjuste, regra_projetista_ativa: regraProjetista },
+          valor: { 
+            fator_ajuste: fatorAjuste, 
+            capex_last_mile: capexLastMile,
+            regra_projetista_ativa: regraProjetista 
+          },
           updated_at: new Date().toISOString(),
         } as any)
         .eq("chave", "setup_precificacao");
@@ -499,6 +505,29 @@ function SetupTab() {
           <p className="text-xs text-muted-foreground">
             100% = valor original. 110% = +10% sobre o mínimo. 90% = -10% sobre o mínimo.
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="capex-last-mile" className="text-sm font-medium">
+            Capex Last Mile (R$)
+          </Label>
+          <div className="flex items-center gap-3">
+            <Input
+              id="capex-last-mile"
+              type="number"
+              min={0}
+              step={0.01}
+              className="w-32"
+              value={capexLastMile}
+              onChange={e => {
+                const v = Math.max(0, Number(e.target.value) || 0);
+                setCapexLastMile(v);
+              }}
+            />
+            <span className="text-xs text-muted-foreground">
+              Valor base aplicado quando a tecnologia for LAST MILE
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center justify-between rounded-md border p-4">
