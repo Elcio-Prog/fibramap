@@ -327,7 +327,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
         (1 + linktaxaLink);
     } else {
       pisoBase = Math.max(
-        safeDivide(custoLastMile, 0.33) + linkcustoBlocoIP + safeDivide(custosGerais, vigencia),
+        safeDivide(valorLastMile, 0.33) + safeDivide(custosGerais, vigencia),
         850
       );
     }
@@ -339,7 +339,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
       pisoBase,
       piso300,
       valorMinimoDarkFiber,
-      safeDivide(valorLastMile, 0.33) + safeDivide(custosGerais, roiVigencia)
+      safeDivide(valorLastMile, 0.33) + safeDivide(custosGerais, vigencia)
     );
   } else {
     // ── 3.2.6 Toggle OFF ──
@@ -354,7 +354,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, regraProjetistaAtiva =
     const metodo2 = safeDivide(valorCapex, roiVigencia) * qtdFibrasDarkFiber;
 
     const metodo3 =
-      safeDivide(valorLastMile, 0.33) + safeDivide(custosGerais, roiVigencia);
+      safeDivide(valorLastMile, 0.33) + safeDivide(custosGerais, vigencia);
 
     valorMinimo = Math.max(metodo1, metodo2, metodo3);
   }
