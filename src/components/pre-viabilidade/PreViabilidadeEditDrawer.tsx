@@ -356,6 +356,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     if (!initialLoadDone.current || !open) return;
     const timer = setTimeout(async () => {
       const payload = buildPayload();
+      if (calcForm.tecnologia === "LAST MILE" && meta.media_mensalidade_lm) {
+        (payload as any).valorLastMile = meta.media_mensalidade_lm;
+      }
       const result = await calcular(payload);
       if (result?.valorMinimo != null) {
         setValorMinimo(result.valorMinimo);
@@ -365,7 +368,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [calcForm, open, buildPayload, calcular]);
+  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));

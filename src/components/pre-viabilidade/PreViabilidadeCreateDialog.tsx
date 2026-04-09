@@ -257,12 +257,15 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     if (!initialLoadDone.current || !open) return;
     const timer = setTimeout(async () => {
       const payload = buildPayload();
+      if (calcForm.tecnologia === "LAST MILE" && meta.media_mensalidade_lm) {
+        (payload as any).valorLastMile = meta.media_mensalidade_lm;
+      }
       const result = await calcular(payload);
       if (result?.valorMinimo != null) setValorMinimo(result.valorMinimo);
       if (result?.valorCapex != null) setValorCapex(result.valorCapex);
     }, 600);
     return () => clearTimeout(timer);
-  }, [calcForm, open, buildPayload, calcular]);
+  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
