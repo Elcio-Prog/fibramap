@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -75,14 +76,31 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       (acc, item) => {
         const dp = item.dados_precificacao || {};
         acc.capex += dp.valorCapex || 0;
+        acc.custosMateriais += dp.custosMateriaisAdicionais || 0;
         acc.valorLm += dp.media_mensalidade_lm || 0;
         acc.ticketMensal += item.ticket_mensal || 0;
         acc.taxaInstalacao += dp.taxaInstalacao || 0;
+        acc.opex += dp.valorOpex || 0;
+        acc.campanha += dp.campanha_comercial_meses || 0;
+        acc.finder += (item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100);
         return acc;
       },
-      { capex: 0, valorLm: 0, ticketMensal: 0, taxaInstalacao: 0 }
+      { 
+        capex: 0, 
+        custosMateriais: 0, 
+        valorLm: 0, 
+        ticketMensal: 0, 
+        taxaInstalacao: 0,
+        opex: 0,
+        campanha: 0,
+        finder: 0
+      }
     );
   }, [filteredData]);
+
+  const despesasFixas = (totals.capex + totals.custosMateriais + totals.finder + totals.campanha) - totals.taxaInstalacao;
+  const receitasMensais = totals.ticketMensal - totals.opex - totals.valorLm;
+  const roiGlobalFinal = receitasMensais > 0 ? despesasFixas / receitasMensais : 0;
 
   const getBandaModelo = (item: PreViabilidade) => {
     const p = item.produto_nt || (item.dados_precificacao && item.dados_precificacao.produto);
@@ -118,11 +136,12 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           "Banda/Modelo": getBandaModelo(item),
           "Qtde": getQuantidade(item),
           "Capex": dp.valorCapex || 0,
+          "Lançamento custos de materiais e mão de Obra": dp.custosMateriaisAdicionais || 0,
           "Valor LM": dp.media_mensalidade_lm || 0,
           "Valor Mensal (Ticket)": item.ticket_mensal || 0,
-          "Finder": "-",
+          "Finder": formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
           "Taxa Instalação": dp.taxaInstalacao || 0,
-          "Camp. Com.": dp.campanha_comercial_meses || 0,
+          "Camp. Com.": formatCurrency(dp.campanha_comercial_meses || 0),
           "ROI Global": item.roi_global ? (item.roi_global * 100).toFixed(2) + "%" : "-"
         };
       });
@@ -133,12 +152,32 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Banda/Modelo": "",
         "Qtde": "",
         "Capex": totals.capex,
+        "Lançamento custos de materiais e mão de Obra": totals.custosMateriais,
         "Valor LM": totals.valorLm,
         "Valor Mensal (Ticket)": totals.ticketMensal,
-        "Finder": "",
+        "Finder": totals.finder,
         "Taxa Instalação": totals.taxaInstalacao,
-        "Camp. Com.": "",
+        "Camp. Com.": totals.campanha,
         "ROI Global": ""
+      });
+
+      // Add Summary section to Excel
+      excelData.push({});
+      excelData.push({ "Id": "RESUMO ROI GLOBAL" });
+      excelData.push({ 
+        "Id": "Despesas:", 
+        "Produto": `(${formatCurrency(totals.capex)} + ${formatCurrency(totals.custosMateriais)} + ${formatCurrency(totals.finder)} + ${formatCurrency(totals.campanha)}) - ${formatCurrency(totals.taxaInstalacao)}`,
+        "Qtde": formatCurrency(despesasFixas)
+      });
+      excelData.push({ 
+        "Id": "Receitas:", 
+        "Produto": `${formatCurrency(totals.ticketMensal)} - ${formatCurrency(totals.opex)} - ${formatCurrency(totals.valorLm)}`,
+        "Qtde": formatCurrency(receitasMensais)
+      });
+      excelData.push({ 
+        "Id": "ROI Global:", 
+        "Produto": `${formatCurrency(despesasFixas)} / ${formatCurrency(receitasMensais)}`,
+        "Qtde": roiGlobalFinal.toFixed(2)
       });
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -237,6 +276,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableHead className="whitespace-nowrap">Banda/Modelo</TableHead>
                     <TableHead className="whitespace-nowrap text-center">Qtde</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Capex</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">Lançamento custos de materiais e mão de Obra</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Valor LM</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Valor Mensal (Ticket)</TableHead>
                     <TableHead className="whitespace-nowrap text-center">Finder</TableHead>
@@ -255,14 +295,17 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                         <TableCell>{getBandaModelo(item)}</TableCell>
                         <TableCell className="text-center">{getQuantidade(item)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(dp.valorCapex)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(dp.custosMateriaisAdicionais)}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(dp.media_mensalidade_lm)}
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(item.ticket_mensal)}</TableCell>
-                        <TableCell className="text-center">-</TableCell>
+                        <TableCell className="text-center">
+                          {formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100))}
+                        </TableCell>
                         <TableCell className="text-right">{formatCurrency(dp.taxaInstalacao)}</TableCell>
                         <TableCell className="text-center">
-                          {dp.campanha_comercial_meses || 0}
+                          {formatCurrency(dp.campanha_comercial_meses || 0)}
                         </TableCell>
                         <TableCell className="text-center">
                           {item.roi_global ? (
@@ -291,14 +334,83 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                       Totais Gerais:
                     </TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.capex)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.custosMateriais)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.valorLm)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.ticketMensal)}</TableCell>
-                    <TableCell colSpan={1}></TableCell>
+                    <TableCell className="text-center">{formatCurrency(totals.finder)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.taxaInstalacao)}</TableCell>
-                    <TableCell colSpan={2}></TableCell>
+                    <TableCell className="text-center">{formatCurrency(totals.campanha)}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
+
+              <div className="mt-8 p-6 bg-muted/30 rounded-xl border-t-4 border-t-primary shadow-inner">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <div className="h-2 w-6 bg-primary rounded-full" />
+                  Resumo do ROI Global
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Despesas Card */}
+                  <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-semibold text-muted-foreground uppercase text-xs tracking-wider">Detalhamento de Despesas</span>
+                      <Badge variant="outline" className="text-destructive border-destructive/20 bg-destructive/5 font-bold">Saídas</Badge>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground italic">
+                        Cálculo: (Capex + Lançamento + Finder + Campanha) - Taxa de Instalação
+                      </p>
+                      <div className="p-3 bg-muted/50 rounded-md font-mono text-sm">
+                        ({formatCurrency(totals.capex)} + {formatCurrency(totals.custosMateriais)} + {formatCurrency(totals.finder)} + {formatCurrency(totals.campanha)}) - {formatCurrency(totals.taxaInstalacao)}
+                      </div>
+                      <div className="pt-2 flex justify-between items-end border-t border-dashed">
+                        <span className="text-sm font-medium">Despesas Totais:</span>
+                        <span className="text-2xl font-black text-destructive">{formatCurrency(despesasFixas)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Receitas Card */}
+                  <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-semibold text-muted-foreground uppercase text-xs tracking-wider">Detalhamento de Receitas</span>
+                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 font-bold">Entradas</Badge>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground italic">
+                        Cálculo: Valor Mensal - OPEX - Valor LM
+                      </p>
+                      <div className="p-3 bg-muted/50 rounded-md font-mono text-sm">
+                        {formatCurrency(totals.ticketMensal)} - {formatCurrency(totals.opex)} - {formatCurrency(totals.valorLm)}
+                      </div>
+                      <div className="pt-2 flex justify-between items-end border-t border-dashed">
+                        <span className="text-sm font-medium">Receitas Totais:</span>
+                        <span className="text-2xl font-black text-green-600">{formatCurrency(receitasMensais)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ROI Final Banner */}
+                <div className="mt-8 bg-primary/5 border-2 border-primary/20 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <h4 className="text-lg font-bold text-primary flex items-center gap-2">
+                      ROI Global Final
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Fórmula consolidada: <span className="font-mono bg-primary/10 px-2 py-0.5 rounded">{formatCurrency(despesasFixas)} / {formatCurrency(receitasMensais)}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 bg-white px-8 py-4 rounded-xl border-2 border-primary shadow-lg animate-in fade-in zoom-in duration-500">
+                    <div className="text-sm font-bold text-primary uppercase vertical-text">RESULTADO</div>
+                    <div className="text-5xl font-black text-primary tabular-nums">
+                      {roiGlobalFinal.toFixed(2)}
+                      <span className="text-sm font-medium ml-1">meses</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed text-muted-foreground p-8">

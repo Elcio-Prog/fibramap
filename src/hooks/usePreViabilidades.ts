@@ -117,18 +117,16 @@ export function calculateIndividualROI(ticketMensal: number | null, dp: any) {
   const mediaMensalidadeLm = dados.media_mensalidade_lm ?? 0;
   const opex = dados.valorOpex ?? 0;
 
-  const denominator = ticketMensal - mediaMensalidadeLm - opex;
+  // Receitas = Ticket Mensal - OPEX - Valor LM
+  const receitas = ticketMensal - mediaMensalidadeLm - opex;
 
-  if (denominator <= 0) return 0;
+  if (receitas <= 0) return 0;
 
-  let numerator: number;
-  if (usouFinder2 > 0) {
-    numerator = (custoTotal + (ticketMensal * (usouFinder2 / 100))) + campanhaComercialMeses - taxaInstalacao;
-  } else {
-    numerator = (custoTotal + campanhaComercialMeses - taxaInstalacao);
-  }
+  // Despesas = Custo Total + Finder + Campanha - Taxa de Instalação
+  const finder = ticketMensal * (usouFinder2 / 100);
+  const despesas = custoTotal + finder + campanhaComercialMeses - taxaInstalacao;
 
-  const roi = numerator / denominator;
+  const roi = despesas / receitas;
   return Math.round(roi * 10) / 10;
 }
 
@@ -170,9 +168,10 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
     const usouFinder2 = dp.usou_finder2 ?? 0;
     const campanhaComercialMeses = dp.campanha_comercial_meses ?? 0;
     const taxaInstalacao = dp.taxaInstalacao ?? 0;
+    const opex = dp.valorOpex ?? 0;
 
-    // Receita = Ticket Mensal Previsto - Média Mensalidade LM
-    const receita = ticketMensal - mediaMensalidadeLm;
+    // Receita = Ticket Mensal Previsto - OPEX - Média Mensalidade LM
+    const receita = ticketMensal - opex - mediaMensalidadeLm;
 
     // Despesa = Custo Total + (Ticket Mensal * (Usou FINDER2 / 100)) + Campanha Comercial Meses - Taxa de Instalação
     const despesa = custoTotal + (ticketMensal * (usouFinder2 / 100)) + campanhaComercialMeses - taxaInstalacao;
@@ -182,10 +181,10 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
   }
 
   let roi: number;
-  if (somaDespesas === 0) {
-    roi = somaReceitas > 0 ? 1 : 0;
+  if (somaReceitas <= 0) {
+    roi = 0;
   } else {
-    roi = (somaReceitas - somaDespesas) / somaDespesas;
+    roi = somaDespesas / somaReceitas;
   }
 
   roi = Math.round(roi * 100) / 100;

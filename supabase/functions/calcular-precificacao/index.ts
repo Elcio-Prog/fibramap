@@ -398,9 +398,27 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   const custoPorContrato =
     db.custosPabx.get("Custo Firewall Switch e Wifi por contrato") ?? 0;
 
-  const licencaKey = `${firewallSolucao} ${modeloFirewall} ANUAL`;
-  const licencaFirewall = db.equipamentos.get(licencaKey)?.valor_final ?? 0;
   const valorEquipamento = db.equipamentos.get(modeloFirewall)?.valor_final ?? 0;
+
+  // Robust license matching
+  const cleanModel = modeloFirewall.replace(/^Firewall\s*-\s*/i, "").trim();
+  const keysToTry = [
+    `${firewallSolucao} ${cleanModel} ANUAL`,
+    `Licença - ${firewallSolucao} ${cleanModel}`,
+    `Licença - ${firewallSolucao} ${cleanModel} ANUAL`,
+    `${firewallSolucao} ${modeloFirewall} ANUAL`,
+    `Licença - ${firewallSolucao} ${modeloFirewall}`,
+    `${firewallSolucao} ${modeloFirewall}`
+  ];
+
+  let licencaFirewall = 0;
+  for (const k of keysToTry) {
+    const val = db.equipamentos.get(k)?.valor_final;
+    if (val != null && val > 0) {
+      licencaFirewall = val;
+      break;
+    }
+  }
 
   const valorCapex =
     (licencaFirewall * Math.ceil(safeDivide(vigencia, 12)) + valorEquipamento) * qtdEquipamentos;
