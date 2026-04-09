@@ -1,8 +1,39 @@
+import React, { useState, useMemo, useRef } from "react";
 import { Check, ChevronsUpDown, ScrollText, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { PreViabilidade } from "@/hooks/usePreViabilidades";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 interface Props {
   open: boolean;
@@ -73,40 +104,54 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
     return dp.qtdEquipamentos || "-";
   };
 
-  const handleExportPDF = async () => {
-    if (!reportRef.current || filteredData.length === 0) return;
+  const handleExportExcel = () => {
+    if (filteredData.length === 0) return;
 
     try {
       setIsExporting(true);
-      const element = reportRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+
+      const excelData = filteredData.map(item => {
+        const dp = item.dados_precificacao || {};
+        return {
+          "Id": item.id.slice(0, 8) + "...",
+          "Produto": item.produto_nt || dp.produto || "-",
+          "Banda/Modelo": getBandaModelo(item),
+          "Qtde": getQuantidade(item),
+          "Capex": dp.valorCapex || 0,
+          "Valor LM": dp.media_mensalidade_lm || 0,
+          "Valor Mensal (Ticket)": item.ticket_mensal || 0,
+          "Finder": "-",
+          "Taxa Instalação": dp.taxaInstalacao || 0,
+          "Camp. Com.": dp.campanha_comercial_meses || 0,
+          "ROI Global": item.roi_global ? (item.roi_global * 100).toFixed(2) + "%" : "-"
+        };
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4"
+      excelData.push({
+        "Id": "Totais Gerais:",
+        "Produto": "",
+        "Banda/Modelo": "",
+        "Qtde": "",
+        "Capex": totals.capex,
+        "Valor LM": totals.valorLm,
+        "Valor Mensal (Ticket)": totals.ticketMensal,
+        "Finder": "",
+        "Taxa Instalação": totals.taxaInstalacao,
+        "Camp. Com.": "",
+        "ROI Global": ""
       });
 
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`relatorio-roi-global-${selectedId}.pdf`);
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório ROI");
+      XLSX.writeFile(workbook, `relatorio-roi-global-${selectedId}.xlsx`);
       
       toast({
         title: "Sucesso",
         description: "Relatório exportado com sucesso!",
       });
     } catch (error) {
-      console.error("Erro ao exportar PDF:", error);
+      console.error("Erro ao exportar Excel:", error);
       toast({
         title: "Erro",
         description: "Não foi possível exportar o relatório.",
@@ -269,7 +314,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         <div className="flex justify-end mt-4 gap-2">
           {filteredData.length > 0 && (
             <Button 
-              onClick={handleExportPDF} 
+              onClick={handleExportExcel} 
               disabled={isExporting}
               className="gap-2"
             >
@@ -278,7 +323,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              {isExporting ? "Exportando..." : "Exportar PDF"}
+              {isExporting ? "Exportando..." : "Exportar Excel"}
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
