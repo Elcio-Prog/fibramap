@@ -241,6 +241,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     observacao_validacao: "",
     observacoes: "",
     ticket_mensal: 0,
+    media_mensalidade_lm: 0,
     cnpj_cliente: "",
     coordenadas: "",
     endereco: "",
@@ -340,6 +341,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       observacao_validacao: item.observacao_validacao || "",
       observacoes: item.observacoes || "",
       ticket_mensal: item.ticket_mensal ?? 0,
+      media_mensalidade_lm: (item.dados_precificacao as any)?.media_mensalidade_lm ?? 0,
       cnpj_cliente: (item as any).cnpj_cliente || "",
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
@@ -419,7 +421,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       // Resultado da precificação (usado no cálculo de ROI)
       valorCapex: valorCapex,
       // Campos futuros para ROI (default 0 até serem implementados)
-      media_mensalidade_lm: (item?.dados_precificacao as any)?.media_mensalidade_lm ?? 0,
+      media_mensalidade_lm: meta.media_mensalidade_lm || ((item?.dados_precificacao as any)?.media_mensalidade_lm ?? 0),
       custo_radio: (item?.dados_precificacao as any)?.custo_radio ?? 0,
       valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
       usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
@@ -601,6 +603,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         )}
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
+        {calcForm.tecnologia === "LAST MILE" && (
+          <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
+            onChange={setMetaNum("media_mensalidade_lm")} />
+        )}
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
           <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
