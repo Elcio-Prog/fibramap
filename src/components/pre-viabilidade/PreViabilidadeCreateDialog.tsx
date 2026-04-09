@@ -221,6 +221,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
     inviabilidade_tecnica: "",
     observacao_validacao: "",
     data_reavaliacao: "",
+    media_mensalidade_lm: 0,
     // Step 4 - BKO
     campanha_comercial: "",
     motivo_solicitacao: "",
@@ -242,7 +243,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         cnpj_cliente: "", codigo_smark: "", coordenadas: "",
         id_guardachuva: "", endereco: "", observacoes: "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
-        observacao_validacao: "", data_reavaliacao: "", campanha_comercial: "",
+        observacao_validacao: "", data_reavaliacao: "", media_mensalidade_lm: 0, campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
         criado_por: user?.email || "", protocolo: "",
       });
@@ -292,7 +293,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       paisInternacional: f.paisInternacional, minInternacional: f.minInternacional,
       qtdBackupTB: f.qtdBackupTB,
       valorCapex,
-      media_mensalidade_lm: 0, custo_radio: 0, valor_total_reais: 0,
+      media_mensalidade_lm: meta.media_mensalidade_lm || 0, custo_radio: 0, valor_total_reais: 0,
       usou_finder2: 0, campanha_comercial_meses: parseFloat(meta.campanha_comercial) || 0,
     };
   };
@@ -492,6 +493,10 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
         )}
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
+        {calcForm.tecnologia === "LAST MILE" && (
+          <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
+            onChange={setMetaNum("media_mensalidade_lm")} />
+        )}
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
           <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
