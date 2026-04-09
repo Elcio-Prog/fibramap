@@ -142,7 +142,8 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           "Finder": formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
           "Taxa Instalação": dp.taxaInstalacao || 0,
           "Camp. Com.": formatCurrency(dp.campanha_comercial_meses || 0),
-          "ROI Global": item.roi_global ? (item.roi_global * 100).toFixed(2) + "%" : "-"
+          "Regra % LM": item.ticket_mensal ? ((dp.media_mensalidade_lm || 0) / item.ticket_mensal * 100).toFixed(2) + "%" : "0%",
+          "ROI Global": item.roi_global ? item.roi_global.toFixed(2) : "-"
         };
       });
 
@@ -158,6 +159,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Finder": totals.finder,
         "Taxa Instalação": totals.taxaInstalacao,
         "Camp. Com.": totals.campanha,
+        "Regra % LM": "",
         "ROI Global": ""
       });
 
@@ -282,6 +284,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableHead className="whitespace-nowrap text-center">Finder</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Taxa Instalação</TableHead>
                     <TableHead className="whitespace-nowrap text-center">Camp. Com.</TableHead>
+                    <TableHead className="whitespace-nowrap text-center">Regra % LM</TableHead>
                     <TableHead className="whitespace-nowrap text-center">ROI Global</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -308,21 +311,20 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                           {formatCurrency(dp.campanha_comercial_meses || 0)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {item.roi_global ? (
-                            <span
-                              className={cn(
-                                "font-semibold",
-                                item.roi_global > 0 ? "text-green-600" : "text-destructive"
-                              )}
-                            >
-                              {item.roi_global.toLocaleString("pt-BR", {
-                                style: "percent",
-                                minimumFractionDigits: 2,
-                              })}
-                            </span>
-                          ) : (
-                            "-"
-                          )}
+                          {(() => {
+                            const ratio = item.ticket_mensal ? (dp.media_mensalidade_lm || 0) / item.ticket_mensal : 0;
+                            return (
+                              <span className={cn(
+                                "font-medium",
+                                ratio > 0.33 ? "text-destructive" : "text-green-600"
+                              )}>
+                                {ratio.toLocaleString("pt-BR", { style: "percent", minimumFractionDigits: 2 })}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-center font-bold">
+                          {item.roi_global ? item.roi_global.toFixed(2) : "-"}
                         </TableCell>
                       </TableRow>
                     );
@@ -340,6 +342,8 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableCell className="text-center">{formatCurrency(totals.finder)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.taxaInstalacao)}</TableCell>
                     <TableCell className="text-center">{formatCurrency(totals.campanha)}</TableCell>
+                    <TableCell className="text-center"></TableCell>
+                    <TableCell className="text-center">{roiGlobalFinal.toFixed(2)}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
