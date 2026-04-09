@@ -1,12 +1,8 @@
-import React, { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { PreViabilidade } from "@/hooks/usePreViabilidades";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown, ScrollText, Download } from "lucide-react";
+import { Check, ChevronsUpDown, ScrollText, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   open: boolean;
@@ -22,6 +18,9 @@ const formatCurrency = (v: number | null | undefined) => {
 export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Props) {
   const [openCombobox, setOpenCombobox] = useState(false);
   const [selectedId, setSelectedId] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
+  const reportRef = React.useRef<HTMLDivElement>(null);
 
   const guardachuvaIds = useMemo(() => {
     const ids = new Set<string>();
@@ -47,9 +46,10 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         acc.capex += dp.valorCapex || 0;
         acc.valorLm += dp.media_mensalidade_lm || 0;
         acc.ticketMensal += item.ticket_mensal || 0;
+        acc.taxaInstalacao += dp.taxaInstalacao || 0;
         return acc;
       },
-      { capex: 0, valorLm: 0, ticketMensal: 0 }
+      { capex: 0, valorLm: 0, ticketMensal: 0, taxaInstalacao: 0 }
     );
   }, [filteredData]);
 
@@ -71,6 +71,50 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
     if (p === "Conectividade") return "-";
     if (p === "VOZ") return dp.qtdEquipamentoVoz1 || "-";
     return dp.qtdEquipamentos || "-";
+  };
+
+  const handleExportPDF = async () => {
+    if (!reportRef.current || filteredData.length === 0) return;
+
+    try {
+      setIsExporting(true);
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4"
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`relatorio-roi-global-${selectedId}.pdf`);
+      
+      toast({
+        title: "Sucesso",
+        description: "Relatório exportado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível exportar o relatório.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -135,7 +179,11 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           </div>
 
           {filteredData.length > 0 ? (
-            <div className="rounded-md border flex-1 overflow-auto">
+            <div className="rounded-md border flex-1 overflow-auto bg-white p-4" ref={reportRef}>
+              <div className="mb-4">
+                <h2 className="text-lg font-bold">Relatório Consolidado - ID: {selectedId}</h2>
+                <p className="text-sm text-muted-foreground">Data de geração: {new Date().toLocaleDateString("pt-BR")}</p>
+              </div>
               <Table>
                 <TableHeader className="bg-muted break-normal">
                   <TableRow>
@@ -200,7 +248,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableCell className="text-right">{formatCurrency(totals.capex)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.valorLm)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.ticketMensal)}</TableCell>
-                    <TableCell colSpan={4}></TableCell>
+                    <TableCell colSpan={1}></TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.taxaInstalacao)}</TableCell>
+                    <TableCell colSpan={2}></TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -216,7 +266,21 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           )}
         </div>
 
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-end mt-4 gap-2">
+          {filteredData.length > 0 && (
+            <Button 
+              onClick={handleExportPDF} 
+              disabled={isExporting}
+              className="gap-2"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isExporting ? "Exportando..." : "Exportar PDF"}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
