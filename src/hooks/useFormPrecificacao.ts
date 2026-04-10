@@ -161,7 +161,8 @@ export function useFormPrecificacao() {
       const vigData = (vigRes.data ?? []) as VigenciaRoiOption[];
       setVigenciaRoi(vigData);
       // Sync ROI with initial vigencia from DB data
-      const lookupKey = initialState.produto === "Firewall" 
+      const isEquipamento = ["Firewall", "Switch", "Wifi"].includes(initialState.produto);
+      const lookupKey = isEquipamento 
         ? `${initialState.vigencia} Equipamento` 
         : String(initialState.vigencia);
       const initialRoi = vigData.find(v => v.meses === lookupKey);
@@ -178,7 +179,8 @@ export function useFormPrecificacao() {
 
   const getRoiForVigencia = useCallback((meses: string, targetProduto?: FormState["produto"]): number | null => {
     const activeProduto = targetProduto ?? form.produto;
-    const lookupKey = activeProduto === "Firewall" ? `${meses} Equipamento` : meses;
+    const isEquipamento = ["Firewall", "Switch", "Wifi"].includes(activeProduto);
+    const lookupKey = isEquipamento ? `${meses} Equipamento` : meses;
     const match = vigenciaRoi.find(v => v.meses === lookupKey);
     return match?.roi ?? null;
   }, [vigenciaRoi, form.produto]);
