@@ -87,12 +87,12 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         acc.valorMinimo += item.valor_minimo || 0;
         return acc;
       },
-      { 
-        capex: 0, 
-        custosMateriais: 0, 
-        valorLm: 0, 
+      {
+        capex: 0,
+        custosMateriais: 0,
+        valorLm: 0,
         valorMinimo: 0,
-        ticketMensal: 0, 
+        ticketMensal: 0,
         taxaInstalacao: 0,
         opex: 0,
         campanha: 0,
@@ -142,7 +142,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           "Lançamento custos de materiais e mão de Obra": dp.custosMateriaisAdicionais || 0,
           "Valor LM": dp.media_mensalidade_lm || 0,
           "Valor Minimo do Sistema": item.valor_minimo || 0,
-          "Valor Mensal (Ticket)": (item.valor_minimo || 0) > (item.ticket_mensal || 0) 
+          "Valor Mensal (Ticket)": (item.valor_minimo || 0) > (item.ticket_mensal || 0)
             ? `🔴 ${formatCurrency(item.ticket_mensal)}`
             : `🟢 ${formatCurrency(item.ticket_mensal)}`,
           "Finder": formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
@@ -163,9 +163,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Lançamento custos de materiais e mão de Obra": totals.custosMateriais,
         "Valor LM": totals.valorLm,
         "Valor Minimo do Sistema": totals.valorMinimo,
-        "Valor Mensal (Ticket)": totals.valorMinimo > totals.ticketMensal 
-            ? `🔴 ${formatCurrency(totals.ticketMensal)}`
-            : `🟢 ${formatCurrency(totals.ticketMensal)}`,
+        "Valor Mensal (Ticket)": totals.valorMinimo > totals.ticketMensal
+          ? `🔴 ${formatCurrency(totals.ticketMensal)}`
+          : `🟢 ${formatCurrency(totals.ticketMensal)}`,
         "Finder": String(totals.finder),
         "Taxa Instalação": totals.taxaInstalacao,
         "Camp. Com.": String(totals.campanha),
@@ -178,21 +178,21 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       const emptyRow = {} as typeof excelData[0];
       excelData.push(emptyRow);
       excelData.push({ ...emptyRow, "Id": "RESUMO ROI GLOBAL" });
-      excelData.push({ 
+      excelData.push({
         ...emptyRow,
-        "Id": "Despesas:", 
+        "Id": "Despesas:",
         "Produto": `(${formatCurrency(totals.capex)} + ${formatCurrency(totals.custosMateriais)} + ${formatCurrency(totals.finder)} + ${formatCurrency(totals.campanha)}) - ${formatCurrency(totals.taxaInstalacao)}`,
         "Qtde": formatCurrency(despesasFixas)
       });
-      excelData.push({ 
+      excelData.push({
         ...emptyRow,
-        "Id": "Receitas:", 
+        "Id": "Receitas:",
         "Produto": `${formatCurrency(totals.ticketMensal)} - ${formatCurrency(totals.opex)} - ${formatCurrency(totals.valorLm)}`,
         "Qtde": formatCurrency(receitasMensais)
       });
-      excelData.push({ 
+      excelData.push({
         ...emptyRow,
-        "Id": "ROI Global:", 
+        "Id": "ROI Global:",
         "Produto": `${formatCurrency(despesasFixas)} / ${formatCurrency(receitasMensais)}`,
         "Qtde": roiGlobalFinal.toFixed(2)
       });
@@ -201,7 +201,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório ROI");
       XLSX.writeFile(workbook, `relatorio-roi-global-${selectedId}.xlsx`);
-      
+
       toast({
         title: "Sucesso",
         description: "Relatório exportado com sucesso!",
@@ -220,7 +220,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
 
   const handleExportPdf = () => {
     if (filteredData.length === 0) return;
-    
+
     try {
       setIsExporting(true);
       const doc = new jsPDF({ orientation: "landscape" });
@@ -229,7 +229,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       const margin = 14;
       const lineHeight = 8;
       const labelWidth = 55;
-      
+
       const labels = [
         "Produto",
         "Banda/Modelo",
@@ -271,7 +271,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       // Define max cols per page dynamically (min 1, usually 4-5)
       const maxColsPerPage = Math.max(1, Math.floor((pageWidth - margin * 2 - labelWidth) / 45));
       const numPages = Math.ceil(numItems / maxColsPerPage);
-      
+
       for (let p = 0; p < numPages; p++) {
         if (p > 0) doc.addPage();
         let y = 20;
@@ -288,7 +288,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
 
         doc.setFontSize(9);
         doc.setTextColor(30, 41, 59); // texto base escuro
-        
+
         const startCol = p * maxColsPerPage;
         const endCol = Math.min((p + 1) * maxColsPerPage, numItems);
         const itemWidth = (pageWidth - margin * 2 - labelWidth) / maxColsPerPage;
@@ -311,7 +311,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         doc.setLineWidth(0.5);
         doc.setDrawColor(22, 163, 74); // linha inferior do cabeçalho mais espessa e verde
         doc.line(margin, y - 5, pageWidth - margin, y - 5);
-        
+
         doc.setTextColor(30, 41, 59); // reseta cor do texto
 
         // Renderizar cada linha de atributo
@@ -329,12 +329,12 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           for (let i = startCol; i < endCol; i++) {
             const x = margin + labelWidth + ((i - startCol) * itemWidth);
             let val = String(columnData[i][rowIndex]);
-            
+
             // Truncate to fit column width
             if (val.length > 25) {
               val = val.substring(0, 23) + "...";
             }
-            
+
             // Condicional Ticket Mensal (rowIndex 7 em labels => "Ticket Mensal")
             if (rowIndex === 7) {
               const itemObj = filteredData[i];
@@ -349,9 +349,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
               doc.setTextColor(30, 41, 59);
               doc.setFont("helvetica", "normal");
             }
-            
+
             doc.text(val, x + 3, y);
-            
+
             // Reverte cor base
             if (rowIndex === 7) {
               doc.setTextColor(30, 41, 59);
@@ -359,7 +359,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
             }
           }
           y += lineHeight;
-          
+
           doc.setLineWidth(0.1);
           doc.setDrawColor(226, 232, 240); // slate-200
           doc.line(margin, y - 6, pageWidth - margin, y - 6);
@@ -379,7 +379,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
             doc.text(`Relatório ROI Global - Comparativo - ID: ${selectedId}`, margin, 19);
             y = 40;
           }
-          
+
           doc.setTextColor(22, 163, 74);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(12);
@@ -392,10 +392,10 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           doc.setLineWidth(0.5);
           doc.rect(margin, y - 6, pageWidth - margin * 2, 106, 'FD');
           y += 4;
-            
+
           doc.setTextColor(30, 41, 59); // texto destaque
           doc.setFontSize(9);
-          
+
           doc.setFont("helvetica", "bold");
           doc.text("TOTAIS DAS COLUNAS (PARCIAIS)", margin + 5, y);
           y += 6;
@@ -415,33 +415,33 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           ];
 
           for (let i = 0; i < 4; i++) {
-             // Lado esquerdo
-             doc.setFont("helvetica", "bold");
-             doc.text(`• ${columnsLeft[i].label}`, margin + 10, y + (i * 6));
-             let wLeft = doc.getTextWidth(`• ${columnsLeft[i].label}`);
-             doc.setFont("helvetica", "normal");
-             doc.text(columnsLeft[i].value, margin + 10 + wLeft, y + (i * 6));
+            // Lado esquerdo
+            doc.setFont("helvetica", "bold");
+            doc.text(`• ${columnsLeft[i].label}`, margin + 10, y + (i * 6));
+            let wLeft = doc.getTextWidth(`• ${columnsLeft[i].label}`);
+            doc.setFont("helvetica", "normal");
+            doc.text(columnsLeft[i].value, margin + 10 + wLeft, y + (i * 6));
 
-             // Lado direito
-             doc.setFont("helvetica", "bold");
-             doc.setTextColor(30, 41, 59);
-             doc.text(`• ${columnsRight[i].label}`, margin + 120, y + (i * 6));
-             let wRight = doc.getTextWidth(`• ${columnsRight[i].label}`);
-             doc.setFont("helvetica", "normal");
-             
-             if (columnsRight[i].label === 'Ticket Mensal: ') {
-               if (totals.valorMinimo > totals.ticketMensal) {
-                 doc.setTextColor(220, 38, 38);
-                 doc.setFont("helvetica", "bold");
-               } else {
-                 doc.setTextColor(22, 163, 74);
-                 doc.setFont("helvetica", "bold");
-               }
-             }
-             
-             doc.text(columnsRight[i].value, margin + 120 + wRight, y + (i * 6));
-             doc.setTextColor(30, 41, 59); // reseta
-             doc.setFont("helvetica", "normal");
+            // Lado direito
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(30, 41, 59);
+            doc.text(`• ${columnsRight[i].label}`, margin + 120, y + (i * 6));
+            let wRight = doc.getTextWidth(`• ${columnsRight[i].label}`);
+            doc.setFont("helvetica", "normal");
+
+            if (columnsRight[i].label === 'Ticket Mensal: ') {
+              if (totals.valorMinimo > totals.ticketMensal) {
+                doc.setTextColor(220, 38, 38);
+                doc.setFont("helvetica", "bold");
+              } else {
+                doc.setTextColor(22, 163, 74);
+                doc.setFont("helvetica", "bold");
+              }
+            }
+
+            doc.text(columnsRight[i].value, margin + 120 + wRight, y + (i * 6));
+            doc.setTextColor(30, 41, 59); // reseta
+            doc.setFont("helvetica", "normal");
           }
           y += 30;
 
@@ -455,7 +455,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           doc.setFont("helvetica", "bold");
           doc.setTextColor(225, 29, 72); // rose-600
           doc.text(`TOTAL DESPESAS: ${formatCurrency(despesasFixas)}`, margin + 5, y);
-          
+
           doc.setFont("helvetica", "normal");
           doc.setTextColor(100, 116, 139); // texto mudo
           doc.text(`Cálculo: (${formatCurrency(totals.capex)} + ${formatCurrency(totals.custosMateriais)} + ${formatCurrency(totals.finder)} + ${formatCurrency(totals.campanha)}) - ${formatCurrency(totals.taxaInstalacao)}`, margin + 5, y + 6);
@@ -465,18 +465,18 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           doc.setFont("helvetica", "bold");
           doc.setTextColor(22, 163, 74); // green-600
           doc.text(`TOTAL RECEITAS: ${formatCurrency(receitasMensais)}`, margin + 5, y);
-          
+
           doc.setFont("helvetica", "normal");
           doc.setTextColor(100, 116, 139); // texto mudo
           doc.text(`Cálculo: ${formatCurrency(totals.ticketMensal)} - ${formatCurrency(totals.opex)} - ${formatCurrency(totals.valorLm)}`, margin + 5, y + 6);
           y += 16;
-          
+
           doc.line(margin + 5, y - 4, pageWidth - margin - 5, y - 4);
 
           // Retângulo forte de Destaque Final
           doc.setFillColor(22, 163, 74); // green-600
           doc.rect(margin + 5, y, 160, 12, 'F');
-          
+
           doc.setTextColor(255, 255, 255);
           doc.setFontSize(12);
           doc.setFont("helvetica", "bold");
@@ -485,7 +485,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       }
 
       doc.save(`relatorio-roi-global-${selectedId}.pdf`);
-      
+
       toast({
         title: "Sucesso",
         description: "PDF exportado com sucesso!",
@@ -516,50 +516,79 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         </DialogHeader>
 
         <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-          <div className="flex items-center gap-4">
-            <div className="flex-col flex gap-1.5 w-[350px]">
-              <label className="text-sm font-medium">Buscar por ID Guarda Chuva</label>
-              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                <PopoverTrigger asChild>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium whitespace-nowrap">Buscar por ID Guarda Chuva:</label>
+              <div className="w-[300px]">
+                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCombobox}
+                      className="w-full justify-between"
+                    >
+                      {selectedId || "Selecione ou digite um ID..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar ou digitar ID..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum Id Guarda Chuva encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {guardachuvaIds.map((id) => (
+                            <CommandItem
+                              key={id}
+                              value={id}
+                              onSelect={(currentValue) => {
+                                setSelectedId(currentValue === selectedId ? "" : currentValue);
+                                setOpenCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedId === id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {id}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {filteredData.length > 0 && (
+                <>
                   <Button
+                    onClick={handleExportPdf}
+                    disabled={isExporting}
                     variant="outline"
-                    role="combobox"
-                    aria-expanded={openCombobox}
-                    className="w-full justify-between"
+                    className="gap-2"
                   >
-                    {selectedId || "Selecione ou digite um ID..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScrollText className="h-4 w-4" />}
+                    {isExporting ? "Exportando..." : "Exportar PDF"}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[350px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar ou digitar ID..." />
-                    <CommandList>
-                      <CommandEmpty>Nenhum Id Guarda Chuva encontrado.</CommandEmpty>
-                      <CommandGroup>
-                        {guardachuvaIds.map((id) => (
-                          <CommandItem
-                            key={id}
-                            value={id}
-                            onSelect={(currentValue) => {
-                              setSelectedId(currentValue === selectedId ? "" : currentValue);
-                              setOpenCombobox(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedId === id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {id}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                  <Button
+                    onClick={handleExportExcel}
+                    disabled={isExporting}
+                    className="gap-2"
+                  >
+                    {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {isExporting ? "Exportando..." : "Exportar Excel"}
+                  </Button>
+                </>
+              )}
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
             </div>
           </div>
 
@@ -569,27 +598,28 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                 <h2 className="text-lg font-bold">Relatório Consolidado - ID: {selectedId}</h2>
                 <p className="text-sm text-muted-foreground">Data de geração: {new Date().toLocaleDateString("pt-BR")}</p>
               </div>
-              <Table>
-                <TableHeader className="bg-muted break-normal sticky top-0 z-10 shadow-sm">
-                  <TableRow className="h-14">
-                    <TableHead className="whitespace-nowrap">Id</TableHead>
-                    <TableHead className="whitespace-nowrap">Produto</TableHead>
-                    <TableHead className="whitespace-nowrap">Banda/Modelo</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">Qtde</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Capex</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Lançamento custos de materiais e mão de Obra</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Valor LM</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Valor Minimo do Sistema</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Valor Mensal (Ticket)</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">Finder</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">Taxa Instalação</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">Camp. Com.</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">Regra % LM</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">ROI Previsto</TableHead>
-                    <TableHead className="whitespace-nowrap text-center">ROI Global</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <div className="[&>div]:overflow-visible relative mt-2">
+                <Table>
+                  <TableHeader className="break-normal shadow-sm group">
+                    <TableRow className="h-14 hover:bg-transparent">
+                      <TableHead className="whitespace-nowrap sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Id</TableHead>
+                      <TableHead className="whitespace-nowrap sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Produto</TableHead>
+                      <TableHead className="whitespace-nowrap sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Banda/Modelo</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Qtde</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Capex</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]" title="Lançamento custos de materiais e mão de Obra">Custos Mat/Obra</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Valor LM</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Valor Minimo do Sistema</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Valor Mensal (Ticket)</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Finder</TableHead>
+                      <TableHead className="whitespace-nowrap text-right sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Taxa Instalação</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Camp. Com.</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">Regra % LM</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">ROI Previsto</TableHead>
+                      <TableHead className="whitespace-nowrap text-center sticky top-0 bg-muted z-10 shadow-[0_1px_0_0_#e2e8f0]">ROI Global</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {filteredData.map((item) => {
                     const dp = item.dados_precificacao || {};
                     return (
@@ -666,13 +696,14 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                   </TableRow>
                 </TableFooter>
               </Table>
+              </div>
 
               <div className="mt-8 p-6 bg-muted/30 rounded-xl border-t-4 border-t-primary shadow-inner">
                 <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                   <div className="h-2 w-6 bg-primary rounded-full" />
                   Resumo do ROI Global
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Despesas Card */}
                   <div className="bg-white p-5 rounded-lg border shadow-sm space-y-4">
@@ -746,40 +777,6 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           )}
         </div>
 
-        <div className="flex justify-end mt-4 gap-2">
-          {filteredData.length > 0 && (
-            <>
-              <Button 
-                onClick={handleExportPdf} 
-                disabled={isExporting}
-                variant="outline"
-                className="gap-2"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ScrollText className="h-4 w-4" />
-                )}
-                {isExporting ? "Exportando..." : "Exportar PDF"}
-              </Button>
-              <Button 
-                onClick={handleExportExcel} 
-                disabled={isExporting}
-                className="gap-2"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                {isExporting ? "Exportando..." : "Exportar Excel"}
-              </Button>
-            </>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
