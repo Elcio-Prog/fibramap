@@ -3,6 +3,7 @@ import { Check, ChevronsUpDown, ScrollText, Download, Loader2 } from "lucide-rea
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
 import { PreViabilidade } from "@/hooks/usePreViabilidades";
 import {
   Dialog,
@@ -206,6 +207,254 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
       toast({
         title: "Erro",
         description: "Não foi possível exportar o relatório.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportPdf = () => {
+    if (filteredData.length === 0) return;
+    
+    try {
+      setIsExporting(true);
+      const doc = new jsPDF({ orientation: "landscape" });
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const margin = 14;
+      const lineHeight = 8;
+      const labelWidth = 55;
+      
+      const labels = [
+        "Produto",
+        "Banda/Modelo",
+        "Qtde",
+        "Capex",
+        "Custos Mat/Mão de Obra",
+        "Valor LM",
+        "Valor Mínimo Sistema",
+        "Ticket Mensal",
+        "Finder",
+        "Taxa Instalação",
+        "Campanha Com.",
+        "Regra % LM",
+        "ROI Previsto",
+        "ROI Global",
+      ];
+
+      const columnData = filteredData.map(item => {
+        const dp = item.dados_precificacao || {};
+        return [
+          item.produto_nt || dp.produto || "-",
+          getBandaModelo(item),
+          String(getQuantidade(item)),
+          formatCurrency(dp.valorCapex),
+          formatCurrency(dp.custosMateriaisAdicionais),
+          formatCurrency(dp.media_mensalidade_lm),
+          formatCurrency(item.valor_minimo),
+          formatCurrency(item.ticket_mensal),
+          formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
+          formatCurrency(dp.taxaInstalacao),
+          formatCurrency(dp.campanha_comercial_meses || 0),
+          item.ticket_mensal ? ((dp.media_mensalidade_lm || 0) / item.ticket_mensal * 100).toFixed(2) + "%" : "0%",
+          item.previsao_roi != null ? item.previsao_roi.toFixed(1) : "-",
+          item.roi_global ? item.roi_global.toFixed(2) : "-"
+        ];
+      });
+
+      const numItems = columnData.length;
+      // Define max cols per page dynamically (min 1, usually 4-5)
+      const maxColsPerPage = Math.max(1, Math.floor((pageWidth - margin * 2 - labelWidth) / 45));
+      const numPages = Math.ceil(numItems / maxColsPerPage);
+      
+      for (let p = 0; p < numPages; p++) {
+        if (p > 0) doc.addPage();
+        let y = 20;
+
+        // Cabeçalho Tema Verde
+        doc.setFillColor(22, 163, 74); // green-600
+        doc.rect(0, 0, pageWidth, 30, 'F');
+
+        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Relatório ROI Global - Comparativo - ID: ${selectedId}` + (numPages > 1 ? ` (Pág ${p + 1})` : ""), margin, 19);
+        y = 40;
+
+        doc.setFontSize(9);
+        doc.setTextColor(30, 41, 59); // texto base escuro
+        
+        const startCol = p * maxColsPerPage;
+        const endCol = Math.min((p + 1) * maxColsPerPage, numItems);
+        const itemWidth = (pageWidth - margin * 2 - labelWidth) / maxColsPerPage;
+
+        // Fundo para o título das colunas
+        doc.setFillColor(240, 253, 244); // green-50
+        doc.rect(margin, y - 6, pageWidth - margin * 2, 10, 'F');
+
+        // Cabecalho das colunas (Itens)
+        doc.setTextColor(22, 163, 74); // green-600
+        doc.setFont("helvetica", "bold");
+        doc.text("ATRIBUTO", margin + 3, y);
+        for (let i = startCol; i < endCol; i++) {
+          const x = margin + labelWidth + ((i - startCol) * itemWidth);
+          const itemObj = filteredData[i];
+          doc.text(`ITEM ${i + 1} (${itemObj.id.slice(0, 4)})`, x + 3, y);
+        }
+        y += 8;
+
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(22, 163, 74); // linha inferior do cabeçalho mais espessa e verde
+        doc.line(margin, y - 5, pageWidth - margin, y - 5);
+        
+        doc.setTextColor(30, 41, 59); // reseta cor do texto
+
+        // Renderizar cada linha de atributo
+        labels.forEach((label, rowIndex) => {
+          // Linhas zebradas para facilitar a leitura
+          if (rowIndex % 2 !== 0) {
+            doc.setFillColor(248, 250, 252); // slate-50
+            doc.rect(margin, y - 6, pageWidth - margin * 2, 8, 'F');
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.text(label, margin + 3, y);
+          doc.setFont("helvetica", "normal");
+
+          for (let i = startCol; i < endCol; i++) {
+            const x = margin + labelWidth + ((i - startCol) * itemWidth);
+            let val = String(columnData[i][rowIndex]);
+            
+            // Truncate to fit column width
+            if (val.length > 25) {
+              val = val.substring(0, 23) + "...";
+            }
+            doc.text(val, x + 3, y);
+          }
+          y += lineHeight;
+          
+          doc.setLineWidth(0.1);
+          doc.setDrawColor(226, 232, 240); // slate-200
+          doc.line(margin, y - 6, pageWidth - margin, y - 6);
+        });
+
+        // Na ultima página, exibir o resumo geral
+        if (p === numPages - 1) {
+          y += 5;
+          if (y + 115 > pageHeight - 10) {
+            doc.addPage();
+            // Refaz o topo da página no resumo em quebra de página
+            doc.setFillColor(22, 163, 74); // green-600
+            doc.rect(0, 0, pageWidth, 30, 'F');
+            doc.setFontSize(16);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Relatório ROI Global - Comparativo - ID: ${selectedId}`, margin, 19);
+            y = 40;
+          }
+          
+          doc.setTextColor(22, 163, 74);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(12);
+          doc.text("RESUMO E TOTAIS GERAIS", margin, y);
+          y += 10;
+
+          // Caixa com fundo verde claro para os totais
+          doc.setFillColor(240, 253, 244); // green-50
+          doc.setDrawColor(187, 247, 208); // green-200
+          doc.setLineWidth(0.5);
+          doc.rect(margin, y - 6, pageWidth - margin * 2, 106, 'FD');
+          y += 4;
+            
+          doc.setTextColor(30, 41, 59); // texto destaque
+          doc.setFontSize(9);
+          
+          doc.setFont("helvetica", "bold");
+          doc.text("TOTAIS DAS COLUNAS (PARCIAIS)", margin + 5, y);
+          y += 6;
+          doc.setFont("helvetica", "normal");
+
+          const columnsLeft = [
+            { label: 'Capex: ', value: formatCurrency(totals.capex) },
+            { label: 'Custos Mat/Mão de Obra: ', value: formatCurrency(totals.custosMateriais) },
+            { label: 'Valor LM: ', value: formatCurrency(totals.valorLm) },
+            { label: 'Valor Mínimo Sistema: ', value: formatCurrency(totals.valorMinimo) }
+          ];
+          const columnsRight = [
+            { label: 'Ticket Mensal: ', value: formatCurrency(totals.ticketMensal) },
+            { label: 'Finder: ', value: formatCurrency(totals.finder) },
+            { label: 'Taxa Instalação: ', value: formatCurrency(totals.taxaInstalacao) },
+            { label: 'Campanha Comercial: ', value: formatCurrency(totals.campanha) }
+          ];
+
+          for (let i = 0; i < 4; i++) {
+             // Lado esquerdo
+             doc.setFont("helvetica", "bold");
+             doc.text(`• ${columnsLeft[i].label}`, margin + 10, y + (i * 6));
+             let wLeft = doc.getTextWidth(`• ${columnsLeft[i].label}`);
+             doc.setFont("helvetica", "normal");
+             doc.text(columnsLeft[i].value, margin + 10 + wLeft, y + (i * 6));
+
+             // Lado direito
+             doc.setFont("helvetica", "bold");
+             doc.text(`• ${columnsRight[i].label}`, margin + 120, y + (i * 6));
+             let wRight = doc.getTextWidth(`• ${columnsRight[i].label}`);
+             doc.setFont("helvetica", "normal");
+             doc.text(columnsRight[i].value, margin + 120 + wRight, y + (i * 6));
+          }
+          y += 30;
+
+          // Divisão interna
+          doc.setDrawColor(187, 247, 208); // green-200
+          doc.setLineWidth(0.5);
+          doc.line(margin + 5, y, pageWidth - margin - 5, y);
+          y += 8;
+
+          // Despesas
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(225, 29, 72); // rose-600
+          doc.text(`TOTAL DESPESAS: ${formatCurrency(despesasFixas)}`, margin + 5, y);
+          
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139); // texto mudo
+          doc.text(`Cálculo: (${formatCurrency(totals.capex)} + ${formatCurrency(totals.custosMateriais)} + ${formatCurrency(totals.finder)} + ${formatCurrency(totals.campanha)}) - ${formatCurrency(totals.taxaInstalacao)}`, margin + 5, y + 6);
+          y += 16;
+
+          // Receitas
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(22, 163, 74); // green-600
+          doc.text(`TOTAL RECEITAS: ${formatCurrency(receitasMensais)}`, margin + 5, y);
+          
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139); // texto mudo
+          doc.text(`Cálculo: ${formatCurrency(totals.ticketMensal)} - ${formatCurrency(totals.opex)} - ${formatCurrency(totals.valorLm)}`, margin + 5, y + 6);
+          y += 16;
+          
+          doc.line(margin + 5, y - 4, pageWidth - margin - 5, y - 4);
+
+          // Retângulo forte de Destaque Final
+          doc.setFillColor(22, 163, 74); // green-600
+          doc.rect(margin + 5, y, 160, 12, 'F');
+          
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.text(`ROI GLOBAL FINAL: ${roiGlobalFinal.toFixed(2)} meses`, margin + 10, y + 8);
+        }
+      }
+
+      doc.save(`relatorio-roi-global-${selectedId}.pdf`);
+      
+      toast({
+        title: "Sucesso",
+        description: "PDF exportado com sucesso!",
+      });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possivel exportar o PDF.",
         variant: "destructive"
       });
     } finally {
@@ -449,18 +698,33 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
 
         <div className="flex justify-end mt-4 gap-2">
           {filteredData.length > 0 && (
-            <Button 
-              onClick={handleExportExcel} 
-              disabled={isExporting}
-              className="gap-2"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {isExporting ? "Exportando..." : "Exportar Excel"}
-            </Button>
+            <>
+              <Button 
+                onClick={handleExportPdf} 
+                disabled={isExporting}
+                variant="outline"
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ScrollText className="h-4 w-4" />
+                )}
+                {isExporting ? "Exportando..." : "Exportar PDF"}
+              </Button>
+              <Button 
+                onClick={handleExportExcel} 
+                disabled={isExporting}
+                className="gap-2"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {isExporting ? "Exportando..." : "Exportar Excel"}
+              </Button>
+            </>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
