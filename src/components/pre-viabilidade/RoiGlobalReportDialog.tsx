@@ -566,7 +566,12 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                         <TableCell className="text-right">
                           {formatCurrency(item.valor_minimo)}
                         </TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.ticket_mensal)}</TableCell>
+                        <TableCell className={cn(
+                          "text-right font-semibold",
+                          (item.valor_minimo || 0) > (item.ticket_mensal || 0) ? "text-destructive" : "text-green-600"
+                        )}>
+                          {formatCurrency(item.ticket_mensal)}
+                        </TableCell>
                         <TableCell className="text-center">
                           {formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100))}
                         </TableCell>
@@ -606,7 +611,12 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableCell className="text-right">{formatCurrency(totals.custosMateriais)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.valorLm)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.valorMinimo)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(totals.ticketMensal)}</TableCell>
+                    <TableCell className={cn(
+                      "text-right font-semibold",
+                      totals.valorMinimo > totals.ticketMensal ? "text-destructive" : "text-green-600"
+                    )}>
+                      {formatCurrency(totals.ticketMensal)}
+                    </TableCell>
                     <TableCell className="text-center">{formatCurrency(totals.finder)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.taxaInstalacao)}</TableCell>
                     <TableCell className="text-center">{formatCurrency(totals.campanha)}</TableCell>
