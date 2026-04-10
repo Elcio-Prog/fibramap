@@ -156,27 +156,31 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Lançamento custos de materiais e mão de Obra": totals.custosMateriais,
         "Valor LM": totals.valorLm,
         "Valor Mensal (Ticket)": totals.ticketMensal,
-        "Finder": totals.finder,
+        "Finder": String(totals.finder),
         "Taxa Instalação": totals.taxaInstalacao,
-        "Camp. Com.": totals.campanha,
+        "Camp. Com.": String(totals.campanha),
         "Regra % LM": "",
         "ROI Global": ""
-      });
+      } as typeof excelData[0]);
 
       // Add Summary section to Excel
-      excelData.push({});
-      excelData.push({ "Id": "RESUMO ROI GLOBAL" });
+      const emptyRow = {} as typeof excelData[0];
+      excelData.push(emptyRow);
+      excelData.push({ ...emptyRow, "Id": "RESUMO ROI GLOBAL" });
       excelData.push({ 
+        ...emptyRow,
         "Id": "Despesas:", 
         "Produto": `(${formatCurrency(totals.capex)} + ${formatCurrency(totals.custosMateriais)} + ${formatCurrency(totals.finder)} + ${formatCurrency(totals.campanha)}) - ${formatCurrency(totals.taxaInstalacao)}`,
         "Qtde": formatCurrency(despesasFixas)
       });
       excelData.push({ 
+        ...emptyRow,
         "Id": "Receitas:", 
         "Produto": `${formatCurrency(totals.ticketMensal)} - ${formatCurrency(totals.opex)} - ${formatCurrency(totals.valorLm)}`,
         "Qtde": formatCurrency(receitasMensais)
       });
       excelData.push({ 
+        ...emptyRow,
         "Id": "ROI Global:", 
         "Produto": `${formatCurrency(despesasFixas)} / ${formatCurrency(receitasMensais)}`,
         "Qtde": roiGlobalFinal.toFixed(2)

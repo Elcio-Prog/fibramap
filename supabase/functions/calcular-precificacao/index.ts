@@ -400,7 +400,7 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
 
   const valorEquipamento = db.equipamentos.get(modeloFirewall)?.valor_final ?? 0;
 
-  // Robust license matching
+  // Robust license matching — try exact keys first, then fuzzy search
   const cleanModel = modeloFirewall.replace(/^Firewall\s*-\s*/i, "").trim();
   const keysToTry = [
     `${firewallSolucao} ${cleanModel} ANUAL`,
@@ -417,6 +417,25 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     if (val != null && val > 0) {
       licencaFirewall = val;
       break;
+    }
+  }
+
+  // Fuzzy fallback: search all equipment keys for a license containing both solution + model
+  if (licencaFirewall === 0 && firewallSolucao && cleanModel) {
+    const solUpper = firewallSolucao.toUpperCase();
+    const modUpper = cleanModel.toUpperCase();
+    for (const [key, eq] of db.equipamentos.entries()) {
+      const kUp = key.toUpperCase();
+      if (
+        (kUp.includes("LICEN") || kUp.includes("ANUAL")) &&
+        kUp.includes(solUpper) &&
+        kUp.includes(modUpper) &&
+        eq.valor_final != null &&
+        eq.valor_final > 0
+      ) {
+        licencaFirewall = eq.valor_final;
+        break;
+      }
     }
   }
 
@@ -726,7 +745,7 @@ Deno.serve(async (req) => {
     }
 
     // Apply regra do projetista (only for Conectividade with togDistancia)
-    if (regraProjetistaAtiva && input.produto === "Conectividade" && !result.mensagem) {
+    if (setupConfig.regra_projetista_ativa && input.produto === "Conectividade" && !result.mensagem) {
       const banda = input.banda ?? 0;
       const distancia = input.distancia ?? 0;
       const subproduto = input.subproduto ?? "";
