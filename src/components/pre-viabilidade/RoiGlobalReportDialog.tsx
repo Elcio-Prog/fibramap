@@ -83,12 +83,14 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         acc.opex += dp.valorOpex || 0;
         acc.campanha += dp.campanha_comercial_meses || 0;
         acc.finder += (item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100);
+        acc.valorMinimo += item.valor_minimo || 0;
         return acc;
       },
       { 
         capex: 0, 
         custosMateriais: 0, 
         valorLm: 0, 
+        valorMinimo: 0,
         ticketMensal: 0, 
         taxaInstalacao: 0,
         opex: 0,
@@ -138,6 +140,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           "Capex": dp.valorCapex || 0,
           "Lançamento custos de materiais e mão de Obra": dp.custosMateriaisAdicionais || 0,
           "Valor LM": dp.media_mensalidade_lm || 0,
+          "Valor Minimo do Sistema": item.valor_minimo || 0,
           "Valor Mensal (Ticket)": item.ticket_mensal || 0,
           "Finder": formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
           "Taxa Instalação": dp.taxaInstalacao || 0,
@@ -156,6 +159,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Capex": totals.capex,
         "Lançamento custos de materiais e mão de Obra": totals.custosMateriais,
         "Valor LM": totals.valorLm,
+        "Valor Minimo do Sistema": totals.valorMinimo,
         "Valor Mensal (Ticket)": totals.ticketMensal,
         "Finder": String(totals.finder),
         "Taxa Instalação": totals.taxaInstalacao,
@@ -286,6 +290,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableHead className="whitespace-nowrap text-right">Capex</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Lançamento custos de materiais e mão de Obra</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Valor LM</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">Valor Minimo do Sistema</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Valor Mensal (Ticket)</TableHead>
                     <TableHead className="whitespace-nowrap text-center">Finder</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Taxa Instalação</TableHead>
@@ -308,6 +313,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                         <TableCell className="text-right">{formatCurrency(dp.custosMateriaisAdicionais)}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(dp.media_mensalidade_lm)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(item.valor_minimo)}
                         </TableCell>
                         <TableCell className="text-right">{formatCurrency(item.ticket_mensal)}</TableCell>
                         <TableCell className="text-center">
@@ -348,6 +356,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     <TableCell className="text-right">{formatCurrency(totals.capex)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.custosMateriais)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.valorLm)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.valorMinimo)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.ticketMensal)}</TableCell>
                     <TableCell className="text-center">{formatCurrency(totals.finder)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(totals.taxaInstalacao)}</TableCell>
