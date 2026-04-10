@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
-  CheckCircle2, XCircle, Building2, ShoppingCart,
+  CheckCircle2, XCircle, Building2, ShoppingCart, ClipboardPlus,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast as useToastSonner } from "@/hooks/use-toast";
@@ -39,6 +39,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
+import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 
 // Per-row pricing parameters
 interface RowPricingParams {
@@ -133,6 +134,10 @@ export default function WsSingleSearch() {
   const [radius, setRadius] = useState(5);
   const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
+
+  // Pré Viabilidade dialog
+  const [preViabOpen, setPreViabOpen] = useState(false);
+  const [preViabInitialData, setPreViabInitialData] = useState<PreViabilidadeInitialData | undefined>(undefined);
 
   // Pricing parameters per row
   const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
@@ -928,6 +933,32 @@ export default function WsSingleSearch() {
                     <ShoppingCart className="h-4 w-4" /> Adicionar ao Carrinho
                   </Button>
                 )}
+                {selectedOptionIdx !== null && (
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => {
+                    if (!geoResult || selectedOptionIdx === null) return;
+                    const o = options[selectedOptionIdx];
+                    const rp = getRowPricing(selectedOptionIdx);
+                    setPreViabInitialData({
+                      subproduto: rp.produto || "NT LINK DEDICADO FULL",
+                      distancia: o.distance_m,
+                      banda: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : 0),
+                      vigencia: rp.vigencia ? Number(rp.vigencia) : undefined,
+                      taxaInstalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : 0,
+                      tecnologia: rp.tecnologia || "GPON",
+                      blocoIp: rp.blocoIp || undefined,
+                      rede: rp.cidadePontaA || undefined,
+                      redePontaB: rp.cidadePontaB || undefined,
+                      qtdFibrasDarkFiber: rp.qtdFibrasDarkFiber ? Number(rp.qtdFibrasDarkFiber) : undefined,
+                      nome_cliente: cliente || "",
+                      endereco: geoResult.display,
+                      coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+                      observacoes: o.notes || "",
+                    });
+                    setPreViabOpen(true);
+                  }}>
+                    <ClipboardPlus className="h-4 w-4" /> Adicionar na Pré Viabilidade
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" className="gap-2" onClick={exportToExcel}>
                   <Download className="h-4 w-4" /> Excel
                 </Button>
@@ -1270,6 +1301,11 @@ export default function WsSingleSearch() {
           </CardContent>
         </Card>
       )}
+      <PreViabilidadeCreateDialog
+        open={preViabOpen}
+        onOpenChange={setPreViabOpen}
+        initialData={preViabInitialData}
+      />
     </div>
   );
 }

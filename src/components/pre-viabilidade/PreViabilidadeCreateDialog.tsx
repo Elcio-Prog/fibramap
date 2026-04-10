@@ -32,9 +32,27 @@ const STEPS = [
   { number: 4, label: "BKO" },
 ];
 
+export interface PreViabilidadeInitialData {
+  subproduto?: string;
+  distancia?: number;
+  banda?: number;
+  vigencia?: number;
+  taxaInstalacao?: number;
+  tecnologia?: string;
+  blocoIp?: string;
+  rede?: string;
+  redePontaB?: string;
+  qtdFibrasDarkFiber?: number;
+  nome_cliente?: string;
+  endereco?: string;
+  coordenadas?: string;
+  observacoes?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialData?: PreViabilidadeInitialData;
 }
 
 const formatCurrency = (v: number | null | undefined) => {
@@ -185,7 +203,7 @@ function BackupFields({ form, setField }: any) {
 }
 
 // ── Main Component ──
-export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props) {
+export default function PreViabilidadeCreateDialog({ open, onOpenChange, initialData }: Props) {
   const { toast } = useToast();
   const { user } = useAuth();
   const insertMutation = useInsertPreViabilidade();
@@ -239,16 +257,42 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange }: Props
       setValorCapex(0);
       initialLoadDone.current = false;
       setMeta({
-        nome_cliente: "", tipo_solicitacao: "Nova Ativação", ticket_mensal: 0,
-        cnpj_cliente: "", codigo_smark: "", coordenadas: "",
-        id_guardachuva: "", endereco: "", observacoes: "",
+        nome_cliente: initialData?.nome_cliente || "",
+        tipo_solicitacao: "Nova Ativação", ticket_mensal: 0,
+        cnpj_cliente: "", codigo_smark: "",
+        coordenadas: initialData?.coordenadas || "",
+        id_guardachuva: "",
+        endereco: initialData?.endereco || "",
+        observacoes: initialData?.observacoes || "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
         observacao_validacao: "", data_reavaliacao: "", media_mensalidade_lm: 0, campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
         criado_por: user?.email || "", protocolo: "",
       });
       setProduto("Conectividade");
-      setTimeout(() => { initialLoadDone.current = true; }, 300);
+
+      // Apply initialData to pricing form after a tick so setProduto settles
+      if (initialData) {
+        setTimeout(() => {
+          if (initialData.subproduto) setField("subproduto", initialData.subproduto);
+          if (initialData.distancia != null) setField("distancia", initialData.distancia);
+          if (initialData.banda != null) setField("banda", initialData.banda);
+          if (initialData.vigencia != null) {
+            setField("vigencia", initialData.vigencia);
+            const roi = getRoiForVigencia(String(initialData.vigencia));
+            if (roi !== null) setField("roiVigencia", roi);
+          }
+          if (initialData.taxaInstalacao != null) setField("taxaInstalacao", initialData.taxaInstalacao);
+          if (initialData.tecnologia) setField("tecnologia", initialData.tecnologia);
+          if (initialData.blocoIp) setField("blocoIp", initialData.blocoIp);
+          if (initialData.rede) setField("rede", initialData.rede);
+          if (initialData.redePontaB) setField("redePontaB", initialData.redePontaB);
+          if (initialData.qtdFibrasDarkFiber != null) setField("qtdFibrasDarkFiber", initialData.qtdFibrasDarkFiber);
+          initialLoadDone.current = true;
+        }, 100);
+      } else {
+        setTimeout(() => { initialLoadDone.current = true; }, 300);
+      }
     }
   }, [open]);
 
