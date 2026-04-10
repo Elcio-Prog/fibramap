@@ -101,7 +101,8 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
           const hasDollar = Number(r.valor_dolar) > 0;
 
           if (needsAutoCalc && hasDollar) {
-            const valor = Number(r.valor_dolar) * usdRate;
+            const valorComTaxaFixa = Number(r.valor_dolar) + 0.25;
+            const valor = valorComTaxaFixa * usdRate;
             const imposto = Number(r.imposto) || 0;
             const valorFinal = valor * (1 + (imposto / 100));
             return {
@@ -133,7 +134,8 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
         
         if (isTargetCat) {
           if (field === "valor_dolar" && usdRate && Number(value) > 0) {
-            const valor = Number(value) * usdRate;
+            const valorComTaxaFixa = Number(value) + 0.25;
+            const valor = valorComTaxaFixa * usdRate;
             nextRow.valor = valor.toFixed(2);
             nextRow.valor_final = (valor * (1 + (Number(nextRow.imposto) || 0) / 100)).toFixed(2);
           } else if (field === "imposto") {
@@ -299,7 +301,14 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
                 <TableHead key={`t-${i}`} className="min-w-[200px] font-semibold">{label}</TableHead>
               ))}
               {config.valueLabels.map((label, i) => (
-                <TableHead key={i} className="min-w-[140px] font-semibold text-right">{label}</TableHead>
+                <TableHead key={i} className="min-w-[140px] font-semibold text-right align-top pt-3 pb-2">
+                  <div className="flex flex-col items-end justify-start h-full">
+                    <span>{label}</span>
+                    {(label.includes("Dolar") || label.includes("Dólar")) && isEquipamentos && (
+                      <span className="text-[10px] font-normal text-muted-foreground mt-0.5 leading-tight">+ U$ 0,25 oculto calc.</span>
+                    )}
+                  </div>
+                </TableHead>
               ))}
               <TableHead className="w-[50px]" />
             </TableRow>
