@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search, MapPin, Navigation, Hash, Loader2, Download,
@@ -1162,7 +1163,27 @@ export default function WsSingleSearch() {
                             : "—";
                         })()}
                       </td>
-                      <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">{o.notes}</td>
+                      <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground" onClick={e => e.stopPropagation()}>
+                        {o.notes ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <span className="cursor-pointer transition-colors" title="Clique para ler as notas completas">
+                                {o.notes}
+                              </span>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Notas da Viabilidade</DialogTitle>
+                              </DialogHeader>
+                              <div className="mt-2 whitespace-pre-wrap text-sm text-foreground max-h-[60vh] overflow-y-auto p-4 bg-muted/30 rounded-md border">
+                                {o.notes}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                     );
                   })}
