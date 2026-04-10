@@ -142,7 +142,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
           "Lançamento custos de materiais e mão de Obra": dp.custosMateriaisAdicionais || 0,
           "Valor LM": dp.media_mensalidade_lm || 0,
           "Valor Minimo do Sistema": item.valor_minimo || 0,
-          "Valor Mensal (Ticket)": item.ticket_mensal || 0,
+          "Valor Mensal (Ticket)": (item.valor_minimo || 0) > (item.ticket_mensal || 0) 
+            ? `🔴 ${formatCurrency(item.ticket_mensal)}`
+            : `🟢 ${formatCurrency(item.ticket_mensal)}`,
           "Finder": formatCurrency((item.ticket_mensal || 0) * ((dp.usou_finder2 || 0) / 100)),
           "Taxa Instalação": dp.taxaInstalacao || 0,
           "Camp. Com.": formatCurrency(dp.campanha_comercial_meses || 0),
@@ -161,7 +163,9 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         "Lançamento custos de materiais e mão de Obra": totals.custosMateriais,
         "Valor LM": totals.valorLm,
         "Valor Minimo do Sistema": totals.valorMinimo,
-        "Valor Mensal (Ticket)": totals.ticketMensal,
+        "Valor Mensal (Ticket)": totals.valorMinimo > totals.ticketMensal 
+            ? `🔴 ${formatCurrency(totals.ticketMensal)}`
+            : `🟢 ${formatCurrency(totals.ticketMensal)}`,
         "Finder": String(totals.finder),
         "Taxa Instalação": totals.taxaInstalacao,
         "Camp. Com.": String(totals.campanha),
@@ -330,7 +334,29 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
             if (val.length > 25) {
               val = val.substring(0, 23) + "...";
             }
+            
+            // Condicional Ticket Mensal (rowIndex 7 em labels => "Ticket Mensal")
+            if (rowIndex === 7) {
+              const itemObj = filteredData[i];
+              if ((itemObj.valor_minimo || 0) > (itemObj.ticket_mensal || 0)) {
+                doc.setTextColor(220, 38, 38); // red
+                doc.setFont("helvetica", "bold");
+              } else {
+                doc.setTextColor(22, 163, 74); // green
+                doc.setFont("helvetica", "bold");
+              }
+            } else {
+              doc.setTextColor(30, 41, 59);
+              doc.setFont("helvetica", "normal");
+            }
+            
             doc.text(val, x + 3, y);
+            
+            // Reverte cor base
+            if (rowIndex === 7) {
+              doc.setTextColor(30, 41, 59);
+              doc.setFont("helvetica", "normal");
+            }
           }
           y += lineHeight;
           
@@ -398,10 +424,24 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
 
              // Lado direito
              doc.setFont("helvetica", "bold");
+             doc.setTextColor(30, 41, 59);
              doc.text(`• ${columnsRight[i].label}`, margin + 120, y + (i * 6));
              let wRight = doc.getTextWidth(`• ${columnsRight[i].label}`);
              doc.setFont("helvetica", "normal");
+             
+             if (columnsRight[i].label === 'Ticket Mensal: ') {
+               if (totals.valorMinimo > totals.ticketMensal) {
+                 doc.setTextColor(220, 38, 38);
+                 doc.setFont("helvetica", "bold");
+               } else {
+                 doc.setTextColor(22, 163, 74);
+                 doc.setFont("helvetica", "bold");
+               }
+             }
+             
              doc.text(columnsRight[i].value, margin + 120 + wRight, y + (i * 6));
+             doc.setTextColor(30, 41, 59); // reseta
+             doc.setFont("helvetica", "normal");
           }
           y += 30;
 
