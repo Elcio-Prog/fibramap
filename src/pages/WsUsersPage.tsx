@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, ArrowLeftRight, Eye, ShoppingBag, Wrench } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, Eye, ShoppingBag, Wrench } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -117,26 +120,20 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
                     <Eye className="h-3 w-3" />
                   </Button>
-                  <Button variant="default" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "ws_user" })}
-                    disabled={assignRole.isPending}>
-                    <Wifi className="h-3 w-3" /> WS
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "vendedor" })}
-                    disabled={assignRole.isPending}>
-                    <ShoppingBag className="h-3 w-3" /> Vendedor
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "implantacao" })}
-                    disabled={assignRole.isPending}>
-                    <Wrench className="h-3 w-3" /> Implantação
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "admin" })}
-                    disabled={assignRole.isPending}>
-                    <Users className="h-3 w-3" /> Admin
-                  </Button>
+                  <Select
+                    onValueChange={(val) => assignRole.mutate({ user_id: u.id, role: val })}
+                    disabled={assignRole.isPending}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-[140px]">
+                      <SelectValue placeholder="Atribuir papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ws_user">WS</SelectItem>
+                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -221,21 +218,16 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleOrder: Array<"ws_user" | "admin" | "vendedor" | "implantacao"> = ["ws_user", "vendedor", "implantacao", "admin"];
   const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Implantação" };
 
   const changeRole = useMutation({
-    mutationFn: async ({ user_id }: { user_id: string }) => {
-      const currentIdx = roleOrder.indexOf(role);
-      const toRole = roleOrder[(currentIdx + 1) % roleOrder.length];
-      const { data, error } = await invokeManageUsers("change_role", { user_id, from_role: role, to_role: toRole });
+    mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
+      const { data, error } = await invokeManageUsers("change_role", { user_id, from_role: role, to_role });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
     },
-    onSuccess: () => {
-      const currentIdx = roleOrder.indexOf(role);
-      const toRole = roleOrder[(currentIdx + 1) % roleOrder.length];
-      toast({ title: `Usuário alterado para ${roleLabels[toRole]}!` });
+    onSuccess: (_, vars) => {
+      toast({ title: `Usuário alterado para ${roleLabels[vars.to_role]}!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
     onError: (err: any) => {
@@ -304,12 +296,23 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                     {u.is_active ? <ShieldOff className="h-3 w-3" /> : <Shield className="h-3 w-3" />}
                     {u.is_active ? "Desativar" : "Ativar"}
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => changeRole.mutate({ user_id: u.id })}
-                    disabled={changeRole.isPending}>
-                    <ArrowLeftRight className="h-3 w-3" />
-                    → {roleLabels[roleOrder[(roleOrder.indexOf(role) + 1) % roleOrder.length]]}
-                  </Button>
+                  <Select
+                    value={role}
+                    onValueChange={(val) => {
+                      if (val !== role) changeRole.mutate({ user_id: u.id, to_role: val });
+                    }}
+                    disabled={changeRole.isPending}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-[130px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ws_user">WS</SelectItem>
+                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm" className="gap-1 text-xs h-7"><KeyRound className="h-3 w-3" /> Senha</Button>
