@@ -31,7 +31,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
               <Wifi className="h-4 w-4" />
             </div>
-            <span className="text-lg font-bold">Usuários</span>
+            <span className="text-lg font-bold">FibraMap</span>
           </div>
           <nav className="flex items-center gap-1">
             {visibleLinks.map((l) => (
