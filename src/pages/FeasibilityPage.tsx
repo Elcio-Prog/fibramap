@@ -443,6 +443,7 @@ export default function FeasibilityPage() {
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
             highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined, destSnapPoint: !insideNT ? destSnapPoint : undefined,
+            routeFailed: !insideNT && !routeGeometry && !!nearestPt,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
