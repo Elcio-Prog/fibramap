@@ -19,17 +19,17 @@ export default function LandingPage() {
 
       {/* Cards */}
       <div className="grid w-full max-w-2xl gap-6 sm:grid-cols-2">
-        {/* Ferramenta WS */}
+        {/* Usuários */}
         <button
           onClick={() => navigate("/ws/login")}
-          aria-label="Acessar Ferramenta WS"
+          aria-label="Acessar Usuários"
           className="group relative flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm transition-all hover:border-accent hover:shadow-lg hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
           
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent text-accent-foreground transition-transform group-hover:scale-110">
             <Wifi className="h-7 w-7" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-semibold">FibraMap Usuários</h2>
+            <h2 className="text-xl font-semibold">Usuários</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Acesso geral 
             </p>

@@ -248,7 +248,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
                     >
                       <Wifi className="h-4 w-4" />
-                      Ferramenta WS
+                      Usuários
                     </DropdownMenuItem>
                   </>
                 )}
