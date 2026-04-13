@@ -136,7 +136,7 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
   // Fetch all records with the same id_guardachuva
   const { data, error } = await supabase
     .from("pre_viabilidades" as any)
-    .select("id, ticket_mensal, valor_minimo, dados_precificacao")
+    .select("id, ticket_mensal, valor_minimo, dados_precificacao, updated_at")
     .eq("id_guardachuva", idGuardachuva);
 
   if (error || !data || data.length === 0) return;
@@ -146,6 +146,7 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
     ticket_mensal: number | null;
     valor_minimo: number | null;
     dados_precificacao: Record<string, any> | null;
+    updated_at: string | null;
   }[];
 
   // Per-record calculation then sum across the group
@@ -190,11 +191,13 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
   roi = Math.round(roi * 100) / 100;
 
   // Update all records in the group
-  const ids = records.map((r) => r.id);
-  await supabase
-    .from("pre_viabilidades" as any)
-    .update({ roi_global: roi } as any)
-    .in("id", ids);
+  // Update each record individually, preserving its original updated_at
+  for (const r of records) {
+    await supabase
+      .from("pre_viabilidades" as any)
+      .update({ roi_global: roi, updated_at: r.updated_at } as any)
+      .eq("id", r.id);
+  }
 }
 
 export function useDeletePreViabilidade() {
