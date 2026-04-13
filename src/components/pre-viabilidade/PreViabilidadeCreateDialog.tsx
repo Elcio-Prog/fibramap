@@ -346,6 +346,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
       valorCapex,
       media_mensalidade_lm: meta.media_mensalidade_lm || 0, custo_radio: 0, valor_total_reais: 0,
       usou_finder2: 0, campanha_comercial_meses: parseFloat(meta.campanha_comercial) || 0,
+      memoriaCalculo: memoriaCalculo || [],
     };
   };
 
