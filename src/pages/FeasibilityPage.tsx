@@ -488,6 +488,7 @@ export default function FeasibilityPage() {
           const status: ResultStatus = tooFar ? "too_far" : isViable ? "outside_viable" : "outside_not_viable";
           if (status === "too_far" || status === "outside_not_viable") return null;
 
+          const routeFailed = !routeGeometry && !!bestNearest.point;
           const result: FeasibilityResult = {
             address: geo.display, lat: geo.lat, lng: geo.lng,
             providerName: provider.name, providerColor: provider.color,
@@ -495,7 +496,7 @@ export default function FeasibilityPage() {
             lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
             finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
             routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
-            snapPoint, destSnapPoint,
+            snapPoint, destSnapPoint, routeFailed,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
