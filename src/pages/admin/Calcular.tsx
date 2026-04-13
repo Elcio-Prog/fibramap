@@ -443,7 +443,7 @@ function ResultPanel({ resultado, calculating, error }: {
 
 export default function CalcularPage() {
   const { session, loading: authLoading } = useAuth();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isImplantacao, isLoading: roleLoading } = useUserRole();
   const { form, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -472,7 +472,7 @@ export default function CalcularPage() {
       </div>
     );
   }
-  if (!session || !isAdmin) return <Navigate to="/" replace />;
+  if (!session || (!isAdmin && !isImplantacao)) return <Navigate to="/" replace />;
 
   const renderProductFields = () => {
     const props = { form, setField, options };
