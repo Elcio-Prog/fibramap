@@ -414,6 +414,25 @@ export default function MapPage() {
               <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
             )}
           </button>
+          <button
+            onClick={() => {
+              setShowRecipientesLayer(prev => {
+                const next = !prev;
+                if (next) recipientesLayerRef.current?.addTo(mapInstance.current!);
+                else recipientesLayerRef.current?.removeFrom(mapInstance.current!);
+                return next;
+              });
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+          >
+            <Radio className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="flex-1 text-left">Recipientes</span>
+            {showRecipientesLayer ? (
+              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
         </div>
       </div>
 
