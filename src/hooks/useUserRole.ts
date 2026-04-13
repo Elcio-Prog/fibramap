@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "ws_user";
+export type AppRole = "admin" | "ws_user" | "vendedor" | "implantacao";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -22,9 +22,6 @@ export function useUserRole() {
     enabled: !!user?.id,
   });
 
-  // BULLETPROOF loading check:
-  // If user is logged in, we MUST have successfully fetched roles before saying "not loading"
-  // status === 'success' means we have actual data from the server
   const hasUser = !!user?.id;
   const isReady = !hasUser || status === "success";
 
@@ -32,6 +29,8 @@ export function useUserRole() {
     roles: roles || [],
     isAdmin: roles?.includes("admin") || false,
     isWsUser: roles?.includes("ws_user") || false,
+    isVendedor: roles?.includes("vendedor") || false,
+    isImplantacao: roles?.includes("implantacao") || false,
     isLoading: !isReady,
   };
 }

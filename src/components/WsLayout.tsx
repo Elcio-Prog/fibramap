@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
-import { LogOut, Wifi, Upload, Search, List, ClipboardList, History, FileCheck } from "lucide-react";
+import { Wifi, Upload, Search, List, ClipboardList, History, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const wsLinks = [
   { to: "/ws", label: "Upload em Lote", icon: Upload, end: true },
@@ -17,7 +17,11 @@ const wsLinks = [
 ];
 
 export default function WsLayout({ children }: { children: ReactNode }) {
-  const { signOut, user } = useAuth();
+  const { isVendedor } = useUserRole();
+
+  const visibleLinks = isVendedor
+    ? wsLinks.filter((l) => l.label !== "Pré-Cadastro")
+    : wsLinks;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -30,7 +34,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
             <span className="text-lg font-bold">Ferramenta WS</span>
           </div>
           <nav className="flex items-center gap-1">
-            {wsLinks.map((l) => (
+            {visibleLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
