@@ -878,6 +878,20 @@ function ResultCard({
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
+    // Show warning when route geometry failed but we have a nearest point
+    if (r.routeFailed && r.nearestPoint) {
+      const midLat = (r.lat + r.nearestPoint[0]) / 2;
+      const midLng = (r.lng + r.nearestPoint[1]) / 2;
+      L.marker([midLat, midLng], {
+        icon: L.divIcon({
+          className: "distance-label",
+          html: `<div style="background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;white-space:nowrap;">⚠ Rota viária indisponível (${r.distance}m linha reta)</div>`,
+          iconSize: [220, 24], iconAnchor: [110, 12],
+        }),
+      }).addTo(map);
+      bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
+    }
+
     if (r.nearestPoint) {
       const taLabel = r.taResult ? `<b>${r.taResult.tipo}: ${r.taResult.nome}</b><br/>${r.taResult.aptoNovoCliente ? "✅ Apto" : "⚠️ Não apto"}${r.taResult.motivoBloqueio ? `<br/><small>${r.taResult.motivoBloqueio}</small>` : ""}` : `<b>Rede ${r.providerName}</b>`;
       const taColor = r.taResult ? (r.taResult.aptoNovoCliente ? "#22c55e" : "#f59e0b") : r.providerColor;
