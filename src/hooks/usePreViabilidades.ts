@@ -190,12 +190,11 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
 
   roi = Math.round(roi * 100) / 100;
 
-  // Update all records in the group
-  // Update each record individually, preserving its original updated_at
+  // Update all records in the group — the trigger preserves updated_at when only roi_global changes
   for (const r of records) {
     await supabase
       .from("pre_viabilidades" as any)
-      .update({ roi_global: roi, updated_at: r.updated_at } as any)
+      .update({ roi_global: roi } as any)
       .eq("id", r.id);
   }
 }
