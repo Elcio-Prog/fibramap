@@ -224,6 +224,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const { isAdmin } = useUserRole();
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
+  const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
 
   // Extra editable fields (non-calculator)
   const [meta, setMeta] = useState({
