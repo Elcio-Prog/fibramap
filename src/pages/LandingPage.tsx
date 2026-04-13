@@ -29,7 +29,7 @@ export default function LandingPage() {
             <Wifi className="h-7 w-7" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-semibold">Ferramenta WS</h2>
+            <h2 className="text-xl font-semibold">FibraMap Usuários</h2>
             <p className="mt-1.5 text-sm text-muted-foreground">
               Acesso geral 
             </p>
