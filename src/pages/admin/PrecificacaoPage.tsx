@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Download, Upload, Save, Plus, Trash2, Settings, X } from "lucide-react";
+import { Download, Upload, Save, Plus, Trash2, Settings, X, Pencil, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -62,6 +62,8 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
   const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [usdRate, setUsdRate] = useState<number | null>(null);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState("");
 
   const isEquipamentos = config.tabela === "equipamentos_valor";
 
@@ -196,6 +198,35 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
     } catch { }
   };
 
+  const handleStartEditName = (row: any) => {
+    setEditingNameId(row.id);
+    setEditingNameValue(row[config.keyField]);
+  };
+
+  const handleCancelEditName = () => {
+    setEditingNameId(null);
+    setEditingNameValue("");
+  };
+
+  const handleSaveEditName = async (id: string) => {
+    const trimmed = editingNameValue.trim();
+    if (!trimmed) return;
+    try {
+      const { error } = await supabase
+        .from(config.tabela as any)
+        .update({ [config.keyField]: trimmed } as any)
+        .eq("id", id);
+      if (error) throw error;
+      setRows(prev => prev.map(r => r.id === id ? { ...r, [config.keyField]: trimmed } : r));
+      toast({ title: "Nome atualizado" });
+    } catch (err: any) {
+      toast({ title: "Erro ao renomear", description: err.message, variant: "destructive" });
+    } finally {
+      setEditingNameId(null);
+      setEditingNameValue("");
+    }
+  };
+
   const handleOpenAddDialog = () => {
     setNewKey("");
     setSelectedCategory("");
@@ -225,7 +256,43 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
 
   const renderRow = (row: any, idx: number) => (
     <TableRow key={row.id} className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-      <TableCell className="font-medium text-sm">{row[config.keyField]}</TableCell>
+      <TableCell className="font-medium text-sm">
+        {isEquipamentos && editingNameId === row.id ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="text"
+              autoFocus
+              className="h-7 text-sm flex-1"
+              value={editingNameValue}
+              onChange={e => setEditingNameValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") handleSaveEditName(row.id);
+                if (e.key === "Escape") handleCancelEditName();
+              }}
+            />
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleSaveEditName(row.id)}>
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleCancelEditName}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 group">
+            <span>{row[config.keyField]}</span>
+            {isEquipamentos && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                onClick={() => handleStartEditName(row)}
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        )}
+      </TableCell>
       {(config.textFields ?? []).map(field => (
         <TableCell key={field} className="p-1">
           <Input
