@@ -67,7 +67,8 @@ serve(async (req) => {
 
     if (action === "create_user") {
       const { email, password, display_name, role } = params;
-      const userRole = role === "admin" ? "admin" : "ws_user";
+      const validRoles = ["admin", "ws_user", "vendedor", "implantacao"];
+      const userRole = validRoles.includes(role) ? role : "ws_user";
 
       if (!email || !password) {
         return new Response(JSON.stringify({ error: "Email e senha obrigatórios" }), {
@@ -165,7 +166,8 @@ serve(async (req) => {
 
     if (action === "assign_role") {
       const { user_id, role } = params;
-      const targetRole = role === "admin" ? "admin" : "ws_user";
+      const validRoles = ["admin", "ws_user", "vendedor", "implantacao"];
+      const targetRole = validRoles.includes(role) ? role : "ws_user";
 
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id obrigatório" }), {
