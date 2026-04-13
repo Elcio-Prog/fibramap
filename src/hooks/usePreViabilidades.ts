@@ -122,9 +122,9 @@ export function calculateIndividualROI(ticketMensal: number | null, dp: any) {
 
   if (receitas <= 0) return 0;
 
-  // Despesas = Custo Total + Finder + Campanha - Taxa de Instalação
+  // Despesas = CAPEX + Lançamento + Finder + Campanha + Taxa Instalação LM - Taxa de Instalação
   const finder = ticketMensal * (usouFinder2 / 100);
-  const despesas = custoTotal + finder + campanhaComercialMeses - taxaInstalacao;
+  const despesas = (dados.valorCapex ?? 0) + (dados.custosMateriaisAdicionais ?? 0) + finder + campanhaComercialMeses + (dados.custoLastMile ?? 0) - taxaInstalacao;
 
   const roi = despesas / receitas;
   return Math.round(roi * 10) / 10;
@@ -174,8 +174,8 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
     // Receita = Ticket Mensal Previsto - OPEX - Média Mensalidade LM
     const receita = ticketMensal - opex - mediaMensalidadeLm;
 
-    // Despesa = Custo Total + (Ticket Mensal * (Usou FINDER2 / 100)) + Campanha Comercial Meses - Taxa de Instalação
-    const despesa = custoTotal + (ticketMensal * (usouFinder2 / 100)) + campanhaComercialMeses - taxaInstalacao;
+    // Despesa = CAPEX + Lançamento + Finder + Campanha + Taxa Instalação LM - Taxa de Instalação
+    const despesa = (dp.valorCapex ?? 0) + (dp.custosMateriaisAdicionais ?? 0) + (ticketMensal * (usouFinder2 / 100)) + campanhaComercialMeses + (dp.custoLastMile ?? 0) - taxaInstalacao;
 
     somaReceitas += receita;
     somaDespesas += despesa;
