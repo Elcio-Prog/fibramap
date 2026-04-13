@@ -190,7 +190,30 @@ export default function MapPage() {
     lmLayerRef.current.addTo(mapInstance.current);
   }, [comprasLM, showLMLayer]);
 
-  const toggleProvider = (id: string) => {
+  // Render Recipientes layer
+  useEffect(() => {
+    if (!mapInstance.current || !recipientes) return;
+    if (recipientesLayerRef.current) { recipientesLayerRef.current.clearLayers(); }
+    else { recipientesLayerRef.current = L.layerGroup(); }
+
+    if (!showRecipientesLayer) {
+      recipientesLayerRef.current.removeFrom(mapInstance.current);
+      return;
+    }
+
+    for (const r of recipientes) {
+      if (!r.latitude || !r.longitude) continue;
+      const statusColor = r.status_viabilidade === "possui" ? "#22c55e" : r.status_viabilidade === "limitada" ? "#f59e0b" : "#ef4444";
+      const tooltipText = `<b>${r.sigla}</b>${r.recipiente_sigla ? `<br/>Recipiente: ${r.recipiente_sigla}` : ""}${r.pasta_nome ? `<br/>${r.pasta_nome}` : ""}<br/>Portas: ${r.portas_livres ?? 0}/${r.portas ?? 0} livres${r.tipo_splitter ? `<br/>Splitter: ${r.tipo_splitter}` : ""}${r.status_viabilidade ? `<br/>Status: ${r.status_viabilidade}` : ""}`;
+      const marker = L.circleMarker([r.latitude, r.longitude], {
+        radius: 4, fillColor: statusColor, color: "#fff", weight: 1.5, fillOpacity: 0.85,
+      }).bindTooltip(tooltipText, { sticky: true, direction: "top", opacity: 0.95 });
+      recipientesLayerRef.current.addLayer(marker);
+    }
+
+    recipientesLayerRef.current.addTo(mapInstance.current);
+  }, [recipientes, showRecipientesLayer]);
+
     setVisibleProviders((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
