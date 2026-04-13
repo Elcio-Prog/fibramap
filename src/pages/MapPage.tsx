@@ -4,10 +4,11 @@ import "leaflet/dist/leaflet.css";
 import { useProviders } from "@/hooks/useProviders";
 import { useGeoElements, useBulkCreateGeoElements, useDeleteGeoElementsByProvider } from "@/hooks/useGeoElements";
 import { useComprasLM } from "@/hooks/useComprasLM";
+import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
 import { parseKML, parseKMZ, parseGeoJSON, getGeometryType, closedLineToPolygon } from "@/lib/geo-utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Layers, Eye, EyeOff, Database, Trash2 } from "lucide-react";
+import { Upload, Layers, Eye, EyeOff, Database, Trash2, Radio } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -37,10 +38,12 @@ export default function MapPage() {
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
   const lmLayerRef = useRef<L.LayerGroup | null>(null);
+  const recipientesLayerRef = useRef<L.LayerGroup | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: providers } = useProviders();
   const { data: geoElements } = useGeoElements();
   const { data: comprasLM } = useComprasLM();
+  const { data: recipientes } = useGeoGridViabilidade();
   const bulkCreate = useBulkCreateGeoElements();
   const deleteByProvider = useDeleteGeoElementsByProvider();
   const { toast } = useToast();
@@ -48,6 +51,7 @@ export default function MapPage() {
   // Start with ALL layers OFF for performance
   const [visibleProviders, setVisibleProviders] = useState<Set<string>>(new Set());
   const [showLMLayer, setShowLMLayer] = useState(false);
+  const [showRecipientesLayer, setShowRecipientesLayer] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Init map
@@ -185,6 +189,30 @@ export default function MapPage() {
 
     lmLayerRef.current.addTo(mapInstance.current);
   }, [comprasLM, showLMLayer]);
+
+  // Render Recipientes layer
+  useEffect(() => {
+    if (!mapInstance.current || !recipientes) return;
+    if (recipientesLayerRef.current) { recipientesLayerRef.current.clearLayers(); }
+    else { recipientesLayerRef.current = L.layerGroup(); }
+
+    if (!showRecipientesLayer) {
+      recipientesLayerRef.current.removeFrom(mapInstance.current);
+      return;
+    }
+
+    for (const r of recipientes) {
+      if (!r.latitude || !r.longitude) continue;
+      const statusColor = r.status_viabilidade === "possui" ? "#22c55e" : r.status_viabilidade === "limitada" ? "#f59e0b" : "#ef4444";
+      const tooltipText = `<b>${r.sigla}</b>${r.recipiente_sigla ? `<br/>Recipiente: ${r.recipiente_sigla}` : ""}${r.pasta_nome ? `<br/>${r.pasta_nome}` : ""}<br/>Portas: ${r.portas_livres ?? 0}/${r.portas ?? 0} livres${r.tipo_splitter ? `<br/>Splitter: ${r.tipo_splitter}` : ""}${r.status_viabilidade ? `<br/>Status: ${r.status_viabilidade}` : ""}`;
+      const marker = L.circleMarker([r.latitude, r.longitude], {
+        radius: 4, fillColor: statusColor, color: "#fff", weight: 1.5, fillOpacity: 0.85,
+      }).bindTooltip(tooltipText, { sticky: true, direction: "top", opacity: 0.95 });
+      recipientesLayerRef.current.addLayer(marker);
+    }
+
+    recipientesLayerRef.current.addTo(mapInstance.current);
+  }, [recipientes, showRecipientesLayer]);
 
   const toggleProvider = (id: string) => {
     setVisibleProviders((prev) => {
@@ -381,6 +409,25 @@ export default function MapPage() {
             <Database className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="flex-1 text-left">Compras LM</span>
             {showLMLayer ? (
+              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setShowRecipientesLayer(prev => {
+                const next = !prev;
+                if (next) recipientesLayerRef.current?.addTo(mapInstance.current!);
+                else recipientesLayerRef.current?.removeFrom(mapInstance.current!);
+                return next;
+              });
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition-colors"
+          >
+            <Radio className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="flex-1 text-left">Recipientes</span>
+            {showRecipientesLayer ? (
               <Eye className="h-3.5 w-3.5 text-muted-foreground" />
             ) : (
               <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
