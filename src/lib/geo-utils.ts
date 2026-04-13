@@ -885,23 +885,32 @@ export async function getRouteDistance(
   }
 
   const fetchDrivingAlternatives = async (aLat: number, aLng: number, bLat: number, bLng: number) => {
-    try {
-        const url = `https://router.project-osrm.org/route/v1/foot/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+    const profiles = ['driving', 'foot'] as const;
+    for (const profile of profiles) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/${profile}/${aLng},${aLat};${bLng},${bLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (res.status === 429) return null; // rate limited — signal retry
-      const data = await res.json();
-      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-        return data.routes
-          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
-          .map((r: any) => ({ distance: r.distance as number, geometry: r.geometry }));
+        clearTimeout(timeoutId);
+        if (res.status === 429) return null; // rate limited — signal retry
+        const data = await res.json();
+        if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+          const valid = data.routes
+            .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+            .map((r: any) => ({ distance: r.distance as number, geometry: r.geometry }));
+          if (valid.length > 0) {
+            if (profile === 'foot') console.log(`[GEO] Fallback para perfil 'foot' retornou rota`);
+            return valid;
+          }
+        }
+        // If driving returned no valid routes, try foot as fallback
+        if (profile === 'driving') continue;
+      } catch {
+        if (profile === 'driving') continue;
       }
-      return [] as Array<{ distance: number; geometry: any }>;
-    } catch {
-      return [] as Array<{ distance: number; geometry: any }>;
     }
+    return [] as Array<{ distance: number; geometry: any }>;
   };
 
   const reverseGeometry = (geometry: any) => {
@@ -1076,34 +1085,48 @@ export async function getRouteDistancePreSnapped(
   const attemptFetch = async (): Promise<{ distance: number; geometry: any; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 7000);
-      const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
-      clearTimeout(timeoutId);
-      if (res.status === 429) return undefined as any;
-      if (!res.ok) {
-        console.warn(`[GEO] ✗ OSRM fast HTTP ${res.status} para ${url}`);
-        return null;
+      const profiles = ['driving', 'foot'] as const;
+      for (const profile of profiles) {
+        const url = `https://router.project-osrm.org/route/v1/${profile}/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        try {
+          const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+          clearTimeout(timeoutId);
+          if (res.status === 429) return undefined as any;
+          if (!res.ok) {
+            console.warn(`[GEO] ✗ OSRM fast HTTP ${res.status} (${profile})`);
+            if (profile === 'driving') continue;
+            return null;
+          }
+          const data = await res.json();
+          const routesLength = Array.isArray(data?.routes) ? data.routes.length : 0;
+          if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+            const best = data.routes
+              .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
+              .sort((a: any, b: any) => a.distance - b.distance)[0];
+            if (!best) {
+              if (profile === 'driving') continue;
+              return null;
+            }
+            if (profile === 'foot') console.log(`[GEO] Pre-snapped fallback para perfil 'foot'`);
+            console.log(`[GEO] OSRM fast response (${profile}): routes=${routesLength}, distance=${Math.round(best.distance)}m, points=${getPointCount(best.geometry)}`);
+            return {
+              distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
+              geometry: best.geometry,
+              snapPoint,
+              destSnapPoint,
+            };
+          }
+          if (profile === 'driving') continue;
+          console.warn(`[GEO] ✗ OSRM fast sem rota válida (${profile}): routes=${routesLength}, code=${data?.code ?? "sem_code"}`);
+          return null;
+        } catch {
+          clearTimeout(timeoutId);
+          if (profile === 'driving') continue;
+          return null;
+        }
       }
-      const data = await res.json();
-      const routesLength = Array.isArray(data?.routes) ? data.routes.length : 0;
-      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-        const best = data.routes
-          .filter((r: any) => typeof r?.distance === "number" && r?.geometry)
-          .sort((a: any, b: any) => a.distance - b.distance)[0];
-        if (!best) return null;
-        console.log(`[GEO] OSRM fast response: status=${res.status}, routes=${routesLength}, distance=${Math.round(best.distance)}m, duration=${Math.round(best.duration ?? 0)}s, points=${getPointCount(best.geometry)}`);
-        return {
-          distance: best.distance + snapOffsetMeters + destSnapOffsetMeters,
-          geometry: best.geometry,
-          snapPoint,
-          destSnapPoint,
-        };
-      }
-      console.warn(`[GEO] ✗ OSRM fast sem rota válida: status=${res.status}, routes=${routesLength}, code=${data?.code ?? "sem_code"}`);
-      return null;
-    } catch {
       return null;
     } finally {
       _osrmRelease();
