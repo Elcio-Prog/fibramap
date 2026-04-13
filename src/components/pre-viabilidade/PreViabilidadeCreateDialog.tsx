@@ -477,6 +477,38 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
             {renderProductFields()}
           </div>
 
+          {isAdmin && memoriaCalculo && memoriaCalculo.length > 0 && (
+            <Collapsible>
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors">
+                  <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                    Memória de Cálculo
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="rounded-b-lg border border-t-0 bg-muted/10 px-4 py-3 space-y-1.5">
+                  {memoriaCalculo.map((mc, idx) => (
+                    <div key={idx} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
+                      mc.label === "Valor Mínimo" || mc.label === "CAPEX Total"
+                        ? "bg-primary/5 font-semibold text-foreground"
+                        : "text-muted-foreground"
+                    }`}>
+                      <span>{mc.label}</span>
+                      <span className="tabular-nums font-mono">
+                        {typeof mc.valor === "number" && (mc.label.includes("Margem") || mc.label.includes("CAC") || mc.label.includes("Fator") || mc.label.includes("ROI"))
+                          ? mc.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+                          : formatCurrency(mc.valor)
+                        }
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </>
       )}
     </div>
