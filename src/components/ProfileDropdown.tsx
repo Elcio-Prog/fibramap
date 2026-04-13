@@ -111,7 +111,7 @@ export default function ProfileDropdown() {
               ) : (
                 <>
                   <Wifi className="h-4 w-4" />
-                  Ferramenta WS
+                  Usuários
                 </>
               )}
             </DropdownMenuItem>
