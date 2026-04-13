@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useInsertPreViabilidade, recalcRoiGlobal, calculateIndividualROI } from "@/hooks/usePreViabilidades";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
 import { useCalcularPrecificacao } from "@/hooks/useCalcularPrecificacao";
