@@ -536,7 +536,22 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaS: MemoriaItem[] = [];
+  const addMemS = (label: string, valor: number) => { if (valor !== 0) memoriaS.push({ label, valor }); };
+  addMemS("Valor Equipamento", valorEquipamento);
+  addMemS("Qtd Equipamentos", qtdEquipamentos);
+  addMemS("CAPEX Total", valorCapex);
+  addMemS("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemS("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemS("Custos Gerais", custosGerais);
+  addMemS("ROI Vigência", roiVigencia);
+  addMemS("Custo por Contrato", custoPorContrato);
+  addMemS("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMemS("Margem de Lucro", pabxMargemLucro);
+  addMemS("Valor OPEX", valorOpexInput ?? 0);
+  addMemS("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaS };
 }
 
 function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
