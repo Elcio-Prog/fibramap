@@ -67,7 +67,7 @@ export default function Auth() {
   };
 
   const icon = isWsLogin ? <Wifi className="h-6 w-6" /> : <Network className="h-6 w-6" />;
-  const title = isWsLogin ? "Usuários" : "FibraMap";
+  const title = isWsLogin ? "FibraMap - Usuários" : "FibraMap";
   const subtitle = isLogin
     ? "Entre na sua conta"
     : "Crie sua conta";
