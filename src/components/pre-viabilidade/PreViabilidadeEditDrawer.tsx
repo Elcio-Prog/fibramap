@@ -224,6 +224,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const { isAdmin } = useUserRole();
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
+  const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
 
   // Extra editable fields (non-calculator)
   const [meta, setMeta] = useState({
@@ -323,8 +324,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.minInternacional != null) setField("minInternacional", dp.minInternacional);
       // Backup
       if (dp.qtdBackupTB != null) setField("qtdBackupTB", dp.qtdBackupTB);
-      // Mark initial load will be done after setTimeout fires
-      setTimeout(() => { initialLoadDone.current = true; }, 200);
+      // Mark initial load done and trigger recalculation
+      setTimeout(() => {
+        initialLoadDone.current = true;
+        setInitialCalcTrigger(t => t + 1);
+      }, 200);
     }, 50);
     // Set meta fields
     setMeta({
@@ -373,7 +377,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       setMemoriaCalculo(result?.memoriaCalculo ?? null);
     }, 600);
     return () => clearTimeout(timer);
-  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
+  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm, initialCalcTrigger]);
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
