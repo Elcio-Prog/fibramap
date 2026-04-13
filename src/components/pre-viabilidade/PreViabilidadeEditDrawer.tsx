@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { PreViabilidade, useUpdatePreViabilidade, useDeletePreViabilidade, recalcRoiGlobal, calculateIndividualROI } from "@/hooks/usePreViabilidades";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFormPrecificacao, FormState } from "@/hooks/useFormPrecificacao";
@@ -219,6 +220,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
+  const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
+  const { isAdmin } = useUserRole();
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
 
@@ -366,6 +369,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (result?.valorCapex != null) {
         setValorCapex(result.valorCapex);
       }
+      setMemoriaCalculo(result?.memoriaCalculo ?? null);
     }, 600);
     return () => clearTimeout(timer);
   }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
