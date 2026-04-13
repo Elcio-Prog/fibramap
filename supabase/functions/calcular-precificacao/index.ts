@@ -732,7 +732,36 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaV: MemoriaItem[] = [];
+  const addMemV = (label: string, valor: number) => { if (valor !== 0) memoriaV.push({ label, valor }); };
+  addMemV("Equipamento 1", precoEq1 * vigencia);
+  addMemV("Equipamento 2", precoEq2 * vigencia);
+  addMemV("Equipamento 3", precoEq3 * vigencia);
+  addMemV("CAPEX Total", valorCapex);
+  addMemV("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemV("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemV("Custos Gerais", custosGerais);
+  addMemV("Vigência (meses)", vigencia);
+  addMemV("ROI Vigência", roiVigencia);
+  addMemV("Novas Linhas", valorNovasLinhas);
+  addMemV("Ramais", valorRamais);
+  addMemV("Portabilidades", valorPortabilidades);
+  addMemV("Canais", valorCanais);
+  addMemV("Fixo Local", valorFixoLocalCalc);
+  addMemV("Fixo LDN", valorFixoLDNCalc);
+  addMemV("Móvel Local", valorMovelLocalCalc);
+  addMemV("Móvel LDN", valorMovelLDNCalc);
+  addMemV("0800 Móvel", valor0800MovelCalc);
+  addMemV("0800 Fixo", valor0800FixoCalc);
+  addMemV("Internacional", valorInternacional);
+  addMemV("Custo Operacional Total", valorContratos);
+  addMemV("Suporte PABX", valorContratoPabx);
+  addMemV("Despesa CAC STFC", vozDespesaCAC);
+  addMemV("Margem de Lucro", vozMargemLucro);
+  addMemV("Valor OPEX", valorOpexInput ?? 0);
+  addMemV("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaV };
 }
 
 function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
