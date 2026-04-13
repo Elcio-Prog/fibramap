@@ -379,6 +379,22 @@ export default function WsUsersPage() {
       return (data as any).users as ManagedUser[];
     },
   });
+  const { data: vendedorList } = useQuery({
+    queryKey: ["managed-users", "vendedor"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "vendedor" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
+  const { data: implantacaoList } = useQuery({
+    queryKey: ["managed-users", "implantacao"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "implantacao" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
   const { data: pendingList } = useQuery({
     queryKey: ["managed-users", "pending"],
     queryFn: async () => {
@@ -390,8 +406,10 @@ export default function WsUsersPage() {
 
   const wsCount = wsList?.length ?? 0;
   const adminCount = adminList?.length ?? 0;
+  const vendedorCount = vendedorList?.length ?? 0;
+  const implantacaoCount = implantacaoList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount;
+  const total = wsCount + adminCount + vendedorCount + implantacaoCount;
 
   const [globalSearch, setGlobalSearch] = useState("");
 
@@ -403,13 +421,21 @@ export default function WsUsersPage() {
       </h1>
       <UserSearchInput value={globalSearch} onChange={setGlobalSearch} />
       <Tabs defaultValue="ws">
-        <TabsList>
-          <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> Usuários WS ({wsCount})</TabsTrigger>
-          <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Administradores ({adminCount})</TabsTrigger>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> WS ({wsCount})</TabsTrigger>
+          <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
+          <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Implantação ({implantacaoCount})</TabsTrigger>
+          <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
         <TabsContent value="ws" className="mt-4">
           <UserList role="ws_user" label="WS" icon={Wifi} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="vendedor" className="mt-4">
+          <UserList role="vendedor" label="Vendedor" icon={ShoppingBag} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="implantacao" className="mt-4">
+          <UserList role="implantacao" label="Implantação" icon={Wrench} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
