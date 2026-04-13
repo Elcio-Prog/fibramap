@@ -487,7 +487,24 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Valor Equipamento", valorEquipamento);
+  addMem("Licença Firewall", licencaFirewall);
+  addMem("Ciclos de Licença", Math.ceil(safeDivide(vigencia, 12)));
+  addMem("Qtd Equipamentos", qtdEquipamentos);
+  addMem("CAPEX Total", valorCapex);
+  addMem("Taxa Instalação", taxaInstalacao ?? 0);
+  addMem("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMem("Custos Gerais", custosGerais);
+  addMem("ROI Vigência", roiVigencia);
+  addMem("Custo por Contrato", custoPorContrato);
+  addMem("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMem("Margem de Lucro", pabxMargemLucro);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
