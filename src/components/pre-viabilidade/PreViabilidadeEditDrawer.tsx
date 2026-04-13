@@ -268,6 +268,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     setStep(1);
     setValorMinimo(item.valor_minimo ?? null);
     setValorCapex((item.dados_precificacao as any)?.valorCapex ?? 0);
+    setMemoriaCalculo((item.dados_precificacao as any)?.memoriaCalculo ?? null);
     initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
@@ -433,6 +434,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
       usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
       campanha_comercial_meses: parseFloat(meta.campanha_comercial) || ((item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0),
+      memoriaCalculo: memoriaCalculo || [],
     };
   };
 
