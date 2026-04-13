@@ -558,7 +558,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   const custoFixoLDN = db.custoVozGeral.get("Fixo LDN") ?? 0;
   const custoMovelLocal = db.custoVozGeral.get("Movel Local") ?? 0;
   const custoMovelLDN = db.custoVozGeral.get("Movel LDN") ?? 0;
-  const custo0800Movel = db.custoVozGeral.get("Voz 0800 Móvel") ?? 0;
+  const custo0800Movel = db.custoVozGeral.get("Voz 0800 Movel") ?? 0;
   const custo0800LDN = db.custoVozGeral.get("Voz 0800 Fixo") ?? 0;
   const custoOpTotal = db.custoVozGeral.get("Total unitario Custo OPERACIONAL") ?? 0;
 
