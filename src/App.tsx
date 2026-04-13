@@ -44,7 +44,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { session, loading } = useAuth();
-  const { isAdmin, isWsUser, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return (
@@ -55,7 +55,7 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/landing" replace />;
-  if (!isAdmin) return <Navigate to={isWsUser ? "/ws" : "/landing"} replace />;
+  if (!isAdmin) return <Navigate to={(isWsUser || isVendedor || isImplantacao) ? "/ws" : "/landing"} replace />;
 
   return (
     <AppLayout>
@@ -91,7 +91,7 @@ function ProtectedRoutes() {
 
 function WsRoutes() {
   const { session, loading } = useAuth();
-  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return (
@@ -102,7 +102,7 @@ function WsRoutes() {
   }
 
   if (!session) return <Navigate to="/ws/login" replace />;
-  if (!isWsUser && !isAdmin) return <Navigate to="/" replace />;
+  if (!isWsUser && !isAdmin && !isVendedor && !isImplantacao) return <Navigate to="/" replace />;
 
   return (
     <WsLayout>
@@ -124,7 +124,7 @@ function WsRoutes() {
 /** Landing page — redirect logged-in users to their area */
 function LandingRoute() {
   const { session, loading } = useAuth();
-  const { isAdmin, isWsUser, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <LandingPage />;
@@ -137,14 +137,14 @@ function LandingRoute() {
   }
 
   if (isAdmin) return <Navigate to="/" replace />;
-  if (isWsUser) return <Navigate to="/ws" replace />;
+  if (isWsUser || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
   return <LandingPage />;
 }
 
 /** /auth — admin login only */
 function AuthRoute() {
   const { session, loading, signOut } = useAuth();
-  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <Auth />;
@@ -157,7 +157,7 @@ function AuthRoute() {
   }
 
   if (isAdmin) return <Navigate to="/" replace />;
-  if (isWsUser) return <Navigate to="/ws" replace />;
+  if (isWsUser || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
   signOut();
   return <Auth />;
 }
@@ -165,7 +165,7 @@ function AuthRoute() {
 /** /ws/login — WS login + signup */
 function WsAuthRoute() {
   const { session, loading } = useAuth();
-  const { isWsUser, isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <Auth />;
@@ -177,7 +177,7 @@ function WsAuthRoute() {
     );
   }
 
-  if (isWsUser || isAdmin) return <Navigate to="/ws" replace />;
+  if (isWsUser || isAdmin || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
   return <Navigate to="/" replace />;
 }
 
