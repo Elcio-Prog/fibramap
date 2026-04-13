@@ -324,19 +324,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       if (dp.minInternacional != null) setField("minInternacional", dp.minInternacional);
       // Backup
       if (dp.qtdBackupTB != null) setField("qtdBackupTB", dp.qtdBackupTB);
-      // Mark initial load done, then trigger an explicit recalculation
+      // Mark initial load done and trigger recalculation
       setTimeout(() => {
         initialLoadDone.current = true;
-        // Force recalculation to populate memoriaCalculo for existing items
-        const payload = buildPayload();
-        if (calcForm.tecnologia === "LAST MILE" && meta.media_mensalidade_lm) {
-          (payload as any).valorLastMile = meta.media_mensalidade_lm;
-        }
-        calcular(payload).then((result) => {
-          if (result?.valorMinimo != null) setValorMinimo(result.valorMinimo);
-          if (result?.valorCapex != null) setValorCapex(result.valorCapex);
-          setMemoriaCalculo(result?.memoriaCalculo ?? null);
-        });
+        setInitialCalcTrigger(t => t + 1);
       }, 200);
     }, 50);
     // Set meta fields
