@@ -246,6 +246,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
     observacoes: "",
     ticket_mensal: 0,
     media_mensalidade_lm: 0,
+    taxa_instalacao_lm: 0,
+    finder_percent: 0,
     cnpj_cliente: "",
     coordenadas: "",
     endereco: "",
@@ -350,6 +352,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       observacoes: item.observacoes || "",
       ticket_mensal: item.ticket_mensal ?? 0,
       media_mensalidade_lm: (item.dados_precificacao as any)?.media_mensalidade_lm ?? 0,
+      taxa_instalacao_lm: (item.dados_precificacao as any)?.taxa_instalacao_lm ?? 0,
+      finder_percent: (item.dados_precificacao as any)?.usou_finder2 ?? 0,
       cnpj_cliente: (item as any).cnpj_cliente || "",
       coordenadas: (item as any).coordenadas || "",
       endereco: (item as any).endereco || "",
@@ -434,9 +438,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       valorCapex: valorCapex,
       // Campos futuros para ROI (default 0 até serem implementados)
       media_mensalidade_lm: meta.media_mensalidade_lm || ((item?.dados_precificacao as any)?.media_mensalidade_lm ?? 0),
+      taxa_instalacao_lm: meta.taxa_instalacao_lm || 0,
       custo_radio: (item?.dados_precificacao as any)?.custo_radio ?? 0,
       valor_total_reais: (item?.dados_precificacao as any)?.valor_total_reais ?? 0,
-      usou_finder2: (item?.dados_precificacao as any)?.usou_finder2 ?? 0,
+      usou_finder2: meta.finder_percent || 0,
       campanha_comercial_meses: parseFloat(meta.campanha_comercial) || ((item?.dados_precificacao as any)?.campanha_comercial_meses ?? 0),
       memoriaCalculo: memoriaCalculo || [],
     };
@@ -650,8 +655,12 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
         {calcForm.tecnologia === "LAST MILE" && (
-          <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
-            onChange={setMetaNum("media_mensalidade_lm")} />
+          <>
+            <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
+              onChange={setMetaNum("media_mensalidade_lm")} />
+            <NumField label="Taxa de Instalação LM" value={meta.taxa_instalacao_lm}
+              onChange={setMetaNum("taxa_instalacao_lm")} />
+          </>
         )}
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
@@ -692,6 +701,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
   const renderStep4 = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Finder (%)" value={meta.finder_percent}
+          onChange={setMetaNum("finder_percent")} />
         <div>
           <Label className="text-xs text-muted-foreground">Campanha Comercial</Label>
           <Input className="h-9 mt-1" value={meta.campanha_comercial} onChange={setMetaField("campanha_comercial")} />

@@ -243,7 +243,9 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
     observacao_validacao: "",
     data_reavaliacao: "",
     media_mensalidade_lm: 0,
+    taxa_instalacao_lm: 0,
     // Step 4 - BKO
+    finder_percent: 0,
     campanha_comercial: "",
     motivo_solicitacao: "",
     aprovado_por: "",
@@ -268,7 +270,8 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         endereco: initialData?.endereco || "",
         observacoes: initialData?.observacoes || "",
         status: "Aberto", projetista: "", inviabilidade_tecnica: "",
-        observacao_validacao: "", data_reavaliacao: "", media_mensalidade_lm: 0, campanha_comercial: "",
+        observacao_validacao: "", data_reavaliacao: "", media_mensalidade_lm: 0, taxa_instalacao_lm: 0,
+        finder_percent: 0, campanha_comercial: "",
         motivo_solicitacao: "", aprovado_por: "", status_aprovacao: "",
         criado_por: user?.email || "", protocolo: "",
       });
@@ -344,8 +347,9 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
       paisInternacional: f.paisInternacional, minInternacional: f.minInternacional,
       qtdBackupTB: f.qtdBackupTB,
       valorCapex,
-      media_mensalidade_lm: meta.media_mensalidade_lm || 0, custo_radio: 0, valor_total_reais: 0,
-      usou_finder2: 0, campanha_comercial_meses: parseFloat(meta.campanha_comercial) || 0,
+      media_mensalidade_lm: meta.media_mensalidade_lm || 0, taxa_instalacao_lm: meta.taxa_instalacao_lm || 0,
+      custo_radio: 0, valor_total_reais: 0,
+      usou_finder2: meta.finder_percent || 0, campanha_comercial_meses: parseFloat(meta.campanha_comercial) || 0,
       memoriaCalculo: memoriaCalculo || [],
     };
   };
@@ -578,8 +582,12 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         <NumField label="Lançamento e custo materiais" value={calcForm.custosMateriaisAdicionais}
           onChange={v => setField("custosMateriaisAdicionais", v)} />
         {calcForm.tecnologia === "LAST MILE" && (
-          <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
-            onChange={setMetaNum("media_mensalidade_lm")} />
+          <>
+            <NumField label="Média Mensalidade LM" value={meta.media_mensalidade_lm}
+              onChange={setMetaNum("media_mensalidade_lm")} />
+            <NumField label="Taxa de Instalação LM" value={meta.taxa_instalacao_lm}
+              onChange={setMetaNum("taxa_instalacao_lm")} />
+          </>
         )}
         <div>
           <Label className="text-xs text-muted-foreground">Inviabilidade Técnica</Label>
@@ -612,6 +620,8 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
   const renderStep4 = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <NumField label="Finder (%)" value={meta.finder_percent}
+          onChange={setMetaNum("finder_percent")} />
         <div>
           <Label className="text-xs text-muted-foreground">Campanha Comercial</Label>
           <Input className="h-9 mt-1" value={meta.campanha_comercial} onChange={setMetaField("campanha_comercial")} />
