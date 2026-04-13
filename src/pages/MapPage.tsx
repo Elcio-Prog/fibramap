@@ -38,10 +38,12 @@ export default function MapPage() {
   const mapInstance = useRef<L.Map | null>(null);
   const layerGroups = useRef<Record<string, L.LayerGroup>>({});
   const lmLayerRef = useRef<L.LayerGroup | null>(null);
+  const recipientesLayerRef = useRef<L.LayerGroup | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: providers } = useProviders();
   const { data: geoElements } = useGeoElements();
   const { data: comprasLM } = useComprasLM();
+  const { data: recipientes } = useGeoGridViabilidade();
   const bulkCreate = useBulkCreateGeoElements();
   const deleteByProvider = useDeleteGeoElementsByProvider();
   const { toast } = useToast();
@@ -49,6 +51,7 @@ export default function MapPage() {
   // Start with ALL layers OFF for performance
   const [visibleProviders, setVisibleProviders] = useState<Set<string>>(new Set());
   const [showLMLayer, setShowLMLayer] = useState(false);
+  const [showRecipientesLayer, setShowRecipientesLayer] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Init map
