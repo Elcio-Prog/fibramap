@@ -377,7 +377,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       setMemoriaCalculo(result?.memoriaCalculo ?? null);
     }, 600);
     return () => clearTimeout(timer);
-  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
+  }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm, initialCalcTrigger]);
 
   const setMetaField = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setMeta(f => ({ ...f, [field]: e.target.value }));
