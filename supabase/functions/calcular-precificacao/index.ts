@@ -584,7 +584,23 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaW: MemoriaItem[] = [];
+  const addMemW = (label: string, valor: number) => { if (valor !== 0) memoriaW.push({ label, valor }); };
+  addMemW("Valor Equipamento", valorEquipamento);
+  addMemW("Fonte POE", fontePOE);
+  addMemW("Qtd Equipamentos", qtdEquipamentos);
+  addMemW("CAPEX Total", valorCapex);
+  addMemW("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemW("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemW("Custos Gerais", custosGerais);
+  addMemW("ROI Vigência", roiVigencia);
+  addMemW("Custo por Contrato", custoPorContrato);
+  addMemW("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMemW("Margem de Lucro", pabxMargemLucro);
+  addMemW("Valor OPEX", valorOpexInput ?? 0);
+  addMemW("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaW };
 }
 
 function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
