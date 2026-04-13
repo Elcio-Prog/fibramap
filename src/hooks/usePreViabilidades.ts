@@ -190,11 +190,13 @@ export async function recalcRoiGlobal(idGuardachuva: string | null) {
   roi = Math.round(roi * 100) / 100;
 
   // Update all records in the group
-  const ids = records.map((r) => r.id);
-  await supabase
-    .from("pre_viabilidades" as any)
-    .update({ roi_global: roi } as any)
-    .in("id", ids);
+  // Update each record individually, preserving its original updated_at
+  for (const r of records) {
+    await supabase
+      .from("pre_viabilidades" as any)
+      .update({ roi_global: roi, updated_at: r.updated_at } as any)
+      .eq("id", r.id);
+  }
 }
 
 export function useDeletePreViabilidade() {
