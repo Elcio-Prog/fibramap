@@ -76,7 +76,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Implantação" };
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação" };
       toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
@@ -130,7 +130,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                     <SelectContent>
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
-                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -218,7 +218,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Implantação" };
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação" };
 
   const changeRole = useMutation({
     mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
@@ -309,7 +309,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                     <SelectContent>
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
-                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -427,7 +427,7 @@ export default function WsUsersPage() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> WS ({wsCount})</TabsTrigger>
           <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
-          <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Implantação ({implantacaoCount})</TabsTrigger>
+          <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Validação ({implantacaoCount})</TabsTrigger>
           <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
@@ -438,7 +438,7 @@ export default function WsUsersPage() {
           <UserList role="vendedor" label="Vendedor" icon={ShoppingBag} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="implantacao" className="mt-4">
-          <UserList role="implantacao" label="Implantação" icon={Wrench} globalSearch={globalSearch} />
+          <UserList role="implantacao" label="Validação" icon={Wrench} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />

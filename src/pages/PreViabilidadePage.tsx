@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 export default function PreViabilidadePage() {
   const { data, isLoading } = usePreViabilidades();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isImplantacao } = useUserRole();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
@@ -28,7 +28,7 @@ export default function PreViabilidadePage() {
           <div>
             <h1 className="text-xl font-bold">Pré Viabilidade</h1>
             <p className="text-sm text-muted-foreground">
-              {isAdmin ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
+              {(isAdmin || isImplantacao) ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
             </p>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function PreViabilidadePage() {
         />
       )}
 
-      {isAdmin && (
+      {(isAdmin || isImplantacao) && (
         <PreViabilidadeEditDrawer
           item={editItem}
           open={!!editItem}
