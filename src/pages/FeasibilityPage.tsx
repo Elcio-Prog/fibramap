@@ -83,7 +83,8 @@ interface FeasibilityResult {
   providerRules?: ProviderRules;
   checkOmBoxName?: string;
   snapPoint?: [number, number];
-  destSnapPoint?: [number, number]; // lat/lng of the snapped road point (off-road destination/box)
+  destSnapPoint?: [number, number];
+  routeFailed?: boolean;
 }
 
 export default function FeasibilityPage() {
