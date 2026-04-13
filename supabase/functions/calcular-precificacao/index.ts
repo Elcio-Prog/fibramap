@@ -703,7 +703,17 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0 };
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Qtd TB", qtdBackupTB);
+  addMem("Custo por Contrato Backup", custoPorContratoBackup);
+  addMem("Custo por TB", custoPorTB);
+  addMem("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMem("Margem de Lucro", pabxMargemLucro);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
