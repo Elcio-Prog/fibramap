@@ -605,7 +605,12 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
           onChange={setMetaNum("ticket_mensal")} />
         <div>
           <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
-          <Input className="h-9 mt-1" value={meta.cnpj_cliente} onChange={setMetaField("cnpj_cliente")} />
+          <Input className="h-9 mt-1" value={meta.cnpj_cliente} maxLength={18} placeholder="00.000.000/0000-00"
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
+              const masked = raw.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+              setMeta(f => ({ ...f, cnpj_cliente: masked }));
+            }} />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Código Oportunidade SMARK</Label>
