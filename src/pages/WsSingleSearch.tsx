@@ -797,8 +797,24 @@ export default function WsSingleSearch() {
             </TabsContent>
             <TabsContent value="coords" className="mt-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Latitude</Label><Input type="number" step="any" placeholder="-22.8231" value={coordLat} onChange={e => setCoordLat(e.target.value)} /></div>
-                <div><Label>Longitude</Label><Input type="number" step="any" placeholder="-47.2668" value={coordLng} onChange={e => setCoordLng(e.target.value)} /></div>
+                <div><Label>Latitude</Label><Input type="number" step="any" placeholder="-22.8231" value={coordLat} onChange={e => setCoordLat(e.target.value)} onPaste={e => {
+                  const text = e.clipboardData.getData("text").trim();
+                  const match = text.match(/^(-?\d+[.,]?\d*)\s*[,;\s]\s*(-?\d+[.,]?\d*)$/);
+                  if (match) {
+                    e.preventDefault();
+                    setCoordLat(match[1].replace(",", "."));
+                    setCoordLng(match[2].replace(",", "."));
+                  }
+                }} /></div>
+                <div><Label>Longitude</Label><Input type="number" step="any" placeholder="-47.2668" value={coordLng} onChange={e => setCoordLng(e.target.value)} onPaste={e => {
+                  const text = e.clipboardData.getData("text").trim();
+                  const match = text.match(/^(-?\d+[.,]?\d*)\s*[,;\s]\s*(-?\d+[.,]?\d*)$/);
+                  if (match) {
+                    e.preventDefault();
+                    setCoordLat(match[1].replace(",", "."));
+                    setCoordLng(match[2].replace(",", "."));
+                  }
+                }} /></div>
               </div>
             </TabsContent>
             <TabsContent value="cep" className="mt-3 space-y-2">
