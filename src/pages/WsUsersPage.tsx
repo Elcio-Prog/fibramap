@@ -120,26 +120,20 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
                     <Eye className="h-3 w-3" />
                   </Button>
-                  <Button variant="default" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "ws_user" })}
-                    disabled={assignRole.isPending}>
-                    <Wifi className="h-3 w-3" /> WS
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "vendedor" })}
-                    disabled={assignRole.isPending}>
-                    <ShoppingBag className="h-3 w-3" /> Vendedor
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "implantacao" })}
-                    disabled={assignRole.isPending}>
-                    <Wrench className="h-3 w-3" /> Implantação
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
-                    onClick={() => assignRole.mutate({ user_id: u.id, role: "admin" })}
-                    disabled={assignRole.isPending}>
-                    <Users className="h-3 w-3" /> Admin
-                  </Button>
+                  <Select
+                    onValueChange={(val) => assignRole.mutate({ user_id: u.id, role: val })}
+                    disabled={assignRole.isPending}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-[140px]">
+                      <SelectValue placeholder="Atribuir papel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ws_user">WS</SelectItem>
+                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                      <SelectItem value="implantacao">Implantação</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
