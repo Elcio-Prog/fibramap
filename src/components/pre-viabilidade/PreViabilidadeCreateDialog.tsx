@@ -212,6 +212,8 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
   const { calcular, loading: calculating } = useCalcularPrecificacao();
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
+  const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
+  const { isAdmin } = useUserRole();
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
@@ -308,6 +310,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
       const result = await calcular(payload);
       if (result?.valorMinimo != null) setValorMinimo(result.valorMinimo);
       if (result?.valorCapex != null) setValorCapex(result.valorCapex);
+      setMemoriaCalculo(result?.memoriaCalculo ?? null);
     }, 600);
     return () => clearTimeout(timer);
   }, [calcForm, open, buildPayload, calcular, meta.media_mensalidade_lm]);
