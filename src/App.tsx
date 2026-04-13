@@ -55,7 +55,7 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/landing" replace />;
-  if (!isAdmin) return <Navigate to={(isWsUser || isVendedor || isImplantacao) ? "/ws" : "/landing"} replace />;
+  if (!isAdmin && !isImplantacao) return <Navigate to={(isWsUser || isVendedor) ? "/ws" : "/landing"} replace />;
 
   return (
     <AppLayout>
@@ -136,8 +136,8 @@ function LandingRoute() {
     );
   }
 
-  if (isAdmin) return <Navigate to="/" replace />;
-  if (isWsUser || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
+  if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
+  if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
   return <LandingPage />;
 }
 
@@ -156,8 +156,8 @@ function AuthRoute() {
     );
   }
 
-  if (isAdmin) return <Navigate to="/" replace />;
-  if (isWsUser || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
+  if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
+  if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
   signOut();
   return <Auth />;
 }
@@ -177,7 +177,8 @@ function WsAuthRoute() {
     );
   }
 
-  if (isWsUser || isAdmin || isVendedor || isImplantacao) return <Navigate to="/ws" replace />;
+  if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
+  if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
   return <Navigate to="/" replace />;
 }
 

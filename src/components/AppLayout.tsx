@@ -76,7 +76,7 @@ function getInitials(displayName?: string | null, fullName?: string | null, emai
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isImplantacao } = useUserRole();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -101,7 +101,27 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const profileDisplayName = profile.display_name || profile.full_name || user?.email?.split("@")[0] || "Usuário";
 
-  const sections = [...baseSections, ...(isAdmin ? [preViabilidadeSection, adminSection] : [])];
+  const sections = isAdmin
+    ? [...baseSections, preViabilidadeSection, adminSection]
+    : isImplantacao
+      ? [
+          { title: "PRINCIPAL", links: [{ to: "/", label: "Mapa", icon: Map }] },
+          {
+            title: "PRÉ VIABILIDADES",
+            links: [
+              { to: "/admin/precificacao/calcular", label: "Calculadora", icon: Calculator },
+              { to: "/pre-viabilidade", label: "Pré Viabilidade", icon: FileCheck },
+            ],
+          },
+          {
+            title: "SISTEMA",
+            links: [
+              { to: "/ws-upload", label: "Upload WS", icon: Upload },
+              { to: "/ws-single", label: "Busca Unitária WS", icon: Search },
+            ],
+          },
+        ]
+      : baseSections;
 
   const handleSignOut = async () => {
     await signOut();
