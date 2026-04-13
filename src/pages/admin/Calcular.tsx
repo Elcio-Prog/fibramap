@@ -329,10 +329,12 @@ function BackupFields({ form, setField }: {
 // ── Result Sidebar ──
 
 function ResultPanel({ resultado, calculating, error }: {
-  resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string } | null;
+  resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string; memoriaCalculo?: { label: string; valor: number }[] } | null;
   calculating: boolean;
   error: string | null;
 }) {
+  const [memoriaOpen, setMemoriaOpen] = useState(false);
+
   return (
     <div className="lg:sticky lg:top-6 space-y-4">
       <Card className={
@@ -391,6 +393,48 @@ function ResultPanel({ resultado, calculating, error }: {
           )}
         </CardContent>
       </Card>
+
+      {resultado && !resultado.mensagem && resultado.memoriaCalculo && resultado.memoriaCalculo.length > 0 && (
+        <Collapsible open={memoriaOpen} onOpenChange={setMemoriaOpen}>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Info className="h-3.5 w-3.5" />
+                    Memória de Cálculo
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform text-muted-foreground ${memoriaOpen ? "rotate-180" : ""}`} />
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <div className="space-y-1.5">
+                  {resultado.memoriaCalculo.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
+                        item.label === "Valor Mínimo" || item.label === "CAPEX Total"
+                          ? "bg-primary/5 font-semibold text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className="tabular-nums font-mono">
+                        {typeof item.valor === "number" && (item.label.includes("Margem") || item.label.includes("CAC") || item.label.includes("Fator") || item.label.includes("ROI"))
+                          ? item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+                          : formatBRL(item.valor)
+                        }
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
     </div>
   );
 }

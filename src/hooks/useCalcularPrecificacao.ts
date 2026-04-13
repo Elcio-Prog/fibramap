@@ -46,11 +46,17 @@ interface CalcInput {
   qtdBackupTB?: number;
 }
 
+interface MemoriaItem {
+  label: string;
+  valor: number;
+}
+
 interface CalcOutput {
   valorMinimo: number;
   valorCapex: number;
   valorOpex: number;
   mensagem?: string;
+  memoriaCalculo?: MemoriaItem[];
 }
 
 export function useCalcularPrecificacao() {

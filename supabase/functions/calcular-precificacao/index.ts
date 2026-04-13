@@ -54,11 +54,17 @@ interface CalcInput {
   qtdBackupTB?: number;
 }
 
+interface MemoriaItem {
+  label: string;
+  valor: number;
+}
+
 interface CalcOutput {
   valorMinimo: number;
   valorCapex: number;
   valorOpex: number;
   mensagem?: string;
+  memoriaCalculo?: MemoriaItem[];
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -378,7 +384,36 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   // Final rounding + opex
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  // Build memoria de calculo (only non-zero items)
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Custo Banda (Ponta A)", linkcustoBanda1);
+  if (subproduto === "NT L2L") addMem("Custo Banda (Ponta B)", linkcustoBanda2);
+  addMem("Fator Banda", linkFatorBanda);
+  addMem("Custo CAC", linkcustoCAC);
+  addMem("Taxa Link (" + subproduto + ")", linktaxaLink);
+  addMem("Custo ONU", linkcustoONU);
+  addMem("Custo Metro Rede", custoMetroRede);
+  addMem("Custo Lançamento", linkcustoLancamento);
+  addMem("Bloco IP", linkcustoBlocoIP);
+  addMem("Base CAPEX", baseCapex);
+  addMem("CAPEX Total", valorCapex);
+  addMem("Custos Gerais", custosGerais);
+  addMem("Valor Last Mile", valorLastMile ?? 0);
+  addMem("Custo Last Mile", custoLastMile ?? 0);
+  if (subproduto === "NT DARK FIBER") {
+    addMem("Custo Metro Dark Fiber", custoMetroDarkFiber);
+    addMem("Qtd Fibras", qtdFibrasDarkFiber ?? 0);
+    addMem("Valor Mínimo Dark Fiber", valorMinimoDarkFiber);
+  }
+  addMem("Taxa Instalação", taxaInstalacao ?? 0);
+  addMem("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMem("Vigência (meses)", vigencia);
+  addMem("ROI Vigência", roiVigencia);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
@@ -452,7 +487,24 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Valor Equipamento", valorEquipamento);
+  addMem("Licença Firewall", licencaFirewall);
+  addMem("Ciclos de Licença", Math.ceil(safeDivide(vigencia, 12)));
+  addMem("Qtd Equipamentos", qtdEquipamentos);
+  addMem("CAPEX Total", valorCapex);
+  addMem("Taxa Instalação", taxaInstalacao ?? 0);
+  addMem("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMem("Custos Gerais", custosGerais);
+  addMem("ROI Vigência", roiVigencia);
+  addMem("Custo por Contrato", custoPorContrato);
+  addMem("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMem("Margem de Lucro", pabxMargemLucro);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
@@ -484,7 +536,22 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaS: MemoriaItem[] = [];
+  const addMemS = (label: string, valor: number) => { if (valor !== 0) memoriaS.push({ label, valor }); };
+  addMemS("Valor Equipamento", valorEquipamento);
+  addMemS("Qtd Equipamentos", qtdEquipamentos);
+  addMemS("CAPEX Total", valorCapex);
+  addMemS("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemS("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemS("Custos Gerais", custosGerais);
+  addMemS("ROI Vigência", roiVigencia);
+  addMemS("Custo por Contrato", custoPorContrato);
+  addMemS("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMemS("Margem de Lucro", pabxMargemLucro);
+  addMemS("Valor OPEX", valorOpexInput ?? 0);
+  addMemS("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaS };
 }
 
 function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
@@ -517,7 +584,23 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaW: MemoriaItem[] = [];
+  const addMemW = (label: string, valor: number) => { if (valor !== 0) memoriaW.push({ label, valor }); };
+  addMemW("Valor Equipamento", valorEquipamento);
+  addMemW("Fonte POE", fontePOE);
+  addMemW("Qtd Equipamentos", qtdEquipamentos);
+  addMemW("CAPEX Total", valorCapex);
+  addMemW("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemW("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemW("Custos Gerais", custosGerais);
+  addMemW("ROI Vigência", roiVigencia);
+  addMemW("Custo por Contrato", custoPorContrato);
+  addMemW("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMemW("Margem de Lucro", pabxMargemLucro);
+  addMemW("Valor OPEX", valorOpexInput ?? 0);
+  addMemW("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaW };
 }
 
 function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
@@ -649,7 +732,36 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  const memoriaV: MemoriaItem[] = [];
+  const addMemV = (label: string, valor: number) => { if (valor !== 0) memoriaV.push({ label, valor }); };
+  addMemV("Equipamento 1", precoEq1 * vigencia);
+  addMemV("Equipamento 2", precoEq2 * vigencia);
+  addMemV("Equipamento 3", precoEq3 * vigencia);
+  addMemV("CAPEX Total", valorCapex);
+  addMemV("Taxa Instalação", taxaInstalacao ?? 0);
+  addMemV("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMemV("Custos Gerais", custosGerais);
+  addMemV("Vigência (meses)", vigencia);
+  addMemV("ROI Vigência", roiVigencia);
+  addMemV("Novas Linhas", valorNovasLinhas);
+  addMemV("Ramais", valorRamais);
+  addMemV("Portabilidades", valorPortabilidades);
+  addMemV("Canais", valorCanais);
+  addMemV("Fixo Local", valorFixoLocalCalc);
+  addMemV("Fixo LDN", valorFixoLDNCalc);
+  addMemV("Móvel Local", valorMovelLocalCalc);
+  addMemV("Móvel LDN", valorMovelLDNCalc);
+  addMemV("0800 Móvel", valor0800MovelCalc);
+  addMemV("0800 Fixo", valor0800FixoCalc);
+  addMemV("Internacional", valorInternacional);
+  addMemV("Custo Operacional Total", valorContratos);
+  addMemV("Suporte PABX", valorContratoPabx);
+  addMemV("Despesa CAC STFC", vozDespesaCAC);
+  addMemV("Margem de Lucro", vozMargemLucro);
+  addMemV("Valor OPEX", valorOpexInput ?? 0);
+  addMemV("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaV };
 }
 
 function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
@@ -668,7 +780,17 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
 
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0 };
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Qtd TB", qtdBackupTB);
+  addMem("Custo por Contrato Backup", custoPorContratoBackup);
+  addMem("Custo por TB", custoPorTB);
+  addMem("Despesa CAC (SVA)", pabxDespesaCAC);
+  addMem("Margem de Lucro", pabxMargemLucro);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
