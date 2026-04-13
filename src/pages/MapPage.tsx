@@ -214,6 +214,7 @@ export default function MapPage() {
     recipientesLayerRef.current.addTo(mapInstance.current);
   }, [recipientes, showRecipientesLayer]);
 
+  const toggleProvider = (id: string) => {
     setVisibleProviders((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
