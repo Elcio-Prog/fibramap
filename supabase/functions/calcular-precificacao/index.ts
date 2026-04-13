@@ -384,7 +384,36 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   // Final rounding + opex
   valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0 };
+  // Build memoria de calculo (only non-zero items)
+  const memoria: MemoriaItem[] = [];
+  const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
+  addMem("Custo Banda (Ponta A)", linkcustoBanda1);
+  if (subproduto === "NT L2L") addMem("Custo Banda (Ponta B)", linkcustoBanda2);
+  addMem("Fator Banda", linkFatorBanda);
+  addMem("Custo CAC", linkcustoCAC);
+  addMem("Taxa Link (" + subproduto + ")", linktaxaLink);
+  addMem("Custo ONU", linkcustoONU);
+  addMem("Custo Metro Rede", custoMetroRede);
+  addMem("Custo Lançamento", linkcustoLancamento);
+  addMem("Bloco IP", linkcustoBlocoIP);
+  addMem("Base CAPEX", baseCapex);
+  addMem("CAPEX Total", valorCapex);
+  addMem("Custos Gerais", custosGerais);
+  addMem("Valor Last Mile", valorLastMile ?? 0);
+  addMem("Custo Last Mile", custoLastMile ?? 0);
+  if (subproduto === "NT DARK FIBER") {
+    addMem("Custo Metro Dark Fiber", custoMetroDarkFiber);
+    addMem("Qtd Fibras", qtdFibrasDarkFiber ?? 0);
+    addMem("Valor Mínimo Dark Fiber", valorMinimoDarkFiber);
+  }
+  addMem("Taxa Instalação", taxaInstalacao ?? 0);
+  addMem("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
+  addMem("Vigência (meses)", vigencia);
+  addMem("ROI Vigência", roiVigencia);
+  addMem("Valor OPEX", valorOpexInput ?? 0);
+  addMem("Valor Mínimo", valorMinimo);
+
+  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
 }
 
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
