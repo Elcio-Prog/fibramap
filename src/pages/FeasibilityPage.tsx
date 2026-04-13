@@ -83,8 +83,7 @@ interface FeasibilityResult {
   providerRules?: ProviderRules;
   checkOmBoxName?: string;
   snapPoint?: [number, number];
-  destSnapPoint?: [number, number];
-  routeFailed?: boolean;
+  destSnapPoint?: [number, number]; // lat/lng of the snapped road point (off-road destination/box)
 }
 
 export default function FeasibilityPage() {
@@ -443,7 +442,6 @@ export default function FeasibilityPage() {
             providerId: provider.id, routeGeometry: !insideNT ? routeGeometry : undefined,
             nearestPoint: nearestPt, isOwnNetwork: true, taResult, cpflBlocked, cpflMessage,
             highwayBlocked, highwayMessage, providerRules, snapPoint: !insideNT ? snapPoint : undefined, destSnapPoint: !insideNT ? destSnapPoint : undefined,
-            routeFailed: !insideNT && !routeGeometry && !!nearestPt,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -489,7 +487,6 @@ export default function FeasibilityPage() {
           const status: ResultStatus = tooFar ? "too_far" : isViable ? "outside_viable" : "outside_not_viable";
           if (status === "too_far" || status === "outside_not_viable") return null;
 
-          const routeFailed = !routeGeometry && !!bestNearest.point;
           const result: FeasibilityResult = {
             address: geo.display, lat: geo.lat, lng: geo.lng,
             providerName: provider.name, providerColor: provider.color,
@@ -497,7 +494,7 @@ export default function FeasibilityPage() {
             lpuType: lpuItem?.link_type || "N/A", multiplier: mult,
             finalValue: Math.round(finalValue * 100) / 100, status, providerId: provider.id,
             routeGeometry, nearestPoint: bestNearest.point, hasCrossNtt: provider.has_cross_ntt,
-            snapPoint, destSnapPoint, routeFailed,
+            snapPoint, destSnapPoint,
           };
           const save = {
             user_id: user?.id, customer_address: address || geo.display,
@@ -875,20 +872,6 @@ function ResultCard({
         }),
       }).addTo(map);
 
-      bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
-    }
-
-    // Show warning when route geometry failed but we have a nearest point
-    if (r.routeFailed && r.nearestPoint) {
-      const midLat = (r.lat + r.nearestPoint[0]) / 2;
-      const midLng = (r.lng + r.nearestPoint[1]) / 2;
-      L.marker([midLat, midLng], {
-        icon: L.divIcon({
-          className: "distance-label",
-          html: `<div style="background:#f59e0b;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;white-space:nowrap;">⚠ Rota viária indisponível (${r.distance}m linha reta)</div>`,
-          iconSize: [220, 24], iconAnchor: [110, 12],
-        }),
-      }).addTo(map);
       bounds.extend(L.latLng(r.nearestPoint[0], r.nearestPoint[1]));
     }
 
