@@ -102,7 +102,7 @@ function WsRoutes() {
   }
 
   if (!session) return <Navigate to="/ws/login" replace />;
-  if (!isWsUser && !isAdmin && !isVendedor && !isImplantacao) return <Navigate to="/" replace />;
+  if (!isWsUser && !isAdmin && !isVendedor) return <Navigate to="/" replace />;
 
   return (
     <WsLayout>
