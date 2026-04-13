@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, ArrowLeftRight, Eye } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, ArrowLeftRight, Eye, ShoppingBag, Wrench } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -73,7 +73,8 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      toast({ title: `Papel ${vars.role === "admin" ? "Admin" : "WS"} atribuído!` });
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Implantação" };
+      toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
     onError: (err: any) => {
@@ -111,7 +112,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </button>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
                   <Badge variant="outline" className="text-xs">Sem papel</Badge>
                   <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setDetailUser(u)}>
                     <Eye className="h-3 w-3" />
@@ -120,6 +121,16 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                     onClick={() => assignRole.mutate({ user_id: u.id, role: "ws_user" })}
                     disabled={assignRole.isPending}>
                     <Wifi className="h-3 w-3" /> WS
+                  </Button>
+                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
+                    onClick={() => assignRole.mutate({ user_id: u.id, role: "vendedor" })}
+                    disabled={assignRole.isPending}>
+                    <ShoppingBag className="h-3 w-3" /> Vendedor
+                  </Button>
+                  <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
+                    onClick={() => assignRole.mutate({ user_id: u.id, role: "implantacao" })}
+                    disabled={assignRole.isPending}>
+                    <Wrench className="h-3 w-3" /> Implantação
                   </Button>
                   <Button variant="secondary" size="sm" className="gap-1 text-xs h-7"
                     onClick={() => assignRole.mutate({ user_id: u.id, role: "admin" })}
@@ -138,7 +149,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin"; label: string; icon: any; globalSearch: string }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -210,16 +221,21 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
+  const roleOrder: Array<"ws_user" | "admin" | "vendedor" | "implantacao"> = ["ws_user", "vendedor", "implantacao", "admin"];
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Implantação" };
+
   const changeRole = useMutation({
     mutationFn: async ({ user_id }: { user_id: string }) => {
-      const toRole = role === "ws_user" ? "admin" : "ws_user";
+      const currentIdx = roleOrder.indexOf(role);
+      const toRole = roleOrder[(currentIdx + 1) % roleOrder.length];
       const { data, error } = await invokeManageUsers("change_role", { user_id, from_role: role, to_role: toRole });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: () => {
-      const toLabel = role === "ws_user" ? "Admin" : "WS";
-      toast({ title: `Usuário alterado para ${toLabel}!` });
+      const currentIdx = roleOrder.indexOf(role);
+      const toRole = roleOrder[(currentIdx + 1) % roleOrder.length];
+      toast({ title: `Usuário alterado para ${roleLabels[toRole]}!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
     onError: (err: any) => {
@@ -292,7 +308,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                     onClick={() => changeRole.mutate({ user_id: u.id })}
                     disabled={changeRole.isPending}>
                     <ArrowLeftRight className="h-3 w-3" />
-                    {role === "ws_user" ? "→ Admin" : "→ WS"}
+                    → {roleLabels[roleOrder[(roleOrder.indexOf(role) + 1) % roleOrder.length]]}
                   </Button>
                   <Dialog open={resetOpen === u.id} onOpenChange={(o) => { setResetOpen(o ? u.id : null); setResetPassword(""); }}>
                     <DialogTrigger asChild>
