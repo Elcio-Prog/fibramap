@@ -40,6 +40,7 @@ const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
 export default function CartDrawer({ open, onOpenChange }: Props) {
   const { items, removeItem, clearCart, updateItem } = useCart();
+  const { user } = useAuth();
   const { webhook, fieldMapping } = useConfig();
   const { send, sending, progress, error, setError, buildPayloadItem } = useBulkExport();
   const { toast } = useToast();
@@ -52,6 +53,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [bulkFillOpen, setBulkFillOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
+  const [addingPreViab, setAddingPreViab] = useState(false);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
