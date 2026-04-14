@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { PreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,21 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const canEdit = isAdmin || isImplantacao;
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
+
+  const { data: roiLimits } = useQuery({
+    queryKey: ["vigencia_vs_roi"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vigencia_vs_roi").select("meses, roi");
+      const map: Record<string, number> = {};
+      for (const r of data || []) {
+        // Only use non-Equipamento entries
+        if (!r.meses.includes("Equipamento")) {
+          map[r.meses] = Number(r.roi) || 0;
+        }
+      }
+      return map;
+    },
+  });
   const [sortKey, setSortKey] = useState<SortKey>("numero");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
@@ -224,8 +241,14 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5"><StatusBadge value={row.status_aprovacao} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.aprovado_por} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.nome_cliente} /></td>
-                      <td className="px-2 py-1.5 text-muted-foreground">
-                        {row.previsao_roi != null ? row.previsao_roi.toFixed(1) : "—"}
+                      <td className="px-2 py-1.5">
+                        {row.previsao_roi != null ? (() => {
+                          const limit = roiLimits?.[String(row.vigencia ?? "")];
+                          const color = limit != null
+                            ? (row.previsao_roi > limit ? "text-red-600 font-semibold" : "text-emerald-600 font-semibold")
+                            : "text-muted-foreground";
+                          return <span className={color}>{row.previsao_roi.toFixed(1)}</span>;
+                        })() : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
                       <td className="px-2 py-1.5"><StatusBadge value={(() => {
