@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useConfig } from "@/hooks/useConfig";
+import { supabase } from "@/integrations/supabase/client";
 import { useBulkExport, REQUIRED_CART_FIELDS, getIncompleteItems } from "@/hooks/useBulkExport";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle } from "lucide-react";
+import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle, FileCheck } from "lucide-react";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
@@ -38,6 +40,7 @@ const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
 export default function CartDrawer({ open, onOpenChange }: Props) {
   const { items, removeItem, clearCart, updateItem } = useCart();
+  const { user } = useAuth();
   const { webhook, fieldMapping } = useConfig();
   const { send, sending, progress, error, setError, buildPayloadItem } = useBulkExport();
   const { toast } = useToast();
@@ -50,6 +53,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [bulkFillOpen, setBulkFillOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
+  const [addingPreViab, setAddingPreViab] = useState(false);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
@@ -108,6 +112,51 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
       onOpenChange(false);
     } else {
       toast({ title: "Falha no envio", description: error || "Verifique a URL do Webhook nas Configurações.", variant: "destructive" });
+    }
+  };
+
+  const handleAddPreViab = async () => {
+    if (!user || items.length === 0) return;
+    setAddingPreViab(true);
+    try {
+      const payloads = items.map((item) => ({
+        user_id: user.id,
+        criado_por: user.email || null,
+        produto_nt: item.produto || null,
+        vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
+        viabilidade: item.designacao || null,
+        ticket_mensal: item.valor_a_ser_vendido ?? null,
+        observacoes: item.observacoes_user || null,
+        valor_minimo: item.final_value ?? null,
+        origem: "fibramap",
+        tipo_solicitacao: item.tipo_solicitacao || null,
+        nome_cliente: item.cliente || null,
+        motivo_solicitacao: null,
+        codigo_smark: item.codigo_smark || null,
+        cnpj_cliente: item.cnpj_cliente || null,
+        endereco: item.endereco || null,
+        coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
+        status: "Aberto",
+        dados_precificacao: {
+          produto: item.produto || "Conectividade",
+          subproduto: item.produto || "NT LINK DEDICADO FULL",
+          banda: item.velocidade_mbps ?? 0,
+          distancia: item.distance_m ?? 0,
+          blocoIp: item.bloco_ip || "",
+          tecnologia: item.tecnologia || "GPON",
+          tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
+          rede: item.cidade || "",
+          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
+          taxaInstalacao: item.taxa_instalacao ?? 0,
+        },
+      }));
+      const { error: insertErr } = await supabase.from("pre_viabilidades" as any).insert(payloads as any);
+      if (insertErr) throw insertErr;
+      toast({ title: `${items.length} registros adicionados à Pré Viabilidade!` });
+    } catch (e: any) {
+      toast({ title: "Erro ao adicionar", description: e.message, variant: "destructive" });
+    } finally {
+      setAddingPreViab(false);
     }
   };
 
@@ -222,6 +271,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("stage")}>
                         <span className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></span>
                       </th>
+                      <th className="px-2 py-1.5 text-right">Vlr Mínimo</th>
                       <th className="px-2 py-1.5 text-left">Produto *</th>
                       <th className="px-2 py-1.5 text-left">Tecnologia *</th>
                       <th className="px-2 py-1.5 text-left">Meio Físico</th>
@@ -276,6 +326,10 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
                             {item.is_viable ? "Viável" : "Inviável"}
                           </Badge>
+                        </td>
+                        {/* Vlr Mínimo */}
+                        <td className="px-2 py-1 text-right font-semibold text-primary text-[11px]">
+                          {item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </td>
                         {/* Produto */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "produto") ? "bg-destructive/10" : ""}`}>
@@ -461,6 +515,10 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                     <TooltipContent>{sendDisabledReason}</TooltipContent>
                   )}
                 </Tooltip>
+                <Button variant="outline" size="sm" className="gap-1" onClick={handleAddPreViab} disabled={addingPreViab || items.length === 0}>
+                  {addingPreViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
+                  Pré Viabilidade
+                </Button>
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
                   <Download className="h-3.5 w-3.5" /> Excel
                 </Button>
