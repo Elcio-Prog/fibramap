@@ -327,6 +327,10 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             {item.is_viable ? "Viável" : "Inviável"}
                           </Badge>
                         </td>
+                        {/* Vlr Mínimo */}
+                        <td className="px-2 py-1 text-right font-semibold text-primary text-[11px]">
+                          {item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                        </td>
                         {/* Produto */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "produto") ? "bg-destructive/10" : ""}`}>
                           <Select value={item.produto || ""} onValueChange={(v) => updateItem(item.id, { produto: v })}>
