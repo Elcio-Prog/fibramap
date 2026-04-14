@@ -451,9 +451,9 @@ export default function WsSingleSearch() {
           lat: geo.lat,
           lng: geo.lng,
           is_viable: result.options.length > 0,
-          result_provider: bestOption?.providerName || null,
-          result_value: bestOption?.finalValue || null,
-          result_distance_m: bestOption?.distanceM || null,
+          result_provider: bestOption?.provider_name || null,
+          result_value: bestOption?.final_value || null,
+          result_distance_m: bestOption?.distance_m || null,
           result_stage: bestOption?.stage || null,
           result_notes: bestOption ? `${result.options.length} opção(ões) encontrada(s)` : "Nenhuma opção viável",
           search_params: {
