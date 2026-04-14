@@ -150,7 +150,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted min-w-[50px] cursor-pointer select-none" onClick={() => toggleSort("numero" as SortKey)}>
                 <span className="flex items-center gap-1">Nº <ArrowUpDown className="h-3 w-3" /></span>
               </th>
-              <Th>Ações</Th>
+              {canEdit && <Th>Editar</Th>}
               <SortHeader field="criado_por">Criado por</SortHeader>
               <SortHeader field="status">Status</SortHeader>
               <SortHeader field="tipo_solicitacao">Tipo Solicitação</SortHeader>
@@ -196,18 +196,13 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
                         #{row.numero}
                       </td>
-                      <td className="px-2 py-1.5">
-                        <div className="flex items-center gap-0.5">
+                      {canEdit && (
+                        <td className="px-2 py-1.5">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(row)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          {!canEdit && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(row)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
+                        </td>
+                      )}
                       <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
                       <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
