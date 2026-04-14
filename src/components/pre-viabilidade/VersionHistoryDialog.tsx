@@ -102,19 +102,21 @@ export default function VersionHistoryDialog({ open, onOpenChange, preViabilidad
                       <span>Anterior</span>
                       <span>Novo</span>
                     </div>
-                    {entry.changed_fields.map((field) => (
-                      <div key={field} className="grid grid-cols-[140px_1fr_1fr] gap-2 text-xs items-start">
-                        <Badge variant="secondary" className="text-[10px] shrink-0 w-fit">
-                          {FIELD_LABELS[field] || field}
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          {formatValue(entry.snapshot[field])}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {formatValue(entry.new_values?.[field])}
-                        </span>
-                      </div>
-                    ))}
+                    {entry.changed_fields
+                      .filter((field) => field !== "dados_precificacao")
+                      .map((field) => (
+                        <div key={field} className="grid grid-cols-[140px_1fr_1fr] gap-2 text-xs items-start">
+                          <Badge variant="secondary" className="text-[10px] shrink-0 w-fit">
+                            {FIELD_LABELS[field] || field}
+                          </Badge>
+                          <span className="text-muted-foreground">
+                            {formatValue(entry.snapshot[field])}
+                          </span>
+                          <span className="font-medium text-foreground">
+                            {formatValue(entry.new_values?.[field])}
+                          </span>
+                        </div>
+                      ))}
                   </div>
                 </div>
               ))}
