@@ -1303,6 +1303,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ws_single_searches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_viable: boolean | null
+          lat: number | null
+          lng: number | null
+          result_distance_m: number | null
+          result_notes: string | null
+          result_provider: string | null
+          result_stage: string | null
+          result_value: number | null
+          search_params: Json
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_viable?: boolean | null
+          lat?: number | null
+          lng?: number | null
+          result_distance_m?: number | null
+          result_notes?: string | null
+          result_provider?: string | null
+          result_stage?: string | null
+          result_value?: number | null
+          search_params?: Json
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_viable?: boolean | null
+          lat?: number | null
+          lng?: number | null
+          result_distance_m?: number | null
+          result_notes?: string | null
+          result_provider?: string | null
+          result_stage?: string | null
+          result_value?: number | null
+          search_params?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
