@@ -581,14 +581,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
               )}
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
                   className="gap-1"
+                  size="sm"
                   onClick={handleAddPreViab}
-                  disabled={addingPreViab || items.length === 0}
+                  disabled={addingPreViab || selectedIds.size === 0}
                 >
                   {addingPreViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
-                  Pré Viabilidade
+                  Enviar Pré Viabilidade ({selectedIds.size})
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
                   <Download className="h-3.5 w-3.5" /> Excel
