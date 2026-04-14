@@ -711,7 +711,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Motivo Solicitação</Label>
-          <Input className="h-9 mt-1" value={meta.motivo_solicitacao} onChange={setMetaField("motivo_solicitacao")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.motivo_solicitacao} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Aprovado por</Label>
