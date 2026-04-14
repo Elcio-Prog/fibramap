@@ -515,6 +515,10 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                     <TooltipContent>{sendDisabledReason}</TooltipContent>
                   )}
                 </Tooltip>
+                <Button variant="outline" size="sm" className="gap-1" onClick={handleAddPreViab} disabled={addingPreViab || items.length === 0}>
+                  {addingPreViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
+                  Pré Viabilidade
+                </Button>
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
                   <Download className="h-3.5 w-3.5" /> Excel
                 </Button>
