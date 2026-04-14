@@ -16,7 +16,7 @@ const FIELD_LABELS: Record<string, string> = {
   inviabilidade_tecnica: "Inviab. Técnica", comentarios_aprovador: "Coment. Aprovador",
   observacao_validacao: "Obs. Validação", cnpj_cliente: "CNPJ Cliente", endereco: "Endereço",
   coordenadas: "Coordenadas", protocolo: "Protocolo", data_reavaliacao: "Data Reavaliação",
-  dados_precificacao: "Dados Precificação", status_viabilidade: "Status Viabilidade",
+  status_viabilidade: "Status Viabilidade",
 };
 
 interface Props {
