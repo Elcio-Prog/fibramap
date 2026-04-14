@@ -222,7 +222,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isImplantacao } = useUserRole();
+  const isFullAccess = isAdmin || isImplantacao;
+  const isLimitedEdit = !isFullAccess;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
@@ -786,7 +788,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         </div>
 
         {/* Step content */}
-        <div className={cn("min-h-[300px] pt-2", readOnly && "pointer-events-none opacity-80")}>
+        <div className={cn("min-h-[300px] pt-2", isLimitedEdit && "opacity-90")}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
