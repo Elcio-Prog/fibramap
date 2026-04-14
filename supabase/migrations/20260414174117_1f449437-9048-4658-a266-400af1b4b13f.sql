@@ -1,0 +1,1 @@
+DROP POLICY "System can insert history" ON public.pre_viabilidades_history;
