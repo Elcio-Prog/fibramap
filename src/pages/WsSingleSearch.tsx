@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import * as XLSX from "xlsx";
 import L from "leaflet";
@@ -82,6 +83,7 @@ interface RadiusResult {
 }
 
 export default function WsSingleSearch() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
@@ -434,6 +436,35 @@ export default function WsSingleSearch() {
       setGeoResult(geo);
       setOptions(result.options);
       setRadiusResults(result.radiusResults);
+
+      // Persist single search to database
+      if (user?.id) {
+        const bestOption = result.options[0] || null;
+        const addressDisplay = inputMode === "address"
+          ? (addressNumber ? `${address}, ${addressNumber}` : address)
+          : inputMode === "cep"
+            ? (cepData ? `${cepData.logradouro}${cepNumber ? `, ${cepNumber}` : ""} - ${cepData.localidade}/${cepData.uf}` : cep)
+            : `${coordLat}, ${coordLng}`;
+        supabase.from("ws_single_searches").insert({
+          user_id: user.id,
+          address: addressDisplay,
+          lat: geo.lat,
+          lng: geo.lng,
+          is_viable: result.options.length > 0,
+          result_provider: bestOption?.provider_name || null,
+          result_value: bestOption?.final_value || null,
+          result_distance_m: bestOption?.distance_m || null,
+          result_stage: bestOption?.stage || null,
+          result_notes: bestOption ? `${result.options.length} opção(ões) encontrada(s)` : "Nenhuma opção viável",
+          search_params: {
+            cliente,
+            designacao,
+            velocidade,
+            inputMode,
+            options_count: result.options.length,
+          },
+        }).then(() => {});
+      }
 
       if (result.options.length === 0) {
         toast({ title: "Nenhuma opção viável encontrada" });

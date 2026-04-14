@@ -19,6 +19,11 @@ import {
   CheckCircle2,
   Clock,
   Pause,
+  Search,
+  MapPin,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = {
@@ -31,11 +36,31 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: any }> = 
   failed: { label: "Falhou", color: "bg-destructive/10 text-destructive", icon: AlertTriangle },
 };
 
+/* ─── Single Search Detail Card ─── */
+function SingleSearchDetail({ search }: { search: any }) {
+  const params = search.search_params || {};
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mt-2 pt-2 border-t">
+      <div><span className="text-muted-foreground">Endereço:</span> {search.address || "—"}</div>
+      <div><span className="text-muted-foreground">Coordenadas:</span> {search.lat?.toFixed(5)}, {search.lng?.toFixed(5)}</div>
+      <div><span className="text-muted-foreground">Provedor:</span> {search.result_provider || "—"}</div>
+      <div><span className="text-muted-foreground">Etapa:</span> {search.result_stage || "—"}</div>
+      <div><span className="text-muted-foreground">Valor:</span> {search.result_value != null ? `R$ ${Number(search.result_value).toFixed(2)}` : "—"}</div>
+      <div><span className="text-muted-foreground">Distância:</span> {search.result_distance_m != null ? `${Number(search.result_distance_m).toFixed(0)}m` : "—"}</div>
+      {params.cliente && <div><span className="text-muted-foreground">Cliente:</span> {params.cliente}</div>}
+      {params.designacao && <div><span className="text-muted-foreground">Designação:</span> {params.designacao}</div>}
+      {params.velocidade && <div><span className="text-muted-foreground">Velocidade:</span> {params.velocidade} Mbps</div>}
+      <div><span className="text-muted-foreground">Notas:</span> {search.result_notes || "—"}</div>
+    </div>
+  );
+}
+
 export default function WsSearchesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [expandedSingle, setExpandedSingle] = useState<string | null>(null);
 
   const { data: batches, isLoading, refetch } = useQuery({
     queryKey: ["ws-batches", user?.id],
@@ -51,6 +76,21 @@ export default function WsSearchesPage() {
     enabled: !!user?.id,
   });
 
+  const { data: singleSearches, isLoading: loadingSingles } = useQuery({
+    queryKey: ["ws-single-searches", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ws_single_searches")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const openBatch = (batchId: string, title?: string) => {
     const params = title ? `?title=${encodeURIComponent(title)}` : "";
     navigate(`/ws/batch/${batchId}${params}`);
@@ -59,7 +99,6 @@ export default function WsSearchesPage() {
   const refazerBusca = async (batchId: string) => {
     if (!user?.id) return;
     try {
-      // Get original batch
       const { data: original } = await supabase
         .from("ws_batches")
         .select("*")
@@ -69,7 +108,6 @@ export default function WsSearchesPage() {
 
       const parentId = original.parent_batch_id || original.id;
 
-      // Find current max version for this parent
       const { data: siblings } = await supabase
         .from("ws_batches")
         .select("version_number")
@@ -79,7 +117,6 @@ export default function WsSearchesPage() {
 
       const nextVersion = (siblings?.[0]?.version_number || 1) + 1;
 
-      // Create new batch
       const { data: newBatch, error: batchErr } = await supabase
         .from("ws_batches")
         .insert({
@@ -96,7 +133,6 @@ export default function WsSearchesPage() {
 
       if (batchErr || !newBatch) throw batchErr;
 
-      // Copy items from original batch (reset processing status, preserve user observations)
       const allItems: any[] = [];
       let offset = 0;
       const batchSize = 500;
@@ -117,7 +153,6 @@ export default function WsSearchesPage() {
         }
       }
 
-      // Insert copied items with reset processing but preserved user observations
       for (let i = 0; i < allItems.length; i += 500) {
         const chunk = allItems.slice(i, i + 500).map((item: any) => ({
           batch_id: newBatch.id,
@@ -153,10 +188,8 @@ export default function WsSearchesPage() {
           valor_a_ser_vendido: item.valor_a_ser_vendido,
           codigo_smark: item.codigo_smark,
           raw_data: item.raw_data,
-          // Preserve user observations
           observacoes_user: item.observacoes_user,
           observacoes_user_updated_at: item.observacoes_user_updated_at,
-          // Reset processing
           processing_status: "pending",
           result_stage: null,
           result_provider: null,
@@ -204,7 +237,6 @@ export default function WsSearchesPage() {
 
       if (batchErr || !newBatch) throw batchErr;
 
-      // Copy items
       const allItems: any[] = [];
       let offset = 0;
       let hasMore = true;
@@ -293,20 +325,13 @@ export default function WsSearchesPage() {
         </Button>
       </div>
 
-      {isLoading && (
+      {(isLoading || loadingSingles) && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {!isLoading && (!batches || batches.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Nenhuma busca encontrada. Clique em "Nova Busca" para começar.</p>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* ─── Batch Searches ─── */}
       {groupedBatches && Object.entries(groupedBatches).map(([parentId, versions]) => {
         const latest = versions[0];
         const progressPct = latest.total_items > 0
@@ -346,7 +371,6 @@ export default function WsSearchesPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Progress bar */}
               {latest.total_items > 0 && (
                 <div className="space-y-1">
                   <Progress value={progressPct} className="h-2" />
@@ -360,7 +384,6 @@ export default function WsSearchesPage() {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => openBatch(latest.id, latest.title || latest.file_name)}>
                   <Eye className="h-3 w-3" /> Abrir
@@ -387,7 +410,6 @@ export default function WsSearchesPage() {
                 </Button>
               </div>
 
-              {/* Version history (if > 1 version) */}
               {versions.length > 1 && (
                 <div className="border-t pt-2 mt-2">
                   <p className="text-[10px] font-medium text-muted-foreground mb-1">Versões anteriores:</p>
@@ -416,6 +438,63 @@ export default function WsSearchesPage() {
           </Card>
         );
       })}
+
+      {/* ─── Single Searches Section ─── */}
+      {singleSearches && singleSearches.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Search className="h-5 w-5" /> Buscas Unitárias
+          </h2>
+          <div className="space-y-2">
+            {singleSearches.map((s: any) => {
+              const isExpanded = expandedSingle === s.id;
+              return (
+                <Card key={s.id} className="overflow-hidden">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{s.address || "Coordenadas"}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(s.created_at).toLocaleDateString("pt-BR")} às {new Date(s.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={s.is_viable
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 gap-1 text-xs"
+                          : "bg-destructive/10 text-destructive gap-1 text-xs"
+                        }>
+                          {s.is_viable ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          {s.is_viable ? "Viável" : "Inviável"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() => setExpandedSingle(isExpanded ? null : s.id)}
+                        >
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    {isExpanded && <SingleSearchDetail search={s} />}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !loadingSingles && (!batches || batches.length === 0) && (!singleSearches || singleSearches.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Nenhuma busca encontrada. Clique em "Nova Busca" para começar.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
