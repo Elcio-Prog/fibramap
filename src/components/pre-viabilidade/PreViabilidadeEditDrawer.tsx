@@ -222,7 +222,9 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isImplantacao } = useUserRole();
+  const isFullAccess = isAdmin || isImplantacao;
+  const isLimitedEdit = !isFullAccess;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
@@ -526,7 +528,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   if (!item) return null;
 
   const renderStep1 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
       {loadingData ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -596,49 +598,51 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="sm:col-span-2">
+        <div className={cn("sm:col-span-2", isLimitedEdit && "pointer-events-none opacity-80")}>
           <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
-          <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
+          <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} disabled={isLimitedEdit} />
         </div>
-        <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
-          onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} />
+        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
+          <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
+            onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} disabled={isLimitedEdit} />
+        </div>
         <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal}
           onChange={setMetaNum("ticket_mensal")} />
-        <div>
+        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
           <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
-          <Input className="h-9 mt-1" value={meta.cnpj_cliente} maxLength={18} placeholder="00.000.000/0000-00"
+          <Input className="h-9 mt-1" value={meta.cnpj_cliente} maxLength={18} placeholder="00.000.000/0000-00" disabled={isLimitedEdit}
             onChange={(e) => {
               const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
               const masked = raw.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
               setMeta(f => ({ ...f, cnpj_cliente: masked }));
             }} />
         </div>
-        <div>
+        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
           <Label className="text-xs text-muted-foreground">Código Oportunidade SMARK</Label>
-          <Input className="h-9 mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} />
+          <Input className="h-9 mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} disabled={isLimitedEdit} />
         </div>
-        <div>
+        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
           <Label className="text-xs text-muted-foreground">Coordenadas</Label>
-          <Input className="h-9 mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" />
+          <Input className="h-9 mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" disabled={isLimitedEdit} />
         </div>
-        <div>
+        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
           <Label className="text-xs text-muted-foreground">ID GuardaChuva</Label>
-          <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
+          <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} disabled={isLimitedEdit} />
         </div>
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
           <Label className="text-xs text-muted-foreground">Endereço</Label>
-          <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} />
+          <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} disabled={isLimitedEdit} />
         </div>
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
           <Label className="text-xs text-muted-foreground">Observações</Label>
-          <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} />
+          <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} disabled={isLimitedEdit} />
         </div>
       </div>
     </div>
   );
 
   const renderStep3 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField label="Status" value={meta.status}
           onChange={v => setMeta(f => ({ ...f, status: v }))}
@@ -697,7 +701,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   );
 
   const renderStep4 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <NumField label="Finder (%)" value={meta.finder_percent}
           onChange={setMetaNum("finder_percent")} />
@@ -786,7 +790,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         </div>
 
         {/* Step content */}
-        <div className={cn("min-h-[300px] pt-2", readOnly && "pointer-events-none opacity-80")}>
+        <div className={cn("min-h-[300px] pt-2", isLimitedEdit && "opacity-90")}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
@@ -795,28 +799,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
 
         {/* Navigation */}
         <Separator />
-        {readOnly ? (
-          <div className="flex justify-between pt-1">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="gap-2">
-              Fechar
-            </Button>
-            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-between pt-1">
+        <div className="flex justify-between pt-1">
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
                 className="gap-2">
                 <ChevronLeft className="h-4 w-4" />
                 {step === 1 ? "Cancelar" : "Voltar"}
               </Button>
-              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
-                <Trash2 className="h-4 w-4" />
-                Excluir
-              </Button>
+              {isFullAccess && (
+                <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Excluir
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
               {step < 4 && (
@@ -832,7 +827,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
               </Button>
             </div>
           </div>
-        )}
         </DialogContent>
       </Dialog>
 
