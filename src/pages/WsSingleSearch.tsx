@@ -437,6 +437,35 @@ export default function WsSingleSearch() {
       setOptions(result.options);
       setRadiusResults(result.radiusResults);
 
+      // Persist single search to database
+      if (user?.id) {
+        const bestOption = result.options[0] || null;
+        const addressDisplay = inputMode === "address"
+          ? (addressNumber ? `${address}, ${addressNumber}` : address)
+          : inputMode === "cep"
+            ? (cepData ? `${cepData.logradouro}${cepNumber ? `, ${cepNumber}` : ""} - ${cepData.localidade}/${cepData.uf}` : cep)
+            : `${coordLat}, ${coordLng}`;
+        supabase.from("ws_single_searches").insert({
+          user_id: user.id,
+          address: addressDisplay,
+          lat: geo.lat,
+          lng: geo.lng,
+          is_viable: result.options.length > 0,
+          result_provider: bestOption?.providerName || null,
+          result_value: bestOption?.finalValue || null,
+          result_distance_m: bestOption?.distanceM || null,
+          result_stage: bestOption?.stage || null,
+          result_notes: bestOption ? `${result.options.length} opção(ões) encontrada(s)` : "Nenhuma opção viável",
+          search_params: {
+            cliente,
+            designacao,
+            velocidade,
+            inputMode,
+            options_count: result.options.length,
+          },
+        }).then(() => {});
+      }
+
       if (result.options.length === 0) {
         toast({ title: "Nenhuma opção viável encontrada" });
       }
