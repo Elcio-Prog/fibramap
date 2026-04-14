@@ -798,6 +798,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pre_viabilidades_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_fields: string[]
+          id: string
+          pre_viabilidade_id: string
+          snapshot: Json
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[]
+          id?: string
+          pre_viabilidade_id: string
+          snapshot: Json
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_fields?: string[]
+          id?: string
+          pre_viabilidade_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_viabilidades_history_pre_viabilidade_id_fkey"
+            columns: ["pre_viabilidade_id"]
+            isOneToOne: false
+            referencedRelation: "pre_viabilidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

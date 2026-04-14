@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowUpDown, Pencil, Link2, Trash2 } from "lucide-react";
+import { ArrowUpDown, Pencil, Link2, Trash2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import VersionHistoryDialog from "./VersionHistoryDialog";
 
 interface Props {
   data: PreViabilidade[];
@@ -43,6 +44,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const [pageSize, setPageSize] = useState(10);
   const [contextRowId, setContextRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PreViabilidade | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<PreViabilidade | null>(null);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -265,6 +267,9 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
                       <Pencil className="h-3.5 w-3.5" /> {canEdit ? "Editar" : "Ver detalhes"}
                     </ContextMenuItem>
+                    <ContextMenuItem onClick={() => setHistoryTarget(row)} className="gap-2">
+                      <History className="h-3.5 w-3.5" /> Histórico de Versão
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
                       <Trash2 className="h-3.5 w-3.5" /> Excluir
                     </ContextMenuItem>
@@ -294,7 +299,13 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Pagination */}
+      <VersionHistoryDialog
+        open={!!historyTarget}
+        onOpenChange={(open) => !open && setHistoryTarget(null)}
+        preViabilidadeId={historyTarget?.id ?? null}
+        numero={historyTarget?.numero ?? null}
+      />
+
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Exibindo {paged.length} de {filtered.length}</span>
