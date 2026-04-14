@@ -288,7 +288,8 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           {items.length > 0 && (
             <div className="flex flex-wrap gap-3 p-3 border-b bg-muted/30 text-xs">
               <span>Total: <strong>{items.length}</strong></span>
-              <span className="text-primary">Completos: <strong>{completeCount}</strong></span>
+              <span className="text-primary">Selecionados: <strong>{selectedIds.size}</strong></span>
+              <span>Completos: <strong>{completeCount}</strong></span>
               {hasIncomplete && (
                 <span className="text-destructive flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Pendentes: <strong>{incompleteItems.length}</strong>
