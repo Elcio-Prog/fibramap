@@ -799,28 +799,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
 
         {/* Navigation */}
         <Separator />
-        {readOnly ? (
-          <div className="flex justify-between pt-1">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} className="gap-2">
-              Fechar
-            </Button>
-            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-between pt-1">
+        <div className="flex justify-between pt-1">
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
                 className="gap-2">
                 <ChevronLeft className="h-4 w-4" />
                 {step === 1 ? "Cancelar" : "Voltar"}
               </Button>
-              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
-                <Trash2 className="h-4 w-4" />
-                Excluir
-              </Button>
+              {isFullAccess && (
+                <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Excluir
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
               {step < 4 && (
@@ -836,7 +827,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
               </Button>
             </div>
           </div>
-        )}
         </DialogContent>
       </Dialog>
 
