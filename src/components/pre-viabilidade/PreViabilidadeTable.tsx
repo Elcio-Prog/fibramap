@@ -216,9 +216,11 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5">
                         <StatusBadge 
                           value={
-                            (row.ticket_mensal != null && row.valor_minimo != null)
-                              ? (row.ticket_mensal >= row.valor_minimo ? "Viável" : "Abaixo do Valor")
-                              : row.viabilidade
+                            row.inviabilidade_tecnica 
+                              ? "Inviabilidade Técnica"
+                              : (row.ticket_mensal != null && row.valor_minimo != null)
+                                  ? (row.ticket_mensal >= row.valor_minimo ? "Viável" : "Abaixo do Valor")
+                                  : row.viabilidade
                           } 
                         />
                       </td>
