@@ -611,7 +611,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
             <Button onClick={handleSend} className="gap-2">
-              <Send className="h-4 w-4" /> Confirmar Envio
+              <FileCheck className="h-4 w-4" /> Confirmar Envio
             </Button>
           </DialogFooter>
         </DialogContent>
