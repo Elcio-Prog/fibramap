@@ -673,14 +673,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           <Input className="h-9 mt-1" value={meta.inviabilidade_tecnica} onChange={setMetaField("inviabilidade_tecnica")} />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">Viabilidade</Label>
-          <Input className="h-9 mt-1" value={meta.viabilidade} onChange={setMetaField("viabilidade")} />
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Status de Viabilidade</Label>
-          <Input className="h-9 mt-1" value={meta.status_viabilidade} onChange={setMetaField("status_viabilidade")} />
-        </div>
-        <div>
           <Label className="text-xs text-muted-foreground">Data de Reavaliação</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -719,11 +711,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Aprovado por</Label>
-          <Input className="h-9 mt-1" value={meta.aprovado_por} onChange={setMetaField("aprovado_por")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.aprovado_por} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Status Aprovação</Label>
-          <Input className="h-9 mt-1" value={meta.status_aprovacao} onChange={setMetaField("status_aprovacao")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.status_aprovacao} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Criado por</Label>
