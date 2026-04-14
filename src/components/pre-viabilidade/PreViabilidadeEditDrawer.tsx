@@ -38,6 +38,7 @@ interface Props {
   item: PreViabilidade | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  readOnly?: boolean;
 }
 
 const formatCurrency = (v: number | null | undefined) => {
@@ -211,7 +212,7 @@ function BackupFields({ form, setField }: any) {
 
 // ── Main Component ──
 
-export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: Props) {
+export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, readOnly = false }: Props) {
   const { toast } = useToast();
   const { user } = useAuth();
   const updateMutation = useUpdatePreViabilidade();
@@ -751,7 +752,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
       <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Editar Pré Viabilidade</DialogTitle>
+          <DialogTitle>{readOnly ? "Detalhes" : "Editar"} Pré Viabilidade</DialogTitle>
           <DialogDescription>
             #{item.numero || item.id.slice(0, 4).toUpperCase()} — {item.nome_cliente || item.viabilidade || "Registro"}
           </DialogDescription>
@@ -793,7 +794,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
         </div>
 
         {/* Step content */}
-        <div className="min-h-[300px] pt-2">
+        <div className={cn("min-h-[300px] pt-2", readOnly && "pointer-events-none opacity-80")}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
@@ -802,32 +803,44 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange }: P
 
         {/* Navigation */}
         <Separator />
-        <div className="flex justify-between pt-1">
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
-              className="gap-2">
-              <ChevronLeft className="h-4 w-4" />
-              {step === 1 ? "Cancelar" : "Voltar"}
+        {readOnly ? (
+          <div className="flex justify-between pt-1">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="gap-2">
+              Fechar
             </Button>
             <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
               <Trash2 className="h-4 w-4" />
               Excluir
             </Button>
           </div>
-          <div className="flex gap-2">
-            {step < 4 && (
-              <Button onClick={() => setStep(step + 1)} className="gap-2">
-                Próximo
-                <ChevronRight className="h-4 w-4" />
+        ) : (
+          <div className="flex justify-between pt-1">
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => step > 1 ? setStep(step - 1) : onOpenChange(false)}
+                className="gap-2">
+                <ChevronLeft className="h-4 w-4" />
+                {step === 1 ? "Cancelar" : "Voltar"}
               </Button>
-            )}
-            <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"
-              variant={step === 4 ? "default" : "outline"}>
-              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar
-            </Button>
+              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Excluir
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              {step < 4 && (
+                <Button onClick={() => setStep(step + 1)} className="gap-2">
+                  Próximo
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+              <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"
+                variant={step === 4 ? "default" : "outline"}>
+                {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
         </DialogContent>
       </Dialog>
 

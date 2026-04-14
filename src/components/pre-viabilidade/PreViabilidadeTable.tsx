@@ -33,7 +33,8 @@ const formatCurrency = (v: number | null | undefined) => {
 const PAGE_OPTIONS = [10, 25, 50];
 
 export default function PreViabilidadeTable({ data, search, statusFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isImplantacao } = useUserRole();
+  const canEdit = isAdmin || isImplantacao;
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
   const [sortKey, setSortKey] = useState<SortKey>("numero");
@@ -149,7 +150,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted min-w-[50px] cursor-pointer select-none" onClick={() => toggleSort("numero" as SortKey)}>
                 <span className="flex items-center gap-1">Nº <ArrowUpDown className="h-3 w-3" /></span>
               </th>
-              {isAdmin && <Th>Editar</Th>}
+              <Th>Ações</Th>
               <SortHeader field="criado_por">Criado por</SortHeader>
               <SortHeader field="status">Status</SortHeader>
               <SortHeader field="tipo_solicitacao">Tipo Solicitação</SortHeader>
@@ -191,17 +192,22 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     <tr className={cn(
                       "border-t hover:bg-muted/30 transition-colors cursor-pointer",
                       contextRowId === row.id && "bg-muted/50"
-                    )} onDoubleClick={() => isAdmin && onEdit(row)}>
+                    )} onDoubleClick={() => onEdit(row)}>
                       <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
                         #{row.numero}
                       </td>
-                      {isAdmin && (
-                        <td className="px-2 py-1.5">
+                      <td className="px-2 py-1.5">
+                        <div className="flex items-center gap-0.5">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(row)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                        </td>
-                      )}
+                          {!canEdit && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(row)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
                       <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.tipo_solicitacao} /></td>
@@ -245,16 +251,14 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       </td>
                     </tr>
                   </ContextMenuTrigger>
-                  {isAdmin && (
-                    <ContextMenuContent>
-                      <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
-                        <Pencil className="h-3.5 w-3.5" /> Editar
-                      </ContextMenuItem>
-                      <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
-                        <Trash2 className="h-3.5 w-3.5" /> Excluir
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  )}
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
+                      <Pencil className="h-3.5 w-3.5" /> {canEdit ? "Editar" : "Ver detalhes"}
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </ContextMenuItem>
+                  </ContextMenuContent>
                 </ContextMenu>
               ))
             )}
