@@ -228,12 +228,14 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <td className="px-2 py-1.5"><TruncCell value={row.nome_cliente} /></td>
                       <td className="px-2 py-1.5">
                         {row.previsao_roi != null ? (() => {
-                          const limit = roiLimits?.[String(row.vigencia ?? "")];
-                          const color = limit != null
-                            ? (row.previsao_roi > limit ? "text-red-600 font-semibold" : "text-emerald-600 font-semibold")
-                            : "text-muted-foreground";
-                          return <span className={color}>{row.previsao_roi.toFixed(1)}</span>;
-                        })() : <span className="text-muted-foreground">—</span>}
+                          const dp = row.dados_precificacao as any;
+                          const limit = dp?.roiVigencia != null ? Number(dp.roiVigencia) : null;
+                          if (limit != null) {
+                            const ok = row.previsao_roi <= limit;
+                            return <StatusBadge value={`${row.previsao_roi.toFixed(1)} / ${limit}`} className={ok ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200"} />;
+                          }
+                          return <span className="text-muted-foreground">{row.previsao_roi.toFixed(1)}</span>;
+                        })() : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
                       <td className="px-2 py-1.5"><StatusBadge value={(() => {
