@@ -563,16 +563,6 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                   Limpar Carrinho
                 </Button>
               </div>
-                <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
-                  <Download className="h-3.5 w-3.5" /> Excel
-                </Button>
-                <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("csv")}>
-                  <Download className="h-3.5 w-3.5" /> CSV
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive" onClick={clearCart}>
-                  Limpar Carrinho
-                </Button>
-              </div>
             </div>
           )}
         </SheetContent>
