@@ -115,7 +115,51 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
     }
   };
 
-  const webhookConfigured = !!webhook.url;
+  const handleAddPreViab = async () => {
+    if (!user || items.length === 0) return;
+    setAddingPreViab(true);
+    try {
+      const payloads = items.map((item) => ({
+        user_id: user.id,
+        criado_por: user.email || null,
+        produto_nt: item.produto || null,
+        vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
+        viabilidade: item.designacao || null,
+        ticket_mensal: item.valor_a_ser_vendido ?? null,
+        observacoes: item.observacoes_user || null,
+        valor_minimo: item.final_value ?? null,
+        origem: "fibramap",
+        tipo_solicitacao: item.tipo_solicitacao || null,
+        nome_cliente: item.cliente || null,
+        motivo_solicitacao: null,
+        codigo_smark: item.codigo_smark || null,
+        cnpj_cliente: item.cnpj_cliente || null,
+        endereco: item.endereco || null,
+        coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
+        status: "Aberto",
+        dados_precificacao: {
+          produto: item.produto || "Conectividade",
+          subproduto: item.produto || "NT LINK DEDICADO FULL",
+          banda: item.velocidade_mbps ?? 0,
+          distancia: item.distance_m ?? 0,
+          blocoIp: item.bloco_ip || "",
+          tecnologia: item.tecnologia || "GPON",
+          tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
+          rede: item.cidade || "",
+          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
+          taxaInstalacao: item.taxa_instalacao ?? 0,
+        },
+      }));
+      const { error: insertErr } = await supabase.from("pre_viabilidades" as any).insert(payloads as any);
+      if (insertErr) throw insertErr;
+      toast({ title: `${items.length} registros adicionados à Pré Viabilidade!` });
+    } catch (e: any) {
+      toast({ title: "Erro ao adicionar", description: e.message, variant: "destructive" });
+    } finally {
+      setAddingPreViab(false);
+    }
+  };
+
   const canSend = webhookConfigured && !hasIncomplete && !sending;
 
   const toggleSelect = (id: string) => {
