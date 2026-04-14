@@ -271,6 +271,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                       <th className="px-2 py-1.5 text-left cursor-pointer" onClick={() => toggleSort("stage")}>
                         <span className="flex items-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></span>
                       </th>
+                      <th className="px-2 py-1.5 text-right">Vlr Mínimo</th>
                       <th className="px-2 py-1.5 text-left">Produto *</th>
                       <th className="px-2 py-1.5 text-left">Tecnologia *</th>
                       <th className="px-2 py-1.5 text-left">Meio Físico</th>
