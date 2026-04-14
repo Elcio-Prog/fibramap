@@ -228,7 +228,14 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                         {row.previsao_roi != null ? row.previsao_roi.toFixed(1) : "—"}
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
-                      <td className="px-2 py-1.5"><StatusBadge value={row.status_viabilidade} /></td>
+                      <td className="px-2 py-1.5"><StatusBadge value={(() => {
+                        const now = new Date();
+                        const created = row.created_at ? new Date(row.created_at) : null;
+                        const reav = row.data_reavaliacao ? new Date(row.data_reavaliacao) : null;
+                        const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+                        const isAtiva = (created && addDays(created, 15) > now) || (reav && addDays(reav, 15) > now);
+                        return isAtiva ? "Ativa" : "Expirada";
+                      })()} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.projetista} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.motivo_solicitacao} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.observacoes} max={80} /></td>
