@@ -804,6 +804,7 @@ export type Database = {
           changed_by: string | null
           changed_fields: string[]
           id: string
+          new_values: Json
           pre_viabilidade_id: string
           snapshot: Json
         }
@@ -812,6 +813,7 @@ export type Database = {
           changed_by?: string | null
           changed_fields?: string[]
           id?: string
+          new_values?: Json
           pre_viabilidade_id: string
           snapshot: Json
         }
@@ -820,6 +822,7 @@ export type Database = {
           changed_by?: string | null
           changed_fields?: string[]
           id?: string
+          new_values?: Json
           pre_viabilidade_id?: string
           snapshot?: Json
         }
