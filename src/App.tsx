@@ -113,6 +113,7 @@ function WsRoutes() {
         <Route path="/single" element={<WsSingleSearch />} />
         <Route path="/pre-providers" element={<PreProvidersPage />} />
         <Route path="/send-history" element={<SendHistoryPage />} />
+        <Route path="/calcular" element={<CalcularPage />} />
         <Route path="/pre-viabilidade" element={<PreViabilidadePage />} />
         <Route path="/account" element={<UserSettingsPage />} />
         <Route path="*" element={<NotFound />} />
