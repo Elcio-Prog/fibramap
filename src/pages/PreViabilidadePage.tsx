@@ -78,13 +78,12 @@ export default function PreViabilidadePage() {
         />
       )}
 
-      {(isAdmin || isImplantacao) && (
-        <PreViabilidadeEditDrawer
-          item={editItem}
-          open={!!editItem}
-          onOpenChange={(open) => !open && setEditItem(null)}
-        />
-      )}
+      <PreViabilidadeEditDrawer
+        item={editItem}
+        open={!!editItem}
+        onOpenChange={(open) => !open && setEditItem(null)}
+        readOnly={!(isAdmin || isImplantacao)}
+      />
 
       <PreViabilidadeCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
       <RoiGlobalReportDialog open={reportOpen} onOpenChange={setReportOpen} data={data || []} />

@@ -794,7 +794,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         </div>
 
         {/* Step content */}
-        <div className="min-h-[300px] pt-2">
+        <div className={cn("min-h-[300px] pt-2", readOnly && "pointer-events-none opacity-80")}>
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
           {step === 3 && renderStep3()}
