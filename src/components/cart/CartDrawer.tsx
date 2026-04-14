@@ -159,10 +159,15 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleAddPreViab = async () => {
-    if (!user || items.length === 0) return;
+    if (!user) return;
+    const selectedItems = items.filter(i => selectedIds.has(i.id));
+    if (selectedItems.length === 0) {
+      toast({ title: "Nenhum item selecionado", description: "Selecione ao menos um item para enviar.", variant: "destructive" });
+      return;
+    }
     setAddingPreViab(true);
     try {
-      const payloads = items.map((item) => ({
+      const payloads = selectedItems.map((item) => ({
         user_id: user.id,
         criado_por: user.email || null,
         produto_nt: item.produto || null,
@@ -195,9 +200,37 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
       }));
       const { error: insertErr } = await supabase.from("pre_viabilidades" as any).insert(payloads as any);
       if (insertErr) throw insertErr;
-      toast({ title: `${items.length} registros adicionados à Pré Viabilidade!` });
+
+      // Log to send history
+      const loteId = crypto.randomUUID();
+      await supabase.from("logs_envio_sharepoint").insert({
+        user_id: user.id,
+        usuario_email: user.email || "",
+        id_lote: loteId,
+        quantidade_itens: selectedItems.length,
+        status: "sucesso",
+        response_code: 200,
+      });
+
+      // Remove sent items from cart
+      selectedItems.forEach(i => removeItem(i.id));
+      setSelectedIds(new Set());
+
+      toast({ title: `${selectedItems.length} registros enviados à Pré Viabilidade!` });
     } catch (e: any) {
-      toast({ title: "Erro ao adicionar", description: e.message, variant: "destructive" });
+      // Log failure
+      try {
+        const loteId = crypto.randomUUID();
+        await supabase.from("logs_envio_sharepoint").insert({
+          user_id: user.id,
+          usuario_email: user.email || "",
+          id_lote: loteId,
+          quantidade_itens: selectedItems.length,
+          status: "erro",
+          mensagem_erro: e.message,
+        });
+      } catch { /* silent */ }
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
     } finally {
       setAddingPreViab(false);
     }
