@@ -83,6 +83,7 @@ interface RadiusResult {
 }
 
 export default function WsSingleSearch() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
