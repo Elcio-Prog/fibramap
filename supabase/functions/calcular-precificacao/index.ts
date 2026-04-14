@@ -391,7 +391,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   if (subproduto === "NT L2L") addMem("Custo Banda (Ponta B)", linkcustoBanda2);
   addMem("Fator Banda", linkFatorBanda);
   addMem("Custo CAC", linkcustoCAC);
-  addMem("Taxa Link (" + subproduto + ")", linktaxaLink);
+  addMem("Margem de Lucro (" + subproduto + ")", linktaxaLink);
   addMem("Custo ONU", linkcustoONU);
   addMem("Custo Metro Rede", custoMetroRede);
   addMem("Custo Lançamento", linkcustoLancamento);
