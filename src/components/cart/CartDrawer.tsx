@@ -55,6 +55,48 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
   const [addingPreViab, setAddingPreViab] = useState(false);
+  const [recalcIds, setRecalcIds] = useState<Set<string>>(new Set());
+  const recalcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Recalculate final_value via edge function
+  const recalcItem = useCallback(async (item: CartItem, updates: Partial<CartItem>) => {
+    const merged = { ...item, ...updates };
+    const vigenciaNum = merged.vigencia ? parseInt(merged.vigencia, 10) || 12 : 12;
+    const payload = {
+      produto: "Conectividade" as const,
+      subproduto: merged.produto || "NT LINK DEDICADO FULL",
+      rede: merged.cidade || "",
+      banda: merged.velocidade_mbps ?? 0,
+      distancia: merged.distance_m ?? 0,
+      blocoIp: merged.bloco_ip || "",
+      tecnologia: merged.tecnologia || "GPON",
+      vigencia: vigenciaNum,
+      taxaInstalacao: merged.taxa_instalacao ?? 0,
+      togDistancia: true,
+      projetoAvaliado: false,
+      custoLastMile: 0,
+      valorLastMile: 0,
+      custosMateriaisAdicionais: 0,
+      valorOpex: 0,
+    };
+    setRecalcIds(prev => new Set(prev).add(item.id));
+    try {
+      const { data: result } = await sb.functions.invoke("calcular-precificacao", { body: payload });
+      if (result && typeof result.valorMinimo === "number") {
+        updateItem(item.id, { final_value: result.valorMinimo });
+      }
+    } catch { /* silent */ }
+    setRecalcIds(prev => { const n = new Set(prev); n.delete(item.id); return n; });
+  }, [updateItem]);
+
+  // Debounced update + recalc for pricing fields
+  const updateAndRecalc = useCallback((item: CartItem, updates: Partial<CartItem>) => {
+    updateItem(item.id, updates);
+    if (recalcTimers.current[item.id]) clearTimeout(recalcTimers.current[item.id]);
+    recalcTimers.current[item.id] = setTimeout(() => {
+      recalcItem(item, updates);
+    }, 600);
+  }, [updateItem, recalcItem]);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
