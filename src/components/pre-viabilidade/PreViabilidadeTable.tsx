@@ -39,6 +39,21 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const canEdit = isAdmin || isImplantacao;
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
+
+  const { data: roiLimits } = useQuery({
+    queryKey: ["vigencia_vs_roi"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vigencia_vs_roi").select("meses, roi");
+      const map: Record<string, number> = {};
+      for (const r of data || []) {
+        // Only use non-Equipamento entries
+        if (!r.meses.includes("Equipamento")) {
+          map[r.meses] = Number(r.roi) || 0;
+        }
+      }
+      return map;
+    },
+  });
   const [sortKey, setSortKey] = useState<SortKey>("numero");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
