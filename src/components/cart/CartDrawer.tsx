@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle, FileCheck } from "lucide-react";
+import { Trash2, Download, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle, FileCheck } from "lucide-react";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
@@ -543,24 +543,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        className="gap-2 flex-1"
-                        disabled={!canSend}
-                        onClick={() => setConfirmOpen(true)}
-                      >
-                        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        Enviar ({items.length})
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {sendDisabledReason && (
-                    <TooltipContent>{sendDisabledReason}</TooltipContent>
-                  )}
-                </Tooltip>
-                <Button variant="outline" size="sm" className="gap-1" onClick={handleAddPreViab} disabled={addingPreViab || items.length === 0}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={handleAddPreViab}
+                  disabled={addingPreViab || items.length === 0}
+                >
                   {addingPreViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
                   Pré Viabilidade
                 </Button>
@@ -622,7 +611,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
             <Button onClick={handleSend} className="gap-2">
-              <Send className="h-4 w-4" /> Confirmar Envio
+              <FileCheck className="h-4 w-4" /> Confirmar Envio
             </Button>
           </DialogFooter>
         </DialogContent>
