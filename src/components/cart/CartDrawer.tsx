@@ -159,10 +159,15 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   };
 
   const handleAddPreViab = async () => {
-    if (!user || items.length === 0) return;
+    if (!user) return;
+    const selectedItems = items.filter(i => selectedIds.has(i.id));
+    if (selectedItems.length === 0) {
+      toast({ title: "Nenhum item selecionado", description: "Selecione ao menos um item para enviar.", variant: "destructive" });
+      return;
+    }
     setAddingPreViab(true);
     try {
-      const payloads = items.map((item) => ({
+      const payloads = selectedItems.map((item) => ({
         user_id: user.id,
         criado_por: user.email || null,
         produto_nt: item.produto || null,
@@ -195,9 +200,37 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
       }));
       const { error: insertErr } = await supabase.from("pre_viabilidades" as any).insert(payloads as any);
       if (insertErr) throw insertErr;
-      toast({ title: `${items.length} registros adicionados à Pré Viabilidade!` });
+
+      // Log to send history
+      const loteId = crypto.randomUUID();
+      await supabase.from("logs_envio_sharepoint").insert({
+        user_id: user.id,
+        usuario_email: user.email || "",
+        id_lote: loteId,
+        quantidade_itens: selectedItems.length,
+        status: "sucesso",
+        response_code: 200,
+      });
+
+      // Remove sent items from cart
+      selectedItems.forEach(i => removeItem(i.id));
+      setSelectedIds(new Set());
+
+      toast({ title: `${selectedItems.length} registros enviados à Pré Viabilidade!` });
     } catch (e: any) {
-      toast({ title: "Erro ao adicionar", description: e.message, variant: "destructive" });
+      // Log failure
+      try {
+        const loteId = crypto.randomUUID();
+        await supabase.from("logs_envio_sharepoint").insert({
+          user_id: user.id,
+          usuario_email: user.email || "",
+          id_lote: loteId,
+          quantidade_itens: selectedItems.length,
+          status: "erro",
+          mensagem_erro: e.message,
+        });
+      } catch { /* silent */ }
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
     } finally {
       setAddingPreViab(false);
     }
@@ -255,7 +288,8 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           {items.length > 0 && (
             <div className="flex flex-wrap gap-3 p-3 border-b bg-muted/30 text-xs">
               <span>Total: <strong>{items.length}</strong></span>
-              <span className="text-primary">Completos: <strong>{completeCount}</strong></span>
+              <span className="text-primary">Selecionados: <strong>{selectedIds.size}</strong></span>
+              <span>Completos: <strong>{completeCount}</strong></span>
               {hasIncomplete && (
                 <span className="text-destructive flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" /> Pendentes: <strong>{incompleteItems.length}</strong>
@@ -548,14 +582,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
               )}
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
-                  size="sm"
                   className="gap-1"
+                  size="sm"
                   onClick={handleAddPreViab}
-                  disabled={addingPreViab || items.length === 0}
+                  disabled={addingPreViab || selectedIds.size === 0}
                 >
                   {addingPreViab ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileCheck className="h-3.5 w-3.5" />}
-                  Pré Viabilidade
+                  Enviar Pré Viabilidade ({selectedIds.size})
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => exportCart("xlsx")}>
                   <Download className="h-3.5 w-3.5" /> Excel
