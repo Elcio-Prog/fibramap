@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
+import { supabase as sb } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConfig } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,48 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [obsDetailItem, setObsDetailItem] = useState<CartItem | null>(null);
   const [addingPreViab, setAddingPreViab] = useState(false);
+  const [recalcIds, setRecalcIds] = useState<Set<string>>(new Set());
+  const recalcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Recalculate final_value via edge function
+  const recalcItem = useCallback(async (item: CartItem, updates: Partial<CartItem>) => {
+    const merged = { ...item, ...updates };
+    const vigenciaNum = merged.vigencia ? parseInt(merged.vigencia, 10) || 12 : 12;
+    const payload = {
+      produto: "Conectividade" as const,
+      subproduto: merged.produto || "NT LINK DEDICADO FULL",
+      rede: merged.cidade || "",
+      banda: merged.velocidade_mbps ?? 0,
+      distancia: merged.distance_m ?? 0,
+      blocoIp: merged.bloco_ip || "",
+      tecnologia: merged.tecnologia || "GPON",
+      vigencia: vigenciaNum,
+      taxaInstalacao: merged.taxa_instalacao ?? 0,
+      togDistancia: true,
+      projetoAvaliado: false,
+      custoLastMile: 0,
+      valorLastMile: 0,
+      custosMateriaisAdicionais: 0,
+      valorOpex: 0,
+    };
+    setRecalcIds(prev => new Set(prev).add(item.id));
+    try {
+      const { data: result } = await sb.functions.invoke("calcular-precificacao", { body: payload });
+      if (result && typeof result.valorMinimo === "number") {
+        updateItem(item.id, { final_value: result.valorMinimo });
+      }
+    } catch { /* silent */ }
+    setRecalcIds(prev => { const n = new Set(prev); n.delete(item.id); return n; });
+  }, [updateItem]);
+
+  // Debounced update + recalc for pricing fields
+  const updateAndRecalc = useCallback((item: CartItem, updates: Partial<CartItem>) => {
+    updateItem(item.id, updates);
+    if (recalcTimers.current[item.id]) clearTimeout(recalcTimers.current[item.id]);
+    recalcTimers.current[item.id] = setTimeout(() => {
+      recalcItem(item, updates);
+    }, 600);
+  }, [updateItem, recalcItem]);
 
   const origins = useMemo(() => {
     const set = new Set(items.map((i) => i.batchTitle));
@@ -329,11 +372,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Vlr Mínimo */}
                         <td className="px-2 py-1 text-right font-semibold text-primary text-[11px]">
-                          {item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                          {recalcIds.has(item.id) ? (
+                            <Loader2 className="h-3 w-3 animate-spin inline" />
+                          ) : item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </td>
                         {/* Produto */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "produto") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.produto || ""} onValueChange={(v) => updateItem(item.id, { produto: v })}>
+                          <Select value={item.produto || ""} onValueChange={(v) => updateAndRecalc(item, { produto: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[140px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -344,7 +389,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Tecnologia */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "tecnologia") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.tecnologia || ""} onValueChange={(v) => updateItem(item.id, { tecnologia: v })}>
+                          <Select value={item.tecnologia || ""} onValueChange={(v) => updateAndRecalc(item, { tecnologia: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[90px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -355,7 +400,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Meio Físico */}
                         <td className="px-1 py-0.5">
-                          <Select value={item.tecnologia_meio_fisico || ""} onValueChange={(v) => updateItem(item.id, { tecnologia_meio_fisico: v })}>
+                          <Select value={item.tecnologia_meio_fisico || ""} onValueChange={(v) => updateAndRecalc(item, { tecnologia_meio_fisico: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -369,13 +414,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <CartEditableCell
                             value={item.velocidade_mbps != null ? String(item.velocidade_mbps) : ""}
                             type="number"
-                            onSave={(v) => updateItem(item.id, { velocidade_mbps: v ? parseFloat(v) : null })}
+                            onSave={(v) => updateAndRecalc(item, { velocidade_mbps: v ? parseFloat(v) : null })}
                             width="w-[70px]"
                           />
                         </td>
                         {/* Vigência */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "vigencia") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.vigencia || ""} onValueChange={(v) => updateItem(item.id, { vigencia: v })}>
+                          <Select value={item.vigencia || ""} onValueChange={(v) => updateAndRecalc(item, { vigencia: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -389,7 +434,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <CartEditableCell
                             value={item.taxa_instalacao != null ? String(item.taxa_instalacao) : ""}
                             type="number"
-                            onSave={(v) => updateItem(item.id, { taxa_instalacao: v !== "" ? parseFloat(v) : null })}
+                            onSave={(v) => updateAndRecalc(item, { taxa_instalacao: v !== "" ? parseFloat(v) : null })}
                             width="w-[80px]"
                           />
                         </td>
@@ -413,7 +458,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">
-                          <Select value={item.bloco_ip || ""} onValueChange={(v) => updateItem(item.id, { bloco_ip: v })}>
+                          <Select value={item.bloco_ip || ""} onValueChange={(v) => updateAndRecalc(item, { bloco_ip: v })}>
                             <SelectTrigger className="h-6 text-[10px] w-[110px] border-dashed">
                               <SelectValue placeholder="—" />
                             </SelectTrigger>
