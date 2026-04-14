@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Download, Send, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle, FileCheck } from "lucide-react";
+import { Trash2, Download, Loader2, X, ArrowUpDown, Search, Pencil, AlertTriangle, FileCheck } from "lucide-react";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
