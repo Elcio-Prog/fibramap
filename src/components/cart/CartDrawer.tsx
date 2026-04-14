@@ -372,11 +372,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Vlr Mínimo */}
                         <td className="px-2 py-1 text-right font-semibold text-primary text-[11px]">
-                          {item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
+                          {recalcIds.has(item.id) ? (
+                            <Loader2 className="h-3 w-3 animate-spin inline" />
+                          ) : item.final_value != null ? `R$ ${item.final_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </td>
                         {/* Produto */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "produto") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.produto || ""} onValueChange={(v) => updateItem(item.id, { produto: v })}>
+                          <Select value={item.produto || ""} onValueChange={(v) => updateAndRecalc(item, { produto: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[140px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -387,7 +389,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Tecnologia */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "tecnologia") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.tecnologia || ""} onValueChange={(v) => updateItem(item.id, { tecnologia: v })}>
+                          <Select value={item.tecnologia || ""} onValueChange={(v) => updateAndRecalc(item, { tecnologia: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[90px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -398,7 +400,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Meio Físico */}
                         <td className="px-1 py-0.5">
-                          <Select value={item.tecnologia_meio_fisico || ""} onValueChange={(v) => updateItem(item.id, { tecnologia_meio_fisico: v })}>
+                          <Select value={item.tecnologia_meio_fisico || ""} onValueChange={(v) => updateAndRecalc(item, { tecnologia_meio_fisico: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -412,13 +414,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <CartEditableCell
                             value={item.velocidade_mbps != null ? String(item.velocidade_mbps) : ""}
                             type="number"
-                            onSave={(v) => updateItem(item.id, { velocidade_mbps: v ? parseFloat(v) : null })}
+                            onSave={(v) => updateAndRecalc(item, { velocidade_mbps: v ? parseFloat(v) : null })}
                             width="w-[70px]"
                           />
                         </td>
                         {/* Vigência */}
                         <td className={`px-1 py-0.5 ${isFieldMissing(item, "vigencia") ? "bg-destructive/10" : ""}`}>
-                          <Select value={item.vigencia || ""} onValueChange={(v) => updateItem(item.id, { vigencia: v })}>
+                          <Select value={item.vigencia || ""} onValueChange={(v) => updateAndRecalc(item, { vigencia: v })}>
                             <SelectTrigger className="h-7 text-[10px] w-[80px] border-dashed">
                               <SelectValue placeholder="Selecionar..." />
                             </SelectTrigger>
@@ -432,7 +434,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           <CartEditableCell
                             value={item.taxa_instalacao != null ? String(item.taxa_instalacao) : ""}
                             type="number"
-                            onSave={(v) => updateItem(item.id, { taxa_instalacao: v !== "" ? parseFloat(v) : null })}
+                            onSave={(v) => updateAndRecalc(item, { taxa_instalacao: v !== "" ? parseFloat(v) : null })}
                             width="w-[80px]"
                           />
                         </td>
