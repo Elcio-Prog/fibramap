@@ -633,15 +633,15 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Motivo Solicitação</Label>
-          <Input className="h-9 mt-1" value={meta.motivo_solicitacao} onChange={setMetaField("motivo_solicitacao")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.motivo_solicitacao} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Aprovado por</Label>
-          <Input className="h-9 mt-1" value={meta.aprovado_por} onChange={setMetaField("aprovado_por")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.aprovado_por} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Status Aprovação</Label>
-          <Input className="h-9 mt-1" value={meta.status_aprovacao} onChange={setMetaField("status_aprovacao")} />
+          <Input className="h-9 mt-1 bg-muted/50" value={meta.status_aprovacao} readOnly disabled />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Criado por</Label>
