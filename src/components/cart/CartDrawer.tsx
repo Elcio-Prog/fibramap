@@ -458,7 +458,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                         </td>
                         {/* Bloco IP - dropdown */}
                         <td className="px-1 py-0.5">
-                          <Select value={item.bloco_ip || ""} onValueChange={(v) => updateItem(item.id, { bloco_ip: v })}>
+                          <Select value={item.bloco_ip || ""} onValueChange={(v) => updateAndRecalc(item, { bloco_ip: v })}>
                             <SelectTrigger className="h-6 text-[10px] w-[110px] border-dashed">
                               <SelectValue placeholder="—" />
                             </SelectTrigger>
