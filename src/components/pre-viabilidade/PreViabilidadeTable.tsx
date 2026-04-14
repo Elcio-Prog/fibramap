@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import { PreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
