@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useCart, CartItem } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useConfig } from "@/hooks/useConfig";
+import { supabase } from "@/integrations/supabase/client";
 import { useBulkExport, REQUIRED_CART_FIELDS, getIncompleteItems } from "@/hooks/useBulkExport";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
