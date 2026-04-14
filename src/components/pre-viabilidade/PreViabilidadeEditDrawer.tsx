@@ -642,7 +642,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   );
 
   const renderStep3 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField label="Status" value={meta.status}
           onChange={v => setMeta(f => ({ ...f, status: v }))}
