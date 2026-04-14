@@ -295,7 +295,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                 {items.length === 0 ? "Carrinho vazio" : "Nenhum resultado encontrado"}
               </div>
             ) : (
-              <ScrollableTable totalScrollableColumns={16}>
+              <ScrollableTable totalScrollableColumns={17}>
                 <table className="text-xs w-max min-w-full">
                   <thead className="sticky top-0 bg-muted z-10">
                     <tr>
@@ -365,6 +365,9 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                             </TooltipTrigger>
                             {item.coordenadas && <TooltipContent>{item.coordenadas}</TooltipContent>}
                           </Tooltip>
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          {item.distance_m ? `${(item.distance_m / 1000).toFixed(2)} km` : "—"}
                         </td>
                         <td className="px-2 py-1">
                           <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
