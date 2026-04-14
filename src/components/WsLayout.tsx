@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "react-router-dom";
-import { Wifi, Upload, Search, List, ClipboardList, History, FileCheck } from "lucide-react";
+import { Wifi, Upload, Search, List, ClipboardList, History, FileCheck, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
 import ProfileDropdown from "@/components/ProfileDropdown";
@@ -12,6 +12,7 @@ const wsLinks = [
   { to: "/ws/searches", label: "Minhas Buscas", icon: List },
   { to: "/ws/single", label: "Busca Unitária", icon: Search },
   { to: "/ws/pre-providers", label: "Pré-Cadastro", icon: ClipboardList },
+  { to: "/ws/calcular", label: "Calculadora", icon: Calculator },
   { to: "/ws/pre-viabilidade", label: "Pré Viabilidade", icon: FileCheck },
   { to: "/ws/send-history", label: "Histórico Envios", icon: History },
 ];

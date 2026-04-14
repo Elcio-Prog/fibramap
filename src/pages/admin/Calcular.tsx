@@ -328,10 +328,11 @@ function BackupFields({ form, setField }: {
 
 // ── Result Sidebar ──
 
-function ResultPanel({ resultado, calculating, error }: {
+function ResultPanel({ resultado, calculating, error, showMemoria = true }: {
   resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string; memoriaCalculo?: { label: string; valor: number }[] } | null;
   calculating: boolean;
   error: string | null;
+  showMemoria?: boolean;
 }) {
   const [memoriaOpen, setMemoriaOpen] = useState(false);
 
@@ -394,7 +395,7 @@ function ResultPanel({ resultado, calculating, error }: {
         </CardContent>
       </Card>
 
-      {resultado && !resultado.mensagem && resultado.memoriaCalculo && resultado.memoriaCalculo.length > 0 && (
+      {showMemoria && resultado && !resultado.mensagem && resultado.memoriaCalculo && resultado.memoriaCalculo.length > 0 && (
         <Collapsible open={memoriaOpen} onOpenChange={setMemoriaOpen}>
           <Card>
             <CollapsibleTrigger className="w-full">
@@ -443,7 +444,7 @@ function ResultPanel({ resultado, calculating, error }: {
 
 export default function CalcularPage() {
   const { session, loading: authLoading } = useAuth();
-  const { isAdmin, isImplantacao, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isImplantacao, isWsUser, isVendedor, isLoading: roleLoading } = useUserRole();
   const { form, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -472,7 +473,9 @@ export default function CalcularPage() {
       </div>
     );
   }
-  if (!session || (!isAdmin && !isImplantacao)) return <Navigate to="/" replace />;
+  if (!session || (!isAdmin && !isImplantacao && !isWsUser && !isVendedor)) return <Navigate to="/" replace />;
+
+  const showMemoria = isAdmin || isImplantacao;
 
   const renderProductFields = () => {
     const props = { form, setField, options };
@@ -556,7 +559,7 @@ export default function CalcularPage() {
 
           {/* Right — Result panel */}
           <div className="lg:w-72 shrink-0">
-            <ResultPanel resultado={resultado} calculating={calculating} error={error} />
+            <ResultPanel resultado={resultado} calculating={calculating} error={error} showMemoria={showMemoria} />
           </div>
         </div>
       )}
