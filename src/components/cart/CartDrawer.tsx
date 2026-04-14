@@ -160,6 +160,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
     }
   };
 
+  const webhookConfigured = !!webhook.url;
   const canSend = webhookConfigured && !hasIncomplete && !sending;
 
   const toggleSelect = (id: string) => {
