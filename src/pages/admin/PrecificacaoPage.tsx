@@ -103,8 +103,8 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
           const hasDollar = Number(r.valor_dolar) > 0;
 
           if (needsAutoCalc && hasDollar) {
-            const valorComTaxaFixa = Number(r.valor_dolar) + 0.25;
-            const valor = valorComTaxaFixa * usdRate;
+            const cambioComTaxa = usdRate + 0.25;
+            const valor = Number(r.valor_dolar) * cambioComTaxa;
             const imposto = Number(r.imposto) || 0;
             const valorFinal = valor * (1 + (imposto / 100));
             return {
@@ -136,8 +136,8 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
         
         if (isTargetCat) {
           if (field === "valor_dolar" && usdRate && Number(value) > 0) {
-            const valorComTaxaFixa = Number(value) + 0.25;
-            const valor = valorComTaxaFixa * usdRate;
+            const cambioComTaxa = usdRate + 0.25;
+            const valor = Number(value) * cambioComTaxa;
             nextRow.valor = valor.toFixed(2);
             nextRow.valor_final = (valor * (1 + (Number(nextRow.imposto) || 0) / 100)).toFixed(2);
           } else if (field === "imposto") {
