@@ -203,13 +203,14 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
 
       // Log to send history
       const loteId = crypto.randomUUID();
-      await supabase.from("logs_envio_sharepoint").insert({
+      await (supabase.from("logs_envio_sharepoint") as any).insert({
         user_id: user.id,
         usuario_email: user.email || "",
         id_lote: loteId,
         quantidade_itens: selectedItems.length,
         status: "sucesso",
         response_code: 200,
+        item_ids: selectedItems.map(i => i.id),
       });
 
       // Remove sent items from cart
