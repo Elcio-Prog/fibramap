@@ -263,6 +263,18 @@ export default function SendHistoryPage() {
               <CollapsibleContent className="mt-3 pt-3 border-t">
                 <div className="space-y-2 mb-2">
                   <p className="text-xs text-muted-foreground"><strong>ID do Lote:</strong> {log.id_lote}</p>
+                  {log.item_ids && log.item_ids.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      <strong>IDs dos Itens:</strong>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {log.item_ids.map((itemId: string) => (
+                          <Badge key={itemId} variant="outline" className="text-[10px] font-mono">
+                            {itemId.slice(0, 8)}…
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <BatchItems log={log} />
               </CollapsibleContent>

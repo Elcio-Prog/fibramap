@@ -1,0 +1,1 @@
+ALTER TABLE public.logs_envio_sharepoint ADD COLUMN item_ids uuid[] DEFAULT '{}';

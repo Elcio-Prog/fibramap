@@ -518,6 +518,7 @@ export type Database = {
           data_envio: string
           id: string
           id_lote: string
+          item_ids: string[] | null
           mensagem_erro: string | null
           quantidade_itens: number
           response_code: number | null
@@ -529,6 +530,7 @@ export type Database = {
           data_envio?: string
           id?: string
           id_lote: string
+          item_ids?: string[] | null
           mensagem_erro?: string | null
           quantidade_itens?: number
           response_code?: number | null
@@ -540,6 +542,7 @@ export type Database = {
           data_envio?: string
           id?: string
           id_lote?: string
+          item_ids?: string[] | null
           mensagem_erro?: string | null
           quantidade_itens?: number
           response_code?: number | null
