@@ -7,13 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowUpDown, Pencil, Link2, Trash2, History } from "lucide-react";
+import { ArrowUpDown, Pencil, Link2, Trash2, History, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import VersionHistoryDialog from "./VersionHistoryDialog";
+import SolicitarAprovacaoDialog from "./SolicitarAprovacaoDialog";
 
 interface Props {
   data: PreViabilidade[];
@@ -45,6 +46,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
   const [contextRowId, setContextRowId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PreViabilidade | null>(null);
   const [historyTarget, setHistoryTarget] = useState<PreViabilidade | null>(null);
+  const [aprovacaoTarget, setAprovacaoTarget] = useState<PreViabilidade | null>(null);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -152,7 +154,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
               <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted min-w-[50px] cursor-pointer select-none" onClick={() => toggleSort("numero" as SortKey)}>
                 <span className="flex items-center gap-1">Nº <ArrowUpDown className="h-3 w-3" /></span>
               </th>
-              
+              <Th>Aprovação</Th>
               <SortHeader field="criado_por">Criado por</SortHeader>
               <SortHeader field="status">Status</SortHeader>
               <SortHeader field="tipo_solicitacao">Tipo Solicitação</SortHeader>
@@ -197,6 +199,17 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     )} onDoubleClick={() => onEdit(row)}>
                       <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
                         #{row.numero}
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] gap-1 px-2"
+                          onClick={(e) => { e.stopPropagation(); setAprovacaoTarget(row); }}
+                        >
+                          <ShieldCheck className="h-3 w-3" />
+                          Solicitar
+                        </Button>
                       </td>
                       <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
                       <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
@@ -262,6 +275,9 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
                       <Pencil className="h-3.5 w-3.5" /> {canEdit ? "Editar" : "Ver detalhes"}
                     </ContextMenuItem>
+                    <ContextMenuItem onClick={() => setAprovacaoTarget(row)} className="gap-2">
+                      <ShieldCheck className="h-3.5 w-3.5" /> Solicitar Aprovação
+                    </ContextMenuItem>
                     <ContextMenuItem onClick={() => setHistoryTarget(row)} className="gap-2">
                       <History className="h-3.5 w-3.5" /> Histórico de Versão
                     </ContextMenuItem>
@@ -299,6 +315,12 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
         onOpenChange={(open) => !open && setHistoryTarget(null)}
         preViabilidadeId={historyTarget?.id ?? null}
         numero={historyTarget?.numero ?? null}
+      />
+
+      <SolicitarAprovacaoDialog
+        open={!!aprovacaoTarget}
+        onOpenChange={(open) => !open && setAprovacaoTarget(null)}
+        numero={aprovacaoTarget?.numero ?? null}
       />
 
       <div className="flex items-center justify-between mt-3">
