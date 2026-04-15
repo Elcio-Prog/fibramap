@@ -47,7 +47,7 @@ export default function SolicitarAprovacaoDialog({ open, onOpenChange, numero }:
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
-              <SelectContent side="bottom">
+              <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
                 {MOTIVO_OPTIONS.map((m) => (
                   <SelectItem key={m} value={m}>{m}</SelectItem>
                 ))}
