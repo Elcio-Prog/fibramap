@@ -346,8 +346,7 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
             <Badge variant="secondary" className="gap-1.5 py-1 px-3">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
               Câmbio USD: <span className="font-bold ml-1">R$ {usdRate.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              <span className="text-muted-foreground mx-1">+ $0,25</span>
-              <span className="font-bold">= R$ {(usdRate + 0.25).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-muted-foreground ml-2 text-xs">(Valor Dólar + $0,25) × Câmbio</span>
             </Badge>
           )}
         </div>
@@ -373,9 +372,6 @@ function TabelaTab({ config }: { config: TabelaConfig }) {
                 <TableHead key={i} className="min-w-[140px] font-semibold text-right align-top pt-3 pb-2">
                   <div className="flex flex-col items-end justify-start h-full">
                     <span>{label}</span>
-                    {(label.includes("Dolar") || label.includes("Dólar")) && isEquipamentos && (
-                      <span className="text-[10px] font-normal text-muted-foreground mt-0.5 leading-tight">+ $0,25 incluso no cálculo</span>
-                    )}
                   </div>
                 </TableHead>
               ))}
