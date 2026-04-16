@@ -56,6 +56,65 @@ export type Database = {
         }
         Relationships: []
       }
+      aprovacao_tokens: {
+        Row: {
+          acao_em: string | null
+          acao_realizada: string | null
+          comentario: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          motivo: string
+          nivel: number
+          nivel_label: string
+          pre_viabilidade_id: string
+          responsavel_email: string
+          solicitante_email: string | null
+          solicitante_nome: string | null
+          token: string
+        }
+        Insert: {
+          acao_em?: string | null
+          acao_realizada?: string | null
+          comentario?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          motivo: string
+          nivel: number
+          nivel_label: string
+          pre_viabilidade_id: string
+          responsavel_email: string
+          solicitante_email?: string | null
+          solicitante_nome?: string | null
+          token?: string
+        }
+        Update: {
+          acao_em?: string | null
+          acao_realizada?: string | null
+          comentario?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          motivo?: string
+          nivel?: number
+          nivel_label?: string
+          pre_viabilidade_id?: string
+          responsavel_email?: string
+          solicitante_email?: string | null
+          solicitante_nome?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacao_tokens_pre_viabilidade_id_fkey"
+            columns: ["pre_viabilidade_id"]
+            isOneToOne: false
+            referencedRelation: "pre_viabilidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compras_lm: {
         Row: {
           banda_mbps: number | null
