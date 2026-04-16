@@ -152,7 +152,6 @@ export default function SettingsPage() {
         <TabsContent value="aprovacoes" forceMount className="data-[state=inactive]:hidden">
           <ApprovalSettings />
         </TabsContent>
-        </TabsContent>
 
         <TabsContent value="mapping" forceMount className="space-y-4 data-[state=inactive]:hidden">
           <Card>
