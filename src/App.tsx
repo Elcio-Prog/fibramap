@@ -194,6 +194,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/landing" element={<LandingRoute />} />
+              <Route path="/aprovacao/:token" element={<AprovacaoDecisaoPage />} />
               <Route path="/auth" element={<AuthRoute />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/ws/forgot-password" element={<ForgotPasswordPage />} />
