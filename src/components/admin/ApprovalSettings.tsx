@@ -133,36 +133,30 @@ function LevelTable({
                   </TableCell>
 
                   <TableCell>
-                    {isSistema ? (
-                      <span className="text-muted-foreground">— (aprovação automática)</span>
-                    ) : (
-                      <Input
-                        type="email"
-                        placeholder="email@empresa.com.br"
-                        className={`max-w-xs ${
-                          lvl.responsible_email && !isValidEmail(lvl.responsible_email)
-                            ? "border-destructive"
-                            : ""
-                        }`}
-                        value={lvl.responsible_email}
-                        onChange={(e) =>
-                          updateLevel(idx, { responsible_email: e.target.value })
-                        }
-                      />
-                    )}
+                    <Input
+                      type="email"
+                      placeholder="email@empresa.com.br"
+                      className={`max-w-xs ${
+                        lvl.responsible_email && !isValidEmail(lvl.responsible_email)
+                          ? "border-destructive"
+                          : ""
+                      }`}
+                      value={lvl.responsible_email}
+                      onChange={(e) =>
+                        updateLevel(realIdx, { responsible_email: e.target.value })
+                      }
+                    />
                   </TableCell>
 
                   <TableCell>
-                    {!isSistema && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeLevel(idx)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeLevel(realIdx)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               );
