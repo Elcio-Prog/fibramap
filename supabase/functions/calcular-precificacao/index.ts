@@ -840,14 +840,13 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   addMem("Custo por TB", custoPorTB);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Backup: valorMinimo = (custoPorContratoBackup + custoPorTB) * qtdBackupTB * (1+CAC) * (1+Margem)
-  const bkBaseOp = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
-  const bkCacReais = bkBaseOp * pabxDespesaCAC;
-  const bkMargemReais = (bkBaseOp + bkCacReais) * pabxMargemLucro;
-  const bkTotalOpMargem = bkBaseOp + bkCacReais + bkMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const bkBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const bkCacReais = bkBaseExib * pabxDespesaCAC;
+  const bkMargemReais = (bkBaseExib + bkCacReais) * pabxMargemLucro;
+  const bkTotalOpMargem = bkCacReais + bkMargemReais;
   if (bkTotalOpMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: bkTotalOpMargem, isHeader: true });
-    memoria.push({ label: "Custo Operacional Base ((Contrato + TB) × Qtd)", valor: bkBaseOp, isSubItem: true });
     memoria.push({ label: "Despesa CAC SVA (R$)", valor: bkCacReais, isSubItem: true });
     memoria.push({ label: "Margem de Lucro (R$)", valor: bkMargemReais, isSubItem: true });
   }
