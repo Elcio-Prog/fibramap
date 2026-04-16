@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, Plus, Trash2, ShieldCheck, Info } from "lucide-react";
@@ -16,14 +15,11 @@ import { Loader2, Save, Plus, Trash2, ShieldCheck, Info } from "lucide-react";
 type ApprovalLevel = {
   level: number;
   label: string;
-  roi_base?: number;
-  roi_increment?: number;
-  value_threshold?: number;
+  roi_increment: number; // 0 for Sistema (base from vigencia_vs_roi), +N for others
   responsible_email: string;
 };
 
 type ApprovalConfig = {
-  mode: "roi" | "value";
   levels: ApprovalLevel[];
 };
 
@@ -32,21 +28,24 @@ type GlobalRules = {
   monthly_ticket_limit: number;
 };
 
+type VigenciaRoi = {
+  meses: string;
+  roi: number;
+};
+
 // ── Defaults ───────────────────────────────────────────────────────────────────
 
 const DEFAULT_STANDARD: ApprovalConfig = {
-  mode: "roi",
   levels: [
-    { level: 0, label: "Sistema", roi_base: 4, responsible_email: "" },
+    { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
     { level: 2, label: "Nível 2", roi_increment: 2, responsible_email: "" },
   ],
 };
 
 const DEFAULT_EQUIPMENT: ApprovalConfig = {
-  mode: "roi",
   levels: [
-    { level: 0, label: "Sistema", roi_base: 4, responsible_email: "" },
+    { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
   ],
 };
@@ -64,18 +63,47 @@ const isValidEmail = (email: string) =>
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-// ── Sub-component: Level Table ─────────────────────────────────────────────────
+// ── Sub: Reference ROI table ───────────────────────────────────────────────────
+
+function VigenciaRoiReference({
+  data,
+  title,
+}: {
+  data: VigenciaRoi[];
+  title: string;
+}) {
+  if (!data.length) return null;
+  return (
+    <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+        <Info className="h-3 w-3" />
+        {title} — ROI base por vigência (tabela <code className="text-[10px]">vigencia_vs_roi</code>)
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {data.map((v) => (
+          <Badge key={v.meses} variant="outline" className="text-xs font-mono">
+            {v.meses}m → ROI {Number(v.roi).toFixed(1)}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Sub: Level Table ───────────────────────────────────────────────────────────
 
 function LevelTable({
   config,
   onChange,
+  roiReference,
+  refTitle,
 }: {
   config: ApprovalConfig;
   onChange: (c: ApprovalConfig) => void;
+  roiReference: VigenciaRoi[];
+  refTitle: string;
 }) {
-  const { mode, levels } = config;
-  const sistema = levels[0];
-  const roiBase = sistema?.roi_base ?? 0;
+  const { levels } = config;
 
   const updateLevel = (idx: number, patch: Partial<ApprovalLevel>) => {
     const next = levels.map((l, i) => (i === idx ? { ...l, ...patch } : l));
@@ -87,8 +115,8 @@ function LevelTable({
     const newLevel: ApprovalLevel = {
       level: maxLevel + 1,
       label: `Nível ${maxLevel + 1}`,
+      roi_increment: maxLevel + 1,
       responsible_email: "",
-      ...(mode === "roi" ? { roi_increment: maxLevel + 1 } : { value_threshold: 0 }),
     };
     onChange({ ...config, levels: [...levels, newLevel] });
   };
@@ -98,43 +126,20 @@ function LevelTable({
     onChange({ ...config, levels: levels.filter((_, i) => i !== idx) });
   };
 
-  const setMode = (m: "roi" | "value") => {
-    const nextLevels = levels.map((l) => {
-      if (l.level === 0) {
-        return m === "roi"
-          ? { ...l, roi_base: l.roi_base ?? 4, value_threshold: undefined }
-          : { ...l, value_threshold: l.value_threshold ?? 0, roi_base: undefined };
-      }
-      return m === "roi"
-        ? { ...l, roi_increment: l.roi_increment ?? l.level, value_threshold: undefined }
-        : { ...l, value_threshold: l.value_threshold ?? 0, roi_increment: undefined };
-    });
-    onChange({ mode: m, levels: nextLevels });
-  };
+  // Pick a sample base for preview (e.g. 12 months)
+  const sampleBase = roiReference.find((r) => r.meses === "12")?.roi ??
+    roiReference[0]?.roi ?? 0;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Label className="text-sm font-medium">Critério de aprovação:</Label>
-        <Select value={mode} onValueChange={(v) => setMode(v as "roi" | "value")}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="roi">ROI</SelectItem>
-            <SelectItem value="value">Valor (R$)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <VigenciaRoiReference data={roiReference} title={refTitle} />
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[120px]">Nível</TableHead>
-              <TableHead className="w-[220px]">
-                {mode === "roi" ? "ROI" : "Valor (R$)"}
-              </TableHead>
+              <TableHead className="w-[130px]">Nível</TableHead>
+              <TableHead className="w-[280px]">ROI (incremento sobre base da vigência)</TableHead>
               <TableHead>Responsável</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
@@ -143,10 +148,7 @@ function LevelTable({
             {levels.map((lvl, idx) => {
               const isSistema = lvl.level === 0;
               return (
-                <TableRow
-                  key={lvl.level}
-                  className={isSistema ? "bg-muted/40" : ""}
-                >
+                <TableRow key={lvl.level} className={isSistema ? "bg-muted/40" : ""}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {lvl.label}
@@ -159,52 +161,29 @@ function LevelTable({
                   </TableCell>
 
                   <TableCell>
-                    {mode === "roi" ? (
-                      isSistema ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            step="0.1"
-                            className="w-20"
-                            value={lvl.roi_base ?? ""}
-                            onChange={(e) =>
-                              updateLevel(idx, { roi_base: parseFloat(e.target.value) || 0 })
-                            }
-                          />
-                          <span className="text-xs text-muted-foreground">(base)</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground">+</span>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            className="w-20"
-                            value={lvl.roi_increment ?? ""}
-                            onChange={(e) =>
-                              updateLevel(idx, {
-                                roi_increment: parseFloat(e.target.value) || 0,
-                              })
-                            }
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            = {(roiBase + (lvl.roi_increment ?? 0)).toFixed(1)}
-                          </span>
-                        </div>
-                      )
+                    {isSistema ? (
+                      <span className="text-sm text-muted-foreground">
+                        Base da vigência (ex: 12m → ROI {Number(sampleBase).toFixed(1)})
+                      </span>
                     ) : (
-                      <Input
-                        type="number"
-                        step="100"
-                        className="w-32"
-                        value={lvl.value_threshold ?? ""}
-                        onChange={(e) =>
-                          updateLevel(idx, {
-                            value_threshold: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-medium">+</span>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          className="w-20"
+                          value={lvl.roi_increment ?? ""}
+                          onChange={(e) =>
+                            updateLevel(idx, {
+                              roi_increment: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          ex: 12m → = {(Number(sampleBase) + (lvl.roi_increment ?? 0)).toFixed(1)}
+                        </span>
+                      </div>
                     )}
                   </TableCell>
 
@@ -265,20 +244,43 @@ export default function ApprovalSettings() {
   const [equipment, setEquipment] = useState<ApprovalConfig>(DEFAULT_EQUIPMENT);
   const [globalRules, setGlobalRules] = useState<GlobalRules>(DEFAULT_GLOBAL);
 
+  const [roiStandard, setRoiStandard] = useState<VigenciaRoi[]>([]);
+  const [roiEquipment, setRoiEquipment] = useState<VigenciaRoi[]>([]);
+
   // ── Load ────────────────────────────────────────────────────────────────────
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("configuracoes")
-        .select("chave, valor")
-        .in("chave", [
-          "approval_config_standard",
-          "approval_config_equipment",
-          "approval_global_rules",
-        ]);
-      if (error) throw error;
-      for (const row of data || []) {
+      const [configRes, roiRes] = await Promise.all([
+        supabase
+          .from("configuracoes")
+          .select("chave, valor")
+          .in("chave", [
+            "approval_config_standard",
+            "approval_config_equipment",
+            "approval_global_rules",
+          ]),
+        supabase.from("vigencia_vs_roi").select("meses, roi").order("meses"),
+      ]);
+
+      if (configRes.error) throw configRes.error;
+      if (roiRes.error) throw roiRes.error;
+
+      // Split vigencia_vs_roi into standard vs equipment
+      const stdRoi: VigenciaRoi[] = [];
+      const eqRoi: VigenciaRoi[] = [];
+      for (const r of roiRes.data || []) {
+        const m = String(r.meses).trim();
+        if (m.toLowerCase().includes("equipamento")) {
+          eqRoi.push({ meses: m.replace(/\s*equipamento\s*/i, "").trim(), roi: Number(r.roi) });
+        } else {
+          stdRoi.push({ meses: m, roi: Number(r.roi) });
+        }
+      }
+      setRoiStandard(stdRoi);
+      setRoiEquipment(eqRoi);
+
+      for (const row of configRes.data || []) {
         const val = row.valor as any;
         if (row.chave === "approval_config_standard" && val?.levels) setStandard(val);
         if (row.chave === "approval_config_equipment" && val?.levels) setEquipment(val);
@@ -286,7 +288,11 @@ export default function ApprovalSettings() {
           setGlobalRules(val);
       }
     } catch (e: any) {
-      toast({ title: "Erro ao carregar configurações de aprovação", description: e.message, variant: "destructive" });
+      toast({
+        title: "Erro ao carregar configurações de aprovação",
+        description: e.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -298,13 +304,16 @@ export default function ApprovalSettings() {
 
   // ── Save ────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    // Validate emails
     const allLevels = [...standard.levels, ...equipment.levels];
     const invalidEmail = allLevels.find(
       (l) => l.level > 0 && l.responsible_email && !isValidEmail(l.responsible_email)
     );
     if (invalidEmail) {
-      toast({ title: "E-mail inválido", description: `Verifique o e-mail do ${invalidEmail.label}`, variant: "destructive" });
+      toast({
+        title: "E-mail inválido",
+        description: `Verifique o e-mail do ${invalidEmail.label}`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -361,11 +370,16 @@ export default function ApprovalSettings() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldCheck className="h-5 w-5" />
-            Configuração Padrão — Serviços Gerais
+            Níveis de Aprovação — Serviços Gerais
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <LevelTable config={standard} onChange={setStandard} />
+          <LevelTable
+            config={standard}
+            onChange={setStandard}
+            roiReference={roiStandard}
+            refTitle="Serviços Gerais"
+          />
         </CardContent>
       </Card>
 
@@ -374,17 +388,18 @@ export default function ApprovalSettings() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ShieldCheck className="h-5 w-5" />
-            Configuração para Equipamentos
-            <Badge className="bg-primary/10 text-primary border-primary/20 ml-1">
-              Firewall
-            </Badge>
-            <Badge className="bg-primary/10 text-primary border-primary/20">
-              Wi-Fi
-            </Badge>
+            Níveis de Aprovação — Equipamentos
+            <Badge className="bg-primary/10 text-primary border-primary/20 ml-1">Firewall</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20">Wi-Fi</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <LevelTable config={equipment} onChange={setEquipment} />
+          <LevelTable
+            config={equipment}
+            onChange={setEquipment}
+            roiReference={roiEquipment}
+            refTitle="Equipamentos"
+          />
         </CardContent>
       </Card>
 
