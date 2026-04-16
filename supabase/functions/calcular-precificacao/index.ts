@@ -57,6 +57,8 @@ interface CalcInput {
 interface MemoriaItem {
   label: string;
   valor: number;
+  isHeader?: boolean;
+  isSubItem?: boolean;
 }
 
 interface CalcOutput {
