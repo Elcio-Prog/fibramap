@@ -412,15 +412,11 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para link: a fórmula aplica (1 + CAC) * (1 + Margem) sobre a base operacional.
-  // Calcular o valor de cada componente em reais.
-  const baseOperacionalLink =
-    safeDivide(custosGerais, vigencia) +
-    linkcustoBlocoIP +
-    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
-    valorLastMile;
-  const despesaCacReais = baseOperacionalLink * linkcustoCAC;
-  const margemLucroReais = (baseOperacionalLink + despesaCacReais) * linktaxaLink;
+  // Exibição: aplica %CAC e %Margem sobre o Valor Mínimo final (já consolidado).
+  // CAC(R$) = ValorMin * %CAC ; Margem(R$) = (ValorMin + CAC) * %Margem
+  const valorBaseExibicao = valorMinimo - (valorOpexInput ?? 0);
+  const despesaCacReais = valorBaseExibicao * linkcustoCAC;
+  const margemLucroReais = (valorBaseExibicao + despesaCacReais) * linktaxaLink;
   const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
   if (custoOperacionalTotalMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
@@ -518,14 +514,13 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Firewall: valorMinimo = (custosGerais/roiVigencia) + custoPorContrato * (1+CAC) * (1+Margem)
-  // O bloco operacional é o "custoPorContrato * (1+CAC) * (1+Margem)".
-  const fwCacReais = custoPorContrato * pabxDespesaCAC;
-  const fwMargemReais = (custoPorContrato + fwCacReais) * pabxMargemLucro;
-  const fwTotalOpMargem = custoPorContrato + fwCacReais + fwMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const fwBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const fwCacReais = fwBaseExib * pabxDespesaCAC;
+  const fwMargemReais = (fwBaseExib + fwCacReais) * pabxMargemLucro;
+  const fwTotalOpMargem = fwCacReais + fwMargemReais;
   if (fwTotalOpMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: fwTotalOpMargem, isHeader: true });
-    memoria.push({ label: "Custo por Contrato", valor: custoPorContrato, isSubItem: true });
     memoria.push({ label: "Despesa CAC SVA (R$)", valor: fwCacReais, isSubItem: true });
     memoria.push({ label: "Margem de Lucro (R$)", valor: fwMargemReais, isSubItem: true });
   }
@@ -576,15 +571,13 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
   addMemS("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Switch: valorMinimo = (custosGerais/roiVigencia + custoPorContrato) * (1+CAC) * (1+Margem)
-  const swBaseOp = safeDivide(custosGerais, roiVigencia) + custoPorContrato;
-  const swCacReais = swBaseOp * pabxDespesaCAC;
-  const swMargemReais = (swBaseOp + swCacReais) * pabxMargemLucro;
-  const swTotalOpMargem = swBaseOp + swCacReais + swMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const swBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const swCacReais = swBaseExib * pabxDespesaCAC;
+  const swMargemReais = (swBaseExib + swCacReais) * pabxMargemLucro;
+  const swTotalOpMargem = swCacReais + swMargemReais;
   if (swTotalOpMargem !== 0) {
     memoriaS.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: swTotalOpMargem, isHeader: true });
-    memoriaS.push({ label: "Custo Operacional Base (Custos Gerais/ROI + Custo por Contrato)", valor: swBaseOp, isSubItem: true });
-    memoriaS.push({ label: "Custo por Contrato", valor: custoPorContrato, isSubItem: true });
     memoriaS.push({ label: "Despesa CAC SVA (R$)", valor: swCacReais, isSubItem: true });
     memoriaS.push({ label: "Margem de Lucro (R$)", valor: swMargemReais, isSubItem: true });
   }
@@ -637,15 +630,13 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
   addMemW("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Wifi: valorMinimo = (custosGerais/roiVigencia + custoPorContrato) * (1+CAC) * (1+Margem)
-  const wfBaseOp = safeDivide(custosGerais, roiVigencia) + custoPorContrato;
-  const wfCacReais = wfBaseOp * pabxDespesaCAC;
-  const wfMargemReais = (wfBaseOp + wfCacReais) * pabxMargemLucro;
-  const wfTotalOpMargem = wfBaseOp + wfCacReais + wfMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const wfBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const wfCacReais = wfBaseExib * pabxDespesaCAC;
+  const wfMargemReais = (wfBaseExib + wfCacReais) * pabxMargemLucro;
+  const wfTotalOpMargem = wfCacReais + wfMargemReais;
   if (wfTotalOpMargem !== 0) {
     memoriaW.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: wfTotalOpMargem, isHeader: true });
-    memoriaW.push({ label: "Custo Operacional Base (Custos Gerais/ROI + Custo por Contrato)", valor: wfBaseOp, isSubItem: true });
-    memoriaW.push({ label: "Custo por Contrato", valor: custoPorContrato, isSubItem: true });
     memoriaW.push({ label: "Despesa CAC SVA (R$)", valor: wfCacReais, isSubItem: true });
     memoriaW.push({ label: "Margem de Lucro (R$)", valor: wfMargemReais, isSubItem: true });
   }
@@ -809,29 +800,13 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   addMemV("Internacional", valorInternacional);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Voz: valorMinimo = (somaTudo) * (1+CAC) * (1+Margem)
-  const vozBaseOp =
-    valorContratoPabx +
-    valorContratos +
-    valorNovasLinhas +
-    valorPortabilidades +
-    valorRamais +
-    valorCanais +
-    valorFixoLocalCalc +
-    valorFixoLDNCalc +
-    valorMovelLocalCalc +
-    valorMovelLDNCalc +
-    valor0800MovelCalc +
-    valor0800FixoCalc +
-    valorInternacional +
-    safeDivide(custosGerais - 1, roiVigencia);
-  const vozCacReais = vozBaseOp * vozDespesaCAC;
-  const vozMargemReais = (vozBaseOp + vozCacReais) * vozMargemLucro;
-  const vozTotalOpMargem = vozBaseOp + vozCacReais + vozMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const vozBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const vozCacReais = vozBaseExib * vozDespesaCAC;
+  const vozMargemReais = (vozBaseExib + vozCacReais) * vozMargemLucro;
+  const vozTotalOpMargem = vozCacReais + vozMargemReais;
   if (vozTotalOpMargem !== 0) {
     memoriaV.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: vozTotalOpMargem, isHeader: true });
-    memoriaV.push({ label: "Custo Operacional Total (Contratos)", valor: valorContratos, isSubItem: true });
-    memoriaV.push({ label: "Suporte PABX", valor: valorContratoPabx, isSubItem: true });
     memoriaV.push({ label: "Despesa CAC STFC (R$)", valor: vozCacReais, isSubItem: true });
     memoriaV.push({ label: "Margem de Lucro (R$)", valor: vozMargemReais, isSubItem: true });
   }
@@ -865,14 +840,13 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   addMem("Custo por TB", custoPorTB);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Backup: valorMinimo = (custoPorContratoBackup + custoPorTB) * qtdBackupTB * (1+CAC) * (1+Margem)
-  const bkBaseOp = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
-  const bkCacReais = bkBaseOp * pabxDespesaCAC;
-  const bkMargemReais = (bkBaseOp + bkCacReais) * pabxMargemLucro;
-  const bkTotalOpMargem = bkBaseOp + bkCacReais + bkMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const bkBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const bkCacReais = bkBaseExib * pabxDespesaCAC;
+  const bkMargemReais = (bkBaseExib + bkCacReais) * pabxMargemLucro;
+  const bkTotalOpMargem = bkCacReais + bkMargemReais;
   if (bkTotalOpMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: bkTotalOpMargem, isHeader: true });
-    memoria.push({ label: "Custo Operacional Base ((Contrato + TB) × Qtd)", valor: bkBaseOp, isSubItem: true });
     memoria.push({ label: "Despesa CAC SVA (R$)", valor: bkCacReais, isSubItem: true });
     memoria.push({ label: "Margem de Lucro (R$)", valor: bkMargemReais, isSubItem: true });
   }
