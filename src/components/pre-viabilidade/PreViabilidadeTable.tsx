@@ -201,15 +201,23 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                         #{row.numero}
                       </td>
                       <td className="px-2 py-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-[10px] gap-1 px-2"
-                          onClick={(e) => { e.stopPropagation(); setAprovacaoTarget(row); }}
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          Solicitar
-                        </Button>
+                        {(() => {
+                          const dp = row.dados_precificacao as any;
+                          const limit = dp?.roiVigencia != null ? Number(dp.roiVigencia) : null;
+                          const needsApproval = limit != null && row.previsao_roi != null && row.previsao_roi > limit;
+                          if (!needsApproval) return <span className="text-muted-foreground text-[10px]">—</span>;
+                          return (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-[10px] gap-1 px-2"
+                              onClick={(e) => { e.stopPropagation(); setAprovacaoTarget(row); }}
+                            >
+                              <ShieldCheck className="h-3 w-3" />
+                              Solicitar
+                            </Button>
+                          );
+                        })()}
                       </td>
                       <td className="px-2 py-1.5"><TruncCell value={row.criado_por} max={100} /></td>
                       <td className="px-2 py-1.5"><StatusBadge value={row.status} /></td>
