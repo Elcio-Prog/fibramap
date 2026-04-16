@@ -317,6 +317,8 @@ export default function ApprovalSettings() {
             config={standard}
             onChange={setStandard}
           />
+        </CardContent>
+      </Card>
 
       {/* Bloco 2 — Equipamentos */}
       <Card>
@@ -333,6 +335,8 @@ export default function ApprovalSettings() {
             config={equipment}
             onChange={setEquipment}
           />
+        </CardContent>
+      </Card>
 
       {/* Bloco 3 — Regras Globais */}
       <Card>
