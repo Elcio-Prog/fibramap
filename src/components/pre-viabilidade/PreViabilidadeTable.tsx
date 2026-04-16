@@ -321,6 +321,9 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
         open={!!aprovacaoTarget}
         onOpenChange={(open) => !open && setAprovacaoTarget(null)}
         numero={aprovacaoTarget?.numero ?? null}
+        vigencia={aprovacaoTarget?.vigencia ?? null}
+        dadosPrecificacao={(aprovacaoTarget?.dados_precificacao as Record<string, any>) ?? null}
+        hasEquipment={false}
       />
 
       <div className="flex items-center justify-between mt-3">
