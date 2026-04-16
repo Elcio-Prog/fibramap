@@ -392,8 +392,6 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("Custo Banda (Ponta A)", linkcustoBanda1);
   if (subproduto === "NT L2L") addMem("Custo Banda (Ponta B)", linkcustoBanda2);
   addMem("Fator Banda", linkFatorBanda);
-  addMem("Custo CAC", linkcustoCAC);
-  addMem("Margem de Lucro (" + subproduto + ")", linktaxaLink);
   addMem("Custo ONU", linkcustoONU);
   addMem("Custo Metro Rede", custoMetroRede);
   addMem("Custo Lançamento", linkcustoLancamento);
@@ -412,6 +410,25 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("Custos Materiais Adicionais", custosMateriaisAdicionais ?? 0);
   addMem("Vigência (meses)", vigencia);
   addMem("ROI Vigência", roiVigencia);
+
+  // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
+  // Para link: a fórmula aplica (1 + CAC) * (1 + Margem) sobre a base operacional.
+  // Calcular o valor de cada componente em reais.
+  const baseOperacionalLink =
+    safeDivide(custosGerais, vigencia) +
+    linkcustoBlocoIP +
+    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
+    valorLastMile;
+  const despesaCacReais = baseOperacionalLink * linkcustoCAC;
+  const margemLucroReais = (baseOperacionalLink + despesaCacReais) * linktaxaLink;
+  const custoOperacionalTotalMargem = baseOperacionalLink + despesaCacReais + margemLucroReais;
+  if (custoOperacionalTotalMargem !== 0) {
+    memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
+    memoria.push({ label: "Custo Operacional Base", valor: baseOperacionalLink, isSubItem: true });
+    memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
+    memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
+  }
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
