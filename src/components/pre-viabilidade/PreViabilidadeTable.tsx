@@ -202,9 +202,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       </td>
                       <td className="px-2 py-1.5">
                         {(() => {
-                          const dp = row.dados_precificacao as any;
-                          const limit = dp?.roiVigencia != null ? Number(dp.roiVigencia) : null;
-                          const needsApproval = limit != null && row.previsao_roi != null && row.previsao_roi > limit;
+                          const needsApproval = row.ticket_mensal != null && row.valor_minimo != null && row.ticket_mensal < row.valor_minimo;
                           if (!needsApproval) return <span className="text-muted-foreground text-[10px]">—</span>;
                           return (
                             <Button
@@ -284,9 +282,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                       <Pencil className="h-3.5 w-3.5" /> {canEdit ? "Editar" : "Ver detalhes"}
                     </ContextMenuItem>
                     {(() => {
-                      const dp = row.dados_precificacao as any;
-                      const limit = dp?.roiVigencia != null ? Number(dp.roiVigencia) : null;
-                      const needsApproval = limit != null && row.previsao_roi != null && row.previsao_roi > limit;
+                      const needsApproval = row.ticket_mensal != null && row.valor_minimo != null && row.ticket_mensal < row.valor_minimo;
                       if (!needsApproval) return null;
                       return (
                         <ContextMenuItem onClick={() => setAprovacaoTarget(row)} className="gap-2">
