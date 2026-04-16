@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const MOTIVO_OPTIONS = [
   "Concorrência direta",
@@ -38,6 +39,7 @@ type ApprovalConfig = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preViabilidadeId: string | null;
   numero: number | null;
   vigencia: number | null;
   dadosPrecificacao: Record<string, any> | null;
@@ -47,13 +49,16 @@ interface Props {
 export default function SolicitarAprovacaoDialog({
   open,
   onOpenChange,
+  preViabilidadeId,
   numero,
   vigencia,
   dadosPrecificacao,
   hasEquipment,
 }: Props) {
+  const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [resolvedLevel, setResolvedLevel] = useState<ApprovalLevel | null>(null);
   const [resolvedLabel, setResolvedLabel] = useState("");
 
@@ -223,8 +228,43 @@ export default function SolicitarAprovacaoDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!motivo || !resolvedLevel}>Solicitar</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting}>Cancelar</Button>
+          <Button
+            disabled={!motivo || !resolvedLevel || !resolvedLevel.responsible_email || !preViabilidadeId || submitting}
+            onClick={async () => {
+              if (!preViabilidadeId || !resolvedLevel) return;
+              setSubmitting(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("send-approval-request", {
+                  body: {
+                    preViabilidadeId,
+                    responsavelEmail: resolvedLevel.responsible_email,
+                    nivel: resolvedLevel.level,
+                    nivelLabel: resolvedLevel.label,
+                    motivo,
+                  },
+                });
+                if (error) throw error;
+                if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao enviar");
+                toast({
+                  title: "Solicitação enviada",
+                  description: `Email enviado para ${resolvedLevel.responsible_email}`,
+                });
+                handleOpenChange(false);
+              } catch (e: any) {
+                toast({
+                  title: "Erro ao enviar solicitação",
+                  description: e?.message || "Tente novamente",
+                  variant: "destructive",
+                });
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Solicitar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

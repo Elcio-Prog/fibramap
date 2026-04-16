@@ -1,1 +1,4 @@
 project_id = "zouiryvopwiokfnrtybt"
+
+[functions.aprovacao-decidir]
+verify_jwt = false

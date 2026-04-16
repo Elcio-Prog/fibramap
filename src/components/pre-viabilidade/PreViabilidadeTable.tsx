@@ -336,6 +336,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
       <SolicitarAprovacaoDialog
         open={!!aprovacaoTarget}
         onOpenChange={(open) => !open && setAprovacaoTarget(null)}
+        preViabilidadeId={aprovacaoTarget?.id ?? null}
         numero={aprovacaoTarget?.numero ?? null}
         vigencia={aprovacaoTarget?.vigencia ?? null}
         dadosPrecificacao={(aprovacaoTarget?.dados_precificacao as Record<string, any>) ?? null}
