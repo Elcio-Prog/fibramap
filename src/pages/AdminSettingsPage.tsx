@@ -13,6 +13,7 @@ import IntegracoesTab from "@/components/admin/IntegracoesTab";
 import ApiLogsTab from "@/components/admin/ApiLogsTab";
 import GeoGridTab from "@/components/admin/GeoGridTab";
 import ApprovalSettings from "@/components/admin/ApprovalSettings";
+import SetupTab from "@/components/admin/SetupTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
   { colunaApp: "Designação", campoJson: "protocolo", tipo: "string" },
@@ -133,6 +134,7 @@ export default function SettingsPage() {
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="logs">Logs API</TabsTrigger>
           <TabsTrigger value="geogrid">GeoGrid</TabsTrigger>
+          <TabsTrigger value="setup">Setup Precificação</TabsTrigger>
           <TabsTrigger value="aprovacoes">Aprovações</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
         </TabsList>
@@ -147,6 +149,10 @@ export default function SettingsPage() {
 
         <TabsContent value="geogrid" forceMount className="data-[state=inactive]:hidden">
           <GeoGridTab />
+        </TabsContent>
+
+        <TabsContent value="setup" forceMount className="data-[state=inactive]:hidden">
+          <SetupTab />
         </TabsContent>
 
         <TabsContent value="aprovacoes" forceMount className="data-[state=inactive]:hidden">
