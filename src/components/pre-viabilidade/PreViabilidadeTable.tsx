@@ -283,9 +283,17 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     <ContextMenuItem onClick={() => onEdit(row)} className="gap-2">
                       <Pencil className="h-3.5 w-3.5" /> {canEdit ? "Editar" : "Ver detalhes"}
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => setAprovacaoTarget(row)} className="gap-2">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Solicitar Aprovação
-                    </ContextMenuItem>
+                    {(() => {
+                      const dp = row.dados_precificacao as any;
+                      const limit = dp?.roiVigencia != null ? Number(dp.roiVigencia) : null;
+                      const needsApproval = limit != null && row.previsao_roi != null && row.previsao_roi > limit;
+                      if (!needsApproval) return null;
+                      return (
+                        <ContextMenuItem onClick={() => setAprovacaoTarget(row)} className="gap-2">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Solicitar Aprovação
+                        </ContextMenuItem>
+                      );
+                    })()}
                     <ContextMenuItem onClick={() => setHistoryTarget(row)} className="gap-2">
                       <History className="h-3.5 w-3.5" /> Histórico de Versão
                     </ContextMenuItem>
