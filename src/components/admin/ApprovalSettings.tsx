@@ -16,7 +16,8 @@ import { Loader2, Save, Plus, Trash2, ShieldCheck, Info } from "lucide-react";
 type ApprovalLevel = {
   level: number;
   label: string;
-  roi_increment: number; // 0 for Sistema (base from vigencia_vs_roi), +N for others
+  roi_increment: number;
+  value_limit: number; // <= threshold for this level
   responsible_email: string;
 };
 
@@ -38,17 +39,17 @@ type GlobalRules = {
 const DEFAULT_STANDARD: ApprovalConfig = {
   criteria: "roi",
   levels: [
-    { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
-    { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
-    { level: 2, label: "Nível 2", roi_increment: 2, responsible_email: "" },
+    { level: 0, label: "Sistema", roi_increment: 0, value_limit: 0, responsible_email: "" },
+    { level: 1, label: "Nível 1", roi_increment: 1, value_limit: 5000, responsible_email: "" },
+    { level: 2, label: "Nível 2", roi_increment: 2, value_limit: 10000, responsible_email: "" },
   ],
 };
 
 const DEFAULT_EQUIPMENT: ApprovalConfig = {
   criteria: "roi",
   levels: [
-    { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
-    { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
+    { level: 0, label: "Sistema", roi_increment: 0, value_limit: 0, responsible_email: "" },
+    { level: 1, label: "Nível 1", roi_increment: 1, value_limit: 5000, responsible_email: "" },
   ],
 };
 
@@ -87,6 +88,7 @@ function LevelTable({
       level: maxLevel + 1,
       label: `Nível ${maxLevel + 1}`,
       roi_increment: maxLevel + 1,
+      value_limit: 0,
       responsible_email: "",
     };
     onChange({ ...config, levels: [...levels, newLevel] });
@@ -120,8 +122,9 @@ function LevelTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[130px]">Nível</TableHead>
-              <TableHead className="w-[220px]">Incremento {criteriaLabel}</TableHead>
+              <TableHead className="w-[120px]">Nível</TableHead>
+              <TableHead className="w-[180px]">Incremento {criteriaLabel}</TableHead>
+              <TableHead className="w-[180px]">Valor (≤)</TableHead>
               <TableHead>Responsável</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
@@ -145,6 +148,24 @@ function LevelTable({
                         onChange={(e) =>
                           updateLevel(realIdx, {
                             roi_increment: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">≤</span>
+                      <Input
+                        type="number"
+                        step="1000"
+                        min="0"
+                        className="w-28"
+                        value={lvl.value_limit ?? ""}
+                        onChange={(e) =>
+                          updateLevel(realIdx, {
+                            value_limit: parseFloat(e.target.value) || 0,
                           })
                         }
                       />
