@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Plus, Trash2, ShieldCheck, Info } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -19,8 +20,11 @@ type ApprovalLevel = {
   responsible_email: string;
 };
 
+type ApprovalCriteria = "roi" | "valor";
+
 type ApprovalConfig = {
   levels: ApprovalLevel[];
+  criteria: ApprovalCriteria;
 };
 
 type GlobalRules = {
@@ -32,6 +36,7 @@ type GlobalRules = {
 // ── Defaults ───────────────────────────────────────────────────────────────────
 
 const DEFAULT_STANDARD: ApprovalConfig = {
+  criteria: "roi",
   levels: [
     { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
@@ -40,6 +45,7 @@ const DEFAULT_STANDARD: ApprovalConfig = {
 };
 
 const DEFAULT_EQUIPMENT: ApprovalConfig = {
+  criteria: "roi",
   levels: [
     { level: 0, label: "Sistema", roi_increment: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, responsible_email: "" },
@@ -91,14 +97,31 @@ function LevelTable({
     onChange({ ...config, levels: levels.filter((_, i) => i !== idx) });
   };
 
+  const criteriaLabel = config.criteria === "valor" ? "Valor" : "ROI";
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3 mb-2">
+        <Label className="text-sm text-muted-foreground whitespace-nowrap">Fator da Regra:</Label>
+        <Select
+          value={config.criteria}
+          onValueChange={(v: ApprovalCriteria) => onChange({ ...config, criteria: v })}
+        >
+          <SelectTrigger className="w-[140px] h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="roi">ROI</SelectItem>
+            <SelectItem value="valor">Valor</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[130px]">Nível</TableHead>
-              <TableHead className="w-[220px]">Incremento ROI</TableHead>
+              <TableHead className="w-[220px]">Incremento {criteriaLabel}</TableHead>
               <TableHead>Responsável</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
