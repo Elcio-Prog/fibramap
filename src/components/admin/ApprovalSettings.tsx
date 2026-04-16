@@ -316,11 +316,7 @@ export default function ApprovalSettings() {
           <LevelTable
             config={standard}
             onChange={setStandard}
-            roiReference={roiStandard}
-            refTitle="Serviços Gerais"
           />
-        </CardContent>
-      </Card>
 
       {/* Bloco 2 — Equipamentos */}
       <Card>
@@ -336,11 +332,7 @@ export default function ApprovalSettings() {
           <LevelTable
             config={equipment}
             onChange={setEquipment}
-            roiReference={roiEquipment}
-            refTitle="Equipamentos"
           />
-        </CardContent>
-      </Card>
 
       {/* Bloco 3 — Regras Globais */}
       <Card>
