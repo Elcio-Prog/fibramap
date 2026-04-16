@@ -412,8 +412,8 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para link: a fórmula aplica (1 + CAC) * (1 + Margem) sobre a base operacional.
-  // Calcular o valor de cada componente em reais.
+  // CAC e Margem aplicados sobre a base consolidada (CAPEX + custo operacional).
+  // CAC(R$) = Base * %CAC ; Margem(R$) = (Base + CAC) * %Margem
   const baseOperacionalLink =
     safeDivide(custosGerais, vigencia) +
     linkcustoBlocoIP +
