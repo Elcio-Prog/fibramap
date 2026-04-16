@@ -347,6 +347,8 @@ export default function ApprovalSettings() {
             Níveis de Aprovação — Equipamentos
             <Badge className="bg-primary/10 text-primary border-primary/20 ml-1">Firewall</Badge>
             <Badge className="bg-primary/10 text-primary border-primary/20">Wi-Fi</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20">Switch</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20">Backup</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
