@@ -412,15 +412,11 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // CAC e Margem aplicados sobre a base consolidada (CAPEX + custo operacional).
-  // CAC(R$) = Base * %CAC ; Margem(R$) = (Base + CAC) * %Margem
-  const baseOperacionalLink =
-    safeDivide(custosGerais, vigencia) +
-    linkcustoBlocoIP +
-    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
-    valorLastMile;
-  const despesaCacReais = baseOperacionalLink * linkcustoCAC;
-  const margemLucroReais = (baseOperacionalLink + despesaCacReais) * linktaxaLink;
+  // Exibição: aplica %CAC e %Margem sobre o Valor Mínimo final (já consolidado).
+  // CAC(R$) = ValorMin * %CAC ; Margem(R$) = (ValorMin + CAC) * %Margem
+  const valorBaseExibicao = valorMinimo - (valorOpexInput ?? 0);
+  const despesaCacReais = valorBaseExibicao * linkcustoCAC;
+  const margemLucroReais = (valorBaseExibicao + despesaCacReais) * linktaxaLink;
   const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
   if (custoOperacionalTotalMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
