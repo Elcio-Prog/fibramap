@@ -228,8 +228,43 @@ export default function SolicitarAprovacaoDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
-          <Button disabled={!motivo || !resolvedLevel}>Solicitar</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting}>Cancelar</Button>
+          <Button
+            disabled={!motivo || !resolvedLevel || !resolvedLevel.responsible_email || !preViabilidadeId || submitting}
+            onClick={async () => {
+              if (!preViabilidadeId || !resolvedLevel) return;
+              setSubmitting(true);
+              try {
+                const { data, error } = await supabase.functions.invoke("send-approval-request", {
+                  body: {
+                    preViabilidadeId,
+                    responsavelEmail: resolvedLevel.responsible_email,
+                    nivel: resolvedLevel.level,
+                    nivelLabel: resolvedLevel.label,
+                    motivo,
+                  },
+                });
+                if (error) throw error;
+                if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao enviar");
+                toast({
+                  title: "Solicitação enviada",
+                  description: `Email enviado para ${resolvedLevel.responsible_email}`,
+                });
+                handleOpenChange(false);
+              } catch (e: any) {
+                toast({
+                  title: "Erro ao enviar solicitação",
+                  description: e?.message || "Tente novamente",
+                  variant: "destructive",
+                });
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Solicitar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
