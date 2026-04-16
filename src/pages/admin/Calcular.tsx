@@ -329,7 +329,7 @@ function BackupFields({ form, setField }: {
 // ── Result Sidebar ──
 
 function ResultPanel({ resultado, calculating, error, showMemoria = true }: {
-  resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string; memoriaCalculo?: { label: string; valor: number }[] } | null;
+  resultado: { valorMinimo: number; valorCapex: number; valorOpex: number; mensagem?: string; memoriaCalculo?: { label: string; valor: number; isHeader?: boolean; isSubItem?: boolean }[] } | null;
   calculating: boolean;
   error: string | null;
   showMemoria?: boolean;
@@ -412,24 +412,33 @@ function ResultPanel({ resultado, calculating, error, showMemoria = true }: {
             <CollapsibleContent>
               <CardContent className="pt-0">
                 <div className="space-y-1.5">
-                  {resultado.memoriaCalculo.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
-                        item.label === "Valor Mínimo" || item.label === "CAPEX Total"
-                          ? "bg-primary/5 font-semibold text-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      <span className="tabular-nums font-mono">
-                        {typeof item.valor === "number" && (item.label.includes("Margem") || item.label.includes("CAC") || item.label.includes("Fator") || item.label.includes("ROI"))
-                          ? item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
-                          : formatBRL(item.valor)
-                        }
-                      </span>
-                    </div>
-                  ))}
+                  {resultado.memoriaCalculo.map((item, idx) => {
+                    const isHeader = (item as any).isHeader;
+                    const isSub = (item as any).isSubItem;
+                    const isTotal = item.label === "Valor Mínimo" || item.label === "CAPEX Total";
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
+                          isHeader
+                            ? "bg-accent border border-border font-semibold text-foreground mt-2"
+                            : isSub
+                              ? "text-muted-foreground pl-6 border-l-2 border-border ml-2"
+                              : isTotal
+                                ? "bg-primary/5 font-semibold text-foreground"
+                                : "text-muted-foreground"
+                        }`}
+                      >
+                        <span>{isSub ? `↳ ${item.label}` : item.label}</span>
+                        <span className="tabular-nums font-mono">
+                          {typeof item.valor === "number" && !isHeader && !isSub && (item.label.includes("Margem") || item.label.includes("CAC") || item.label.includes("Fator") || item.label.includes("ROI"))
+                            ? item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+                            : formatBRL(item.valor)
+                          }
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </CollapsibleContent>
