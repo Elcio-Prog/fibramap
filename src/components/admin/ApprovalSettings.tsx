@@ -63,45 +63,14 @@ const isValidEmail = (email: string) =>
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-// ── Sub: Reference ROI table ───────────────────────────────────────────────────
-
-function VigenciaRoiReference({
-  data,
-  title,
-}: {
-  data: VigenciaRoi[];
-  title: string;
-}) {
-  if (!data.length) return null;
-  return (
-    <div className="rounded-md border p-3 bg-muted/30 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-        <Info className="h-3 w-3" />
-        {title} — ROI base por vigência (tabela <code className="text-[10px]">vigencia_vs_roi</code>)
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {data.map((v) => (
-          <Badge key={v.meses} variant="outline" className="text-xs font-mono">
-            {v.meses}m → ROI {Number(v.roi).toFixed(1)}
-          </Badge>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Sub: Level Table ───────────────────────────────────────────────────────────
 
 function LevelTable({
   config,
   onChange,
-  roiReference,
-  refTitle,
 }: {
   config: ApprovalConfig;
   onChange: (c: ApprovalConfig) => void;
-  roiReference: VigenciaRoi[];
-  refTitle: string;
 }) {
   const { levels } = config;
 
@@ -126,65 +95,41 @@ function LevelTable({
     onChange({ ...config, levels: levels.filter((_, i) => i !== idx) });
   };
 
-  // Pick a sample base for preview (e.g. 12 months)
-  const sampleBase = roiReference.find((r) => r.meses === "12")?.roi ??
-    roiReference[0]?.roi ?? 0;
-
   return (
     <div className="space-y-4">
-      <VigenciaRoiReference data={roiReference} title={refTitle} />
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[130px]">Nível</TableHead>
-              <TableHead className="w-[280px]">ROI (incremento sobre base da vigência)</TableHead>
+              <TableHead className="w-[220px]">Incremento ROI</TableHead>
               <TableHead>Responsável</TableHead>
               <TableHead className="w-[60px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {levels.map((lvl, idx) => {
-              const isSistema = lvl.level === 0;
+            {levels.filter((l) => l.level > 0).map((lvl, idx) => {
+              const realIdx = levels.findIndex((l) => l.level === lvl.level);
               return (
-                <TableRow key={lvl.level} className={isSistema ? "bg-muted/40" : ""}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {lvl.label}
-                      {isSistema && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          Auto
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+                <TableRow key={lvl.level}>
+                  <TableCell className="font-medium">{lvl.label}</TableCell>
 
                   <TableCell>
-                    {isSistema ? (
-                      <span className="text-sm text-muted-foreground">
-                        Base da vigência (ex: 12m → ROI {Number(sampleBase).toFixed(1)})
-                      </span>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground font-medium">+</span>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          className="w-20"
-                          value={lvl.roi_increment ?? ""}
-                          onChange={(e) =>
-                            updateLevel(idx, {
-                              roi_increment: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          ex: 12m → = {(Number(sampleBase) + (lvl.roi_increment ?? 0)).toFixed(1)}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">+</span>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        className="w-20"
+                        value={lvl.roi_increment ?? ""}
+                        onChange={(e) =>
+                          updateLevel(realIdx, {
+                            roi_increment: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
                   </TableCell>
 
                   <TableCell>
