@@ -421,9 +421,9 @@ function ResultPanel({ resultado, calculating, error, showMemoria = true }: {
                         key={idx}
                         className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
                           isHeader
-                            ? "bg-amber-500/10 border border-amber-500/30 font-semibold text-foreground mt-2"
+                            ? "bg-accent border border-border font-semibold text-foreground mt-2"
                             : isSub
-                              ? "text-muted-foreground pl-6 border-l-2 border-amber-500/30 ml-2"
+                              ? "text-muted-foreground pl-6 border-l-2 border-border ml-2"
                               : isTotal
                                 ? "bg-primary/5 font-semibold text-foreground"
                                 : "text-muted-foreground"
