@@ -28,10 +28,6 @@ type GlobalRules = {
   monthly_ticket_limit: number;
 };
 
-type VigenciaRoi = {
-  meses: string;
-  roi: number;
-};
 
 // ── Defaults ───────────────────────────────────────────────────────────────────
 
@@ -183,43 +179,22 @@ export default function ApprovalSettings() {
   const [equipment, setEquipment] = useState<ApprovalConfig>(DEFAULT_EQUIPMENT);
   const [globalRules, setGlobalRules] = useState<GlobalRules>(DEFAULT_GLOBAL);
 
-  const [roiStandard, setRoiStandard] = useState<VigenciaRoi[]>([]);
-  const [roiEquipment, setRoiEquipment] = useState<VigenciaRoi[]>([]);
-
   // ── Load ────────────────────────────────────────────────────────────────────
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const [configRes, roiRes] = await Promise.all([
-        supabase
-          .from("configuracoes")
-          .select("chave, valor")
-          .in("chave", [
-            "approval_config_standard",
-            "approval_config_equipment",
-            "approval_global_rules",
-          ]),
-        supabase.from("vigencia_vs_roi").select("meses, roi").order("meses"),
-      ]);
+      const { data, error } = await supabase
+        .from("configuracoes")
+        .select("chave, valor")
+        .in("chave", [
+          "approval_config_standard",
+          "approval_config_equipment",
+          "approval_global_rules",
+        ]);
 
-      if (configRes.error) throw configRes.error;
-      if (roiRes.error) throw roiRes.error;
+      if (error) throw error;
 
-      // Split vigencia_vs_roi into standard vs equipment
-      const stdRoi: VigenciaRoi[] = [];
-      const eqRoi: VigenciaRoi[] = [];
-      for (const r of roiRes.data || []) {
-        const m = String(r.meses).trim();
-        if (m.toLowerCase().includes("equipamento")) {
-          eqRoi.push({ meses: m.replace(/\s*equipamento\s*/i, "").trim(), roi: Number(r.roi) });
-        } else {
-          stdRoi.push({ meses: m, roi: Number(r.roi) });
-        }
-      }
-      setRoiStandard(stdRoi);
-      setRoiEquipment(eqRoi);
-
-      for (const row of configRes.data || []) {
+      for (const row of data || []) {
         const val = row.valor as any;
         if (row.chave === "approval_config_standard" && val?.levels) setStandard(val);
         if (row.chave === "approval_config_equipment" && val?.levels) setEquipment(val);
