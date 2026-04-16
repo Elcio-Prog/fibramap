@@ -39,6 +39,7 @@ type ApprovalConfig = {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preViabilidadeId: string | null;
   numero: number | null;
   vigencia: number | null;
   dadosPrecificacao: Record<string, any> | null;
@@ -48,13 +49,16 @@ interface Props {
 export default function SolicitarAprovacaoDialog({
   open,
   onOpenChange,
+  preViabilidadeId,
   numero,
   vigencia,
   dadosPrecificacao,
   hasEquipment,
 }: Props) {
+  const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [resolvedLevel, setResolvedLevel] = useState<ApprovalLevel | null>(null);
   const [resolvedLabel, setResolvedLabel] = useState("");
 
