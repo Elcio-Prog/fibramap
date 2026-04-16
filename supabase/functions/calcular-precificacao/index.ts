@@ -630,15 +630,13 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
   addMemW("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Wifi: valorMinimo = (custosGerais/roiVigencia + custoPorContrato) * (1+CAC) * (1+Margem)
-  const wfBaseOp = safeDivide(custosGerais, roiVigencia) + custoPorContrato;
-  const wfCacReais = wfBaseOp * pabxDespesaCAC;
-  const wfMargemReais = (wfBaseOp + wfCacReais) * pabxMargemLucro;
-  const wfTotalOpMargem = wfBaseOp + wfCacReais + wfMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const wfBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const wfCacReais = wfBaseExib * pabxDespesaCAC;
+  const wfMargemReais = (wfBaseExib + wfCacReais) * pabxMargemLucro;
+  const wfTotalOpMargem = wfCacReais + wfMargemReais;
   if (wfTotalOpMargem !== 0) {
     memoriaW.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: wfTotalOpMargem, isHeader: true });
-    memoriaW.push({ label: "Custo Operacional Base (Custos Gerais/ROI + Custo por Contrato)", valor: wfBaseOp, isSubItem: true });
-    memoriaW.push({ label: "Custo por Contrato", valor: custoPorContrato, isSubItem: true });
     memoriaW.push({ label: "Despesa CAC SVA (R$)", valor: wfCacReais, isSubItem: true });
     memoriaW.push({ label: "Margem de Lucro (R$)", valor: wfMargemReais, isSubItem: true });
   }
