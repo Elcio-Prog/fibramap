@@ -800,29 +800,13 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   addMemV("Internacional", valorInternacional);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Voz: valorMinimo = (somaTudo) * (1+CAC) * (1+Margem)
-  const vozBaseOp =
-    valorContratoPabx +
-    valorContratos +
-    valorNovasLinhas +
-    valorPortabilidades +
-    valorRamais +
-    valorCanais +
-    valorFixoLocalCalc +
-    valorFixoLDNCalc +
-    valorMovelLocalCalc +
-    valorMovelLDNCalc +
-    valor0800MovelCalc +
-    valor0800FixoCalc +
-    valorInternacional +
-    safeDivide(custosGerais - 1, roiVigencia);
-  const vozCacReais = vozBaseOp * vozDespesaCAC;
-  const vozMargemReais = (vozBaseOp + vozCacReais) * vozMargemLucro;
-  const vozTotalOpMargem = vozBaseOp + vozCacReais + vozMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const vozBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const vozCacReais = vozBaseExib * vozDespesaCAC;
+  const vozMargemReais = (vozBaseExib + vozCacReais) * vozMargemLucro;
+  const vozTotalOpMargem = vozCacReais + vozMargemReais;
   if (vozTotalOpMargem !== 0) {
     memoriaV.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: vozTotalOpMargem, isHeader: true });
-    memoriaV.push({ label: "Custo Operacional Total (Contratos)", valor: valorContratos, isSubItem: true });
-    memoriaV.push({ label: "Suporte PABX", valor: valorContratoPabx, isSubItem: true });
     memoriaV.push({ label: "Despesa CAC STFC (R$)", valor: vozCacReais, isSubItem: true });
     memoriaV.push({ label: "Margem de Lucro (R$)", valor: vozMargemReais, isSubItem: true });
   }
