@@ -421,7 +421,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     valorLastMile;
   const despesaCacReais = baseOperacionalLink * linkcustoCAC;
   const margemLucroReais = (baseOperacionalLink + despesaCacReais) * linktaxaLink;
-  const custoOperacionalTotalMargem = baseOperacionalLink + despesaCacReais + margemLucroReais;
+  const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
   if (custoOperacionalTotalMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
     memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
