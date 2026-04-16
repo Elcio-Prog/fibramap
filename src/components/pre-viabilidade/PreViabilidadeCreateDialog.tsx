@@ -495,21 +495,30 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="rounded-b-lg border border-t-0 bg-muted/10 px-4 py-3 space-y-1.5">
-                  {memoriaCalculo.map((mc, idx) => (
-                    <div key={idx} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
-                      mc.label === "Valor Mínimo" || mc.label === "CAPEX Total"
-                        ? "bg-primary/5 font-semibold text-foreground"
-                        : "text-muted-foreground"
-                    }`}>
-                      <span>{mc.label}</span>
-                      <span className="tabular-nums font-mono">
-                        {typeof mc.valor === "number" && (mc.label.includes("Margem") || mc.label.includes("CAC") || mc.label.includes("Fator") || mc.label.includes("ROI"))
-                          ? mc.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
-                          : formatCurrency(mc.valor)
-                        }
-                      </span>
-                    </div>
-                  ))}
+                  {memoriaCalculo.map((mc, idx) => {
+                    const isHeader = (mc as any).isHeader;
+                    const isSub = (mc as any).isSubItem;
+                    const isTotal = mc.label === "Valor Mínimo" || mc.label === "CAPEX Total";
+                    return (
+                      <div key={idx} className={`flex items-center justify-between text-xs py-1 px-2 rounded ${
+                        isHeader
+                          ? "bg-accent border border-border font-semibold text-foreground mt-2"
+                          : isSub
+                            ? "text-muted-foreground pl-6 border-l-2 border-border ml-2"
+                            : isTotal
+                              ? "bg-primary/5 font-semibold text-foreground"
+                              : "text-muted-foreground"
+                      }`}>
+                        <span>{isSub ? `↳ ${mc.label}` : mc.label}</span>
+                        <span className="tabular-nums font-mono">
+                          {typeof mc.valor === "number" && !isHeader && !isSub && (mc.label.includes("Margem") || mc.label.includes("CAC") || mc.label.includes("Fator") || mc.label.includes("ROI"))
+                            ? mc.valor.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 6 })
+                            : formatCurrency(mc.valor)
+                          }
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </CollapsibleContent>
             </Collapsible>
