@@ -38,6 +38,7 @@ import DrilldownRegioes from "@/pages/dashboard/DrilldownRegioes";
 import PrecificacaoPage from "@/pages/admin/PrecificacaoPage";
 import CalcularPage from "@/pages/admin/Calcular";
 import PreViabilidadePage from "@/pages/PreViabilidadePage";
+import AprovacaoDecisaoPage from "@/pages/AprovacaoDecisaoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
