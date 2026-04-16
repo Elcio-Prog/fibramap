@@ -514,14 +514,13 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Para Firewall: valorMinimo = (custosGerais/roiVigencia) + custoPorContrato * (1+CAC) * (1+Margem)
-  // O bloco operacional é o "custoPorContrato * (1+CAC) * (1+Margem)".
-  const fwCacReais = custoPorContrato * pabxDespesaCAC;
-  const fwMargemReais = (custoPorContrato + fwCacReais) * pabxMargemLucro;
-  const fwTotalOpMargem = custoPorContrato + fwCacReais + fwMargemReais;
+  // Exibição: %CAC e %Margem aplicados sobre o Valor Mínimo final.
+  const fwBaseExib = valorMinimo - (valorOpexInput ?? 0);
+  const fwCacReais = fwBaseExib * pabxDespesaCAC;
+  const fwMargemReais = (fwBaseExib + fwCacReais) * pabxMargemLucro;
+  const fwTotalOpMargem = fwCacReais + fwMargemReais;
   if (fwTotalOpMargem !== 0) {
     memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: fwTotalOpMargem, isHeader: true });
-    memoria.push({ label: "Custo por Contrato", valor: custoPorContrato, isSubItem: true });
     memoria.push({ label: "Despesa CAC SVA (R$)", valor: fwCacReais, isSubItem: true });
     memoria.push({ label: "Margem de Lucro (R$)", valor: fwMargemReais, isSubItem: true });
   }
