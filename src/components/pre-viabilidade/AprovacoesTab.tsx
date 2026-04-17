@@ -372,6 +372,8 @@ export default function AprovacoesTab() {
           </Card>
         );
       })}
+        </div>
+      )}
     </div>
   );
 }
