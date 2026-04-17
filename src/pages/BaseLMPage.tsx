@@ -101,9 +101,6 @@ export default function BaseLMPage() {
           <TabsTrigger value="import" className="gap-1.5">
             <Upload className="h-3.5 w-3.5" /> Importar
           </TabsTrigger>
-          <TabsTrigger value="complement" className="gap-1.5">
-            <Upload className="h-3.5 w-3.5" /> Complemento
-          </TabsTrigger>
           <TabsTrigger value="manual" className="gap-1.5">
             <Plus className="h-3.5 w-3.5" /> Cadastro
           </TabsTrigger>
@@ -114,10 +111,6 @@ export default function BaseLMPage() {
 
         <TabsContent value="import">
           <ImportWizard />
-        </TabsContent>
-
-        <TabsContent value="complement">
-          <ImportWizard isComplement />
         </TabsContent>
 
         <TabsContent value="manual">
