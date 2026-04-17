@@ -1087,10 +1087,36 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
     memoria.push({ label: "Margem de Lucro (R$)", valor: bkMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Backup) ───
+  // Backup não possui CAPEX nem vigência configurada → indicadores baseiam-se
+  // apenas no custo recorrente. roiSistema = vigência informada (default 1).
+  const roiSistemaBk = (input.roiVigencia ?? input.vigencia ?? 1);
+  const despesasOpMensaisBk = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
+  const despesasTotaisBk = despesasOpMensaisBk * roiSistemaBk;
+  const bkRoiInd = computeRoiIndicators({
+    capex: 0,
+    despesasTotais: despesasTotaisBk,
+    roiSistema: roiSistemaBk,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, bkRoiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex: 0,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: bkRoiInd.roiTarget,
+    roiSistema: bkRoiInd.roiSistema,
+    roiEscolhido: bkRoiInd.roiEscolhido,
+    roiFinal: bkRoiInd.roiFinal,
+    aprovado: bkRoiInd.aprovado,
+  };
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
