@@ -18,6 +18,7 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import BackgroundTasksIndicator from "@/components/BackgroundTasksIndicator";
 
 interface SidebarSection {
   title: string;
@@ -309,8 +310,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             </button>
             <span className="ml-3 font-bold">FibraMap</span>
+            <div className="ml-auto">
+              <BackgroundTasksIndicator />
+            </div>
           </header>
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="relative flex-1 overflow-auto">
+            <div className="pointer-events-none absolute right-3 top-3 z-30 hidden lg:block">
+              <div className="pointer-events-auto rounded-md border bg-card/95 shadow-sm backdrop-blur">
+                <BackgroundTasksIndicator />
+              </div>
+            </div>
+            {children}
+          </main>
         </div>
       </div>
     </TooltipProvider>
