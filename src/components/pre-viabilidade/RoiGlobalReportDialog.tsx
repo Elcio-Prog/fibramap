@@ -779,7 +779,59 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     </div>
                   </div>
                 </div>
+
+                {/* Status de Viabilidade Global + Aprovação */}
+                {roiTargetGlobal != null && (
+                  <div
+                    className={cn(
+                      "mt-6 p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center justify-between gap-4",
+                      isViavelGlobal && "bg-green-50 border-green-300",
+                      isInviavelGlobal && "bg-destructive/5 border-destructive/30"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isViavelGlobal ? (
+                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                      ) : (
+                        <XCircle className="h-8 w-8 text-destructive" />
+                      )}
+                      <div>
+                        <div
+                          className={cn(
+                            "text-lg font-bold",
+                            isViavelGlobal ? "text-green-700" : "text-destructive"
+                          )}
+                        >
+                          {isViavelGlobal
+                            ? "Projeto VIÁVEL globalmente"
+                            : "Projeto INVIÁVEL globalmente — necessita aprovação"}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          ROI Target Global (1º item):{" "}
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {roiTargetGlobal.toFixed(2)} meses
+                          </span>{" "}
+                          • ROI Global Final:{" "}
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {roiGlobalFinal.toFixed(2)} meses
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {isInviavelGlobal && firstItem && (
+                      <Button
+                        onClick={() => setApprovalOpen(true)}
+                        className="gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                      >
+                        <Send className="h-4 w-4" />
+                        Solicitar Aprovação Global
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
+            </div>
             </div>
           ) : (
             <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed text-muted-foreground p-8">
