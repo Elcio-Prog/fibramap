@@ -421,28 +421,9 @@ export default function LMContractsTable() {
         </div>
       </div>
 
-      {/* Paginação */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs text-muted-foreground">
-          Mostrando {from}–{to} de {totalRows} contratos
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button size="sm" variant="outline" className="h-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Página {pageIndex + 1} de {Math.max(1, table.getPageCount())}
-          </span>
-          <Button size="sm" variant="outline" className="h-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Total */}
+      <div className="text-xs text-muted-foreground">
+        Mostrando {totalRows} contratos
       </div>
 
       <LMContractDrawer contract={selected} open={!!selected} onClose={() => setSelected(null)} />
