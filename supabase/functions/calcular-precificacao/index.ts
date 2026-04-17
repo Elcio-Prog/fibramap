@@ -520,10 +520,42 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação ───
+  // Despesas_Totais para Conectividade = CAPEX + custos operacionais que oneram o projeto.
+  // Custos operacionais mensais → multiplicamos pela vigência para colocar na mesma base do CAPEX.
+  const despesasOperacionaisMensais =
+    linkcustoBlocoIP +
+    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
+    (valorLastMile ?? 0);
+  const despesasTotais =
+    valorCapex +
+    despesasOperacionaisMensais * vigencia +
+    (custoLastMile ?? 0) +
+    (custosMateriaisAdicionais ?? 0);
+  const roiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais,
+    roiSistema: roiVigencia,
+    cacPct: linkcustoCAC,
+    margemPct: linktaxaLink,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, roiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: roiInd.roiTarget,
+    roiSistema: roiInd.roiSistema,
+    roiEscolhido: roiInd.roiEscolhido,
+    roiFinal: roiInd.roiFinal,
+    aprovado: roiInd.aprovado,
+  };
 }
 
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
