@@ -825,7 +825,7 @@ export default function WsSingleSearch() {
 
   // Radius metrics
   const radiusPartners: Record<string, number> = {};
-  radiusResults?.forEach(r => { radiusPartners[r.compra.parceiro] = (radiusPartners[r.compra.parceiro] || 0) + 1; });
+  radiusResults?.forEach(r => { const name = r.compra.nome_pn || r.compra.parceiro; radiusPartners[name] = (radiusPartners[name] || 0) + 1; });
 
   return (
     <div className="space-y-6">
