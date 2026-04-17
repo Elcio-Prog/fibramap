@@ -681,6 +681,7 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: pabxDespesaCAC,
     margemPct: pabxMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasOpMensaisContrato: custoPorContrato,
   });
   pushRoiMemoria(memoria, fwRoiInd, input.ticketMensal);
 
