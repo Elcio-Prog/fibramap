@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { PreViabilidade, useDeletePreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, useDeletePreViabilidade, getRoiIndicators } from "@/hooks/usePreViabilidades";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
