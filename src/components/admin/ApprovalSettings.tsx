@@ -114,7 +114,8 @@ function LevelTable({
   };
 
   const addLevel = () => {
-    const maxLevel = Math.max(...levels.map((l) => l.level));
+    const manual = levels.filter((l) => l.level > 0 && l.level !== DIRETORIA_LEVEL);
+    const maxLevel = manual.length > 0 ? Math.max(...manual.map((l) => l.level)) : 0;
     const newLevel: ApprovalLevel = {
       level: maxLevel + 1,
       label: `Nível ${maxLevel + 1}`,
@@ -122,11 +123,17 @@ function LevelTable({
       value_limit: 0,
       responsible_email: "",
     };
-    onChange({ ...config, levels: [...levels, newLevel] });
+    // Insere ANTES do Diretoria (que deve permanecer como último)
+    const others = levels.filter((l) => l.level !== DIRETORIA_LEVEL);
+    const diretoria = levels.find((l) => l.level === DIRETORIA_LEVEL);
+    onChange({
+      ...config,
+      levels: diretoria ? [...others, newLevel, diretoria] : [...others, newLevel],
+    });
   };
 
   const removeLevel = (idx: number) => {
-    if (levels[idx].level === 0) return;
+    if (levels[idx].level === 0 || levels[idx].level === DIRETORIA_LEVEL) return;
     onChange({ ...config, levels: levels.filter((_, i) => i !== idx) });
   };
 
