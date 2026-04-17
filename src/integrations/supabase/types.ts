@@ -518,6 +518,7 @@ export type Database = {
           nome_cliente: string | null
           nome_pn: string | null
           num_contrato_cliente: string | null
+          numero: number
           observacao_contrato_lm: string | null
           observacao_geral: string | null
           pn: string | null
@@ -553,6 +554,7 @@ export type Database = {
           nome_cliente?: string | null
           nome_pn?: string | null
           num_contrato_cliente?: string | null
+          numero?: number
           observacao_contrato_lm?: string | null
           observacao_geral?: string | null
           pn?: string | null
@@ -588,6 +590,7 @@ export type Database = {
           nome_cliente?: string | null
           nome_pn?: string | null
           num_contrato_cliente?: string | null
+          numero?: number
           observacao_contrato_lm?: string | null
           observacao_geral?: string | null
           pn?: string | null

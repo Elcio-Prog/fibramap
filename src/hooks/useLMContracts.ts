@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface LMContract {
   id: string;
+  numero: number;
   user_id: string | null;
 
   status: string;
@@ -76,39 +77,22 @@ export function useLMContracts() {
 }
 
 /**
- * Upsert por num_contrato_cliente. Itens sem num_contrato_cliente
- * são inseridos como novos registros.
+ * Insere todos os itens como novos registros.
+ * O ID sequencial (numero) é gerado automaticamente pelo banco.
  */
 export function useUpsertLMContracts() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (items: LMContractInput[]) => {
-      const withKey = items.filter((i) => i.num_contrato_cliente);
-      const withoutKey = items.filter((i) => !i.num_contrato_cliente);
-
       let inserted = 0;
-      let updated = 0;
-
-      // Upsert com chave
       const batch = 500;
-      for (let i = 0; i < withKey.length; i += batch) {
-        const chunk = withKey.slice(i, i + batch);
-        const { error, count } = await supabase
-          .from("lm_contracts")
-          .upsert(chunk as any, { onConflict: "num_contrato_cliente", count: "exact" });
-        if (error) throw error;
-        updated += count ?? chunk.length;
-      }
-
-      // Insert simples para itens sem chave
-      for (let i = 0; i < withoutKey.length; i += batch) {
-        const chunk = withoutKey.slice(i, i + batch);
+      for (let i = 0; i < items.length; i += batch) {
+        const chunk = items.slice(i, i + batch);
         const { error } = await supabase.from("lm_contracts").insert(chunk as any);
         if (error) throw error;
         inserted += chunk.length;
       }
-
-      return { inserted, upserted: updated, total: items.length };
+      return { inserted, upserted: 0, total: items.length };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lm_contracts"] }),
   });
@@ -143,6 +127,7 @@ export function useDeleteLMContract() {
 
 export const LM_FIELD_LABELS: Record<keyof LMContract, string> = {
   id: "ID",
+  numero: "Nº",
   user_id: "User ID",
   status: "Status",
   pn: "PN",

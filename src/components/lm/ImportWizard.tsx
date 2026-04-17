@@ -185,7 +185,7 @@ export default function ImportWizard() {
     await createProfile.mutateAsync({
       name: profileName.trim(),
       column_mapping: mapping,
-      key_field: "num_contrato_cliente",
+      key_field: "numero",
       user_id: user?.id,
     });
     toast({ title: "Perfil salvo!" });
@@ -266,17 +266,8 @@ export default function ImportWizard() {
       items.push(item);
     }
 
-    // Dedup por num_contrato_cliente quando presente
-    const seen = new Set<string>();
-    const unique: LMContractInput[] = [];
-    for (const it of items) {
-      const k = it.num_contrato_cliente?.trim();
-      if (k) {
-        if (seen.has(k)) { ignored++; continue; }
-        seen.add(k);
-      }
-      unique.push(it);
-    }
+    // Cada linha vira um novo registro; o nº sequencial é gerado pelo banco.
+    const unique = items;
 
     setSummary({
       total: rows.length,
