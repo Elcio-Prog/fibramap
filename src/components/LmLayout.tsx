@@ -1,10 +1,11 @@
 import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   Database, LogOut, Menu, Settings, ChevronLeft, ChevronRight,
-  LayoutDashboard, Upload, Bell,
+  LayoutDashboard, Upload, Bell, Network, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
