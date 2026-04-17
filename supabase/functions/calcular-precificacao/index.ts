@@ -653,10 +653,34 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     memoria.push({ label: "Margem de Lucro (R$)", valor: fwMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Firewall) ───
+  // Despesas_Totais = CAPEX + custos operacionais (custo por contrato × vigência)
+  const despesasTotaisFw =
+    valorCapex + custoPorContrato * vigencia + (custosMateriaisAdicionais ?? 0);
+  const fwRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisFw,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, fwRoiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: fwRoiInd.roiTarget,
+    roiSistema: fwRoiInd.roiSistema,
+    roiEscolhido: fwRoiInd.roiEscolhido,
+    roiFinal: fwRoiInd.roiFinal,
+    aprovado: fwRoiInd.aprovado,
+  };
 }
 
 function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
