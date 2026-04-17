@@ -158,7 +158,8 @@ export default function LMContractsTable() {
       accessorKey: id as any,
       header: ({ column }) => {
         const can = opts?.sortable ?? SORTABLE_BY_DEFAULT.has(id);
-        return can ? (
+        if (!can) return <span>{LM_FIELD_LABELS[id]}</span>;
+        return (
           <button
             className="flex items-center gap-1 hover:text-foreground"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
@@ -166,7 +167,7 @@ export default function LMContractsTable() {
             {LM_FIELD_LABELS[id]}
             <ArrowUpDown className="h-3 w-3" />
           </button>
-        ) : <span>{LM_FIELD_LABELS[id]}</span>,
+        );
       },
       cell: ({ row }) => {
         const v = (row.original as any)[id];
