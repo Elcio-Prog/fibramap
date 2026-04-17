@@ -165,7 +165,7 @@ function WsRoutes() {
 /** Landing page — redirect logged-in users to their area */
 function LandingRoute() {
   const { session, loading } = useAuth();
-  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLm, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <LandingPage />;
@@ -178,6 +178,7 @@ function LandingRoute() {
   }
 
   if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
+  if (isLm) return <Navigate to="/lm" replace />;
   if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
   return <LandingPage />;
 }
@@ -185,7 +186,7 @@ function LandingRoute() {
 /** /auth — admin login only */
 function AuthRoute() {
   const { session, loading, signOut } = useAuth();
-  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLm, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <Auth />;
@@ -198,6 +199,7 @@ function AuthRoute() {
   }
 
   if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
+  if (isLm) return <Navigate to="/lm" replace />;
   if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
   signOut();
   return <Auth />;
@@ -206,7 +208,7 @@ function AuthRoute() {
 /** /ws/login — WS login + signup */
 function WsAuthRoute() {
   const { session, loading } = useAuth();
-  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
+  const { isWsUser, isAdmin, isVendedor, isImplantacao, isLm, isLoading: roleLoading } = useUserRole();
 
   if (loading) return null;
   if (!session) return <Auth />;
@@ -219,6 +221,7 @@ function WsAuthRoute() {
   }
 
   if (isWsUser || isVendedor) return <Navigate to="/ws" replace />;
+  if (isLm) return <Navigate to="/lm" replace />;
   if (isAdmin || isImplantacao) return <Navigate to="/" replace />;
   return <Navigate to="/" replace />;
 }
@@ -242,6 +245,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/ws/login" element={<WsAuthRoute />} />
                 <Route path="/ws/*" element={<WsRoutes />} />
+                <Route path="/lm/*" element={<LmRoutes />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </BrowserRouter>
