@@ -249,9 +249,6 @@ export default function LMContractsTable() {
   const in30 = addDays(today, 30);
 
   const totalRows = filteredData.length;
-  const pageIndex = table.getState().pagination.pageIndex;
-  const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-  const to = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
     <div className="space-y-4">
