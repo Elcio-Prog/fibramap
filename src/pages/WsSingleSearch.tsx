@@ -1405,7 +1405,7 @@ export default function WsSingleSearch() {
                     const contactLabel = [contactName, contactPhone].filter(Boolean).join(" · ") || "—";
                     return (
                       <tr key={i} className="border-t">
-                        <td className="px-2 py-1">{r.compra.parceiro}</td>
+                        <td className="px-2 py-1">{r.compra.nome_pn || r.compra.parceiro}</td>
                         <td className="px-2 py-1 font-mono">{distLabel}</td>
                         <td className="px-2 py-1 text-muted-foreground">{contactLabel}</td>
                       </tr>
