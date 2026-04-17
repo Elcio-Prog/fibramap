@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Check, ChevronsUpDown, ScrollText, Download, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, ScrollText, Download, Loader2, CheckCircle2, XCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
-import { PreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, getRoiIndicators } from "@/hooks/usePreViabilidades";
+import SolicitarAprovacaoDialog from "@/components/pre-viabilidade/SolicitarAprovacaoDialog";
 import {
   Dialog,
   DialogContent,
