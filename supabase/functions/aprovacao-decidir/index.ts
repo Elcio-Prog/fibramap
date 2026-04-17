@@ -110,13 +110,14 @@ Deno.serve(async (req) => {
         })
         .eq("token", token);
 
-      // Update pre-viabilidade
+      // Update pre-viabilidade — também fecha o registro (status = "Fechado")
       await admin
         .from("pre_viabilidades")
         .update({
           status_aprovacao: newStatus,
           aprovado_por: tk.responsavel_email,
           comentarios_aprovador: comentario || null,
+          status: "Fechado",
         })
         .eq("id", tk.pre_viabilidade_id);
 
