@@ -52,6 +52,8 @@ interface CalcInput {
   paisInternacional?: string;
   minInternacional?: number;
   qtdBackupTB?: number;
+  /** Valor que o vendedor quer ofertar ao cliente (mensalidade). Usado para calcular ROI_Final e decidir aprovação. */
+  ticketMensal?: number;
 }
 
 interface MemoriaItem {
@@ -67,6 +69,16 @@ interface CalcOutput {
   valorOpex: number;
   mensagem?: string;
   memoriaCalculo?: MemoriaItem[];
+  /** ROI calculado: Despesas_Totais / Mensalidade_Mínima (após CAC e Margem). */
+  roiTarget?: number;
+  /** ROI da tabela vigencia_vs_roi (mesmo usado no Método 2). */
+  roiSistema?: number;
+  /** ROI escolhido pela regra: min(ROI_Target, ROI_Sistema). */
+  roiEscolhido?: number;
+  /** ROI calculado a partir do valor que o vendedor quer ofertar: Despesas_Totais / ticketMensal. */
+  roiFinal?: number;
+  /** true se ROI_Final ≤ ROI_Escolhido (ticket cobre as despesas dentro do prazo de retorno aceitável). */
+  aprovado?: boolean;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,6 +111,90 @@ function fatorBandaBGP(banda: number): number {
     return banda * 0.8;
   } catch {
     return 1;
+  }
+}
+
+/**
+ * Indicadores de ROI / decisão de aprovação.
+ * Aplicado uniformemente a todos os produtos.
+ *
+ * Regras (definidas pelo negócio):
+ *  - capex             = CAPEX puro (lançamento + equipamentos)
+ *  - despesasTotais    = CAPEX + custos operacionais (banda, IP, last mile, taxa instalação LM, contratos, etc.)
+ *  - cacPct, margemPct = percentuais (ex.: 0.12, 0.20) já carregados do BD
+ *  - roiSistema        = ROI configurado para a vigência (tabela vigencia_vs_roi)
+ *  - mensalidadeBase   = capex / roiSistema
+ *  - mensalidadeMinima = mensalidadeBase × (1 + cacPct) × (1 + margemPct)
+ *  - roiTarget         = despesasTotais / mensalidadeMinima
+ *  - roiEscolhido      = ROI_Target < ROI_Sistema → ROI_Target ; senão → ROI_Sistema  (regra 4)
+ *  - ticketMensal      = valor que o vendedor quer ofertar
+ *  - roiFinal          = despesasTotais / ticketMensal   (somente se ticket > 0)
+ *  - aprovado          = roiFinal ≤ roiEscolhido
+ */
+function computeRoiIndicators(args: {
+  capex: number;
+  despesasTotais: number;
+  roiSistema: number;
+  cacPct: number;
+  margemPct: number;
+  ticketMensal?: number;
+}): {
+  roiTarget: number;
+  roiSistema: number;
+  roiEscolhido: number;
+  roiFinal: number;
+  aprovado: boolean;
+  mensalidadeBase: number;
+  mensalidadeMinima: number;
+} {
+  const capex = args.capex || 0;
+  const despesasTotais = args.despesasTotais || 0;
+  const roiSistema = args.roiSistema || 0;
+  const cacPct = args.cacPct || 0;
+  const margemPct = args.margemPct || 0;
+  const ticketMensal = args.ticketMensal ?? 0;
+
+  const mensalidadeBase = roiSistema > 0 ? capex / roiSistema : 0;
+  const mensalidadeMinima = mensalidadeBase * (1 + cacPct) * (1 + margemPct);
+  const roiTarget = mensalidadeMinima > 0 ? despesasTotais / mensalidadeMinima : 0;
+
+  // Regra 4: se ROI_Target < ROI_Sistema → usar ROI_Target, senão manter ROI_Sistema.
+  const roiEscolhido = roiTarget > 0 && roiTarget < roiSistema ? roiTarget : roiSistema;
+
+  const roiFinal = ticketMensal > 0 ? despesasTotais / ticketMensal : 0;
+  // Aprovado: o prazo de retorno calculado a partir do ticket ofertado
+  // não pode exceder o prazo de retorno aceitável (roiEscolhido).
+  const aprovado = ticketMensal > 0 && roiEscolhido > 0 && roiFinal <= roiEscolhido;
+
+  return {
+    roiTarget: Math.round(roiTarget * 100) / 100,
+    roiSistema,
+    roiEscolhido: Math.round(roiEscolhido * 100) / 100,
+    roiFinal: Math.round(roiFinal * 100) / 100,
+    aprovado,
+    mensalidadeBase,
+    mensalidadeMinima,
+  };
+}
+
+function pushRoiMemoria(
+  memoria: MemoriaItem[],
+  ind: ReturnType<typeof computeRoiIndicators>,
+  ticketMensal?: number
+) {
+  memoria.push({ label: "Indicadores de ROI / Aprovação", valor: 0, isHeader: true });
+  memoria.push({ label: "Mensalidade Mínima (CAPEX/ROI × CAC × Margem)", valor: ind.mensalidadeMinima, isSubItem: true });
+  memoria.push({ label: "ROI Target (Despesas/Mens.Mínima)", valor: ind.roiTarget, isSubItem: true });
+  memoria.push({ label: "ROI Sistema (vigência)", valor: ind.roiSistema, isSubItem: true });
+  memoria.push({ label: "ROI Escolhido (regra 4)", valor: ind.roiEscolhido, isSubItem: true });
+  if (ticketMensal && ticketMensal > 0) {
+    memoria.push({ label: "Ticket Ofertado (vendedor)", valor: ticketMensal, isSubItem: true });
+    memoria.push({ label: "ROI Final (Despesas/Ticket)", valor: ind.roiFinal, isSubItem: true });
+    memoria.push({
+      label: ind.aprovado ? "Status: APROVADO" : "Status: REPROVADO (ticket abaixo do mínimo)",
+      valor: ind.aprovado ? 1 : 0,
+      isSubItem: true,
+    });
   }
 }
 
@@ -424,10 +520,42 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação ───
+  // Despesas_Totais para Conectividade = CAPEX + custos operacionais que oneram o projeto.
+  // Custos operacionais mensais → multiplicamos pela vigência para colocar na mesma base do CAPEX.
+  const despesasOperacionaisMensais =
+    linkcustoBlocoIP +
+    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
+    (valorLastMile ?? 0);
+  const despesasTotais =
+    valorCapex +
+    despesasOperacionaisMensais * vigencia +
+    (custoLastMile ?? 0) +
+    (custosMateriaisAdicionais ?? 0);
+  const roiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais,
+    roiSistema: roiVigencia,
+    cacPct: linkcustoCAC,
+    margemPct: linktaxaLink,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, roiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: roiInd.roiTarget,
+    roiSistema: roiInd.roiSistema,
+    roiEscolhido: roiInd.roiEscolhido,
+    roiFinal: roiInd.roiFinal,
+    aprovado: roiInd.aprovado,
+  };
 }
 
 function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
@@ -525,10 +653,34 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     memoria.push({ label: "Margem de Lucro (R$)", valor: fwMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Firewall) ───
+  // Despesas_Totais = CAPEX + custos operacionais (custo por contrato × vigência)
+  const despesasTotaisFw =
+    valorCapex + custoPorContrato * vigencia + (custosMateriaisAdicionais ?? 0);
+  const fwRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisFw,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, fwRoiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: fwRoiInd.roiTarget,
+    roiSistema: fwRoiInd.roiSistema,
+    roiEscolhido: fwRoiInd.roiEscolhido,
+    roiFinal: fwRoiInd.roiFinal,
+    aprovado: fwRoiInd.aprovado,
+  };
 }
 
 function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
@@ -582,10 +734,33 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaS.push({ label: "Margem de Lucro (R$)", valor: swMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Switch) ───
+  const despesasTotaisSw =
+    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  const swRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisSw,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaS, swRoiInd, input.ticketMensal);
+
   addMemS("Valor OPEX", valorOpexInput ?? 0);
   addMemS("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaS };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaS,
+    roiTarget: swRoiInd.roiTarget,
+    roiSistema: swRoiInd.roiSistema,
+    roiEscolhido: swRoiInd.roiEscolhido,
+    roiFinal: swRoiInd.roiFinal,
+    aprovado: swRoiInd.aprovado,
+  };
 }
 
 function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
@@ -641,10 +816,33 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaW.push({ label: "Margem de Lucro (R$)", valor: wfMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Wifi) ───
+  const despesasTotaisWf =
+    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  const wfRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisWf,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaW, wfRoiInd, input.ticketMensal);
+
   addMemW("Valor OPEX", valorOpexInput ?? 0);
   addMemW("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaW };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaW,
+    roiTarget: wfRoiInd.roiTarget,
+    roiSistema: wfRoiInd.roiSistema,
+    roiEscolhido: wfRoiInd.roiEscolhido,
+    roiFinal: wfRoiInd.roiFinal,
+    aprovado: wfRoiInd.aprovado,
+  };
 }
 
 function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
@@ -811,10 +1009,48 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaV.push({ label: "Margem de Lucro (R$)", valor: vozMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (VOZ) ───
+  // Despesas operacionais mensais incluem todos os serviços recorrentes.
+  const despesasOpMensaisVoz =
+    valorContratoPabx +
+    valorContratos +
+    valorNovasLinhas +
+    valorPortabilidades +
+    valorRamais +
+    valorCanais +
+    valorFixoLocalCalc +
+    valorFixoLDNCalc +
+    valorMovelLocalCalc +
+    valorMovelLDNCalc +
+    valor0800MovelCalc +
+    valor0800FixoCalc +
+    valorInternacional;
+  const despesasTotaisVoz =
+    valorCapex + despesasOpMensaisVoz * vigencia + (custosMateriaisAdicionais ?? 0);
+  const vozRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisVoz,
+    roiSistema: roiVigencia,
+    cacPct: vozDespesaCAC,
+    margemPct: vozMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaV, vozRoiInd, input.ticketMensal);
+
   addMemV("Valor OPEX", valorOpexInput ?? 0);
   addMemV("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaV };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaV,
+    roiTarget: vozRoiInd.roiTarget,
+    roiSistema: vozRoiInd.roiSistema,
+    roiEscolhido: vozRoiInd.roiEscolhido,
+    roiFinal: vozRoiInd.roiFinal,
+    aprovado: vozRoiInd.aprovado,
+  };
 }
 
 function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
@@ -851,10 +1087,36 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
     memoria.push({ label: "Margem de Lucro (R$)", valor: bkMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Backup) ───
+  // Backup não possui CAPEX nem vigência configurada → indicadores baseiam-se
+  // apenas no custo recorrente. roiSistema = vigência informada (default 1).
+  const roiSistemaBk = (input.roiVigencia ?? input.vigencia ?? 1);
+  const despesasOpMensaisBk = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
+  const despesasTotaisBk = despesasOpMensaisBk * roiSistemaBk;
+  const bkRoiInd = computeRoiIndicators({
+    capex: 0,
+    despesasTotais: despesasTotaisBk,
+    roiSistema: roiSistemaBk,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoria, bkRoiInd, input.ticketMensal);
+
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex: 0, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoria };
+  return {
+    valorMinimo,
+    valorCapex: 0,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoria,
+    roiTarget: bkRoiInd.roiTarget,
+    roiSistema: bkRoiInd.roiSistema,
+    roiEscolhido: bkRoiInd.roiEscolhido,
+    roiFinal: bkRoiInd.roiFinal,
+    aprovado: bkRoiInd.aprovado,
+  };
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────
