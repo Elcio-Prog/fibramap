@@ -993,10 +993,9 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   }
 
   // ─── Indicadores ROI / Aprovação (VOZ) ───
-  // Despesas operacionais mensais incluem todos os serviços recorrentes.
-  const despesasOpMensaisVoz =
+  // Soma de TODOS os serviços recorrentes (entra no total das despesas, multiplicado pela vigência).
+  const somaServicosRecorrentesVoz =
     valorContratoPabx +
-    valorContratos +
     valorNovasLinhas +
     valorPortabilidades +
     valorRamais +
@@ -1008,8 +1007,10 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     valor0800MovelCalc +
     valor0800FixoCalc +
     valorInternacional;
+  // Despesa operacional MENSAL de contrato = "Total unitario Custo OPERACIONAL" (apenas o custo fixo do contrato).
+  const despesasOpMensaisVoz = valorContratos;
   const despesasTotaisVoz =
-    valorCapex + despesasOpMensaisVoz * vigencia + (custosMateriaisAdicionais ?? 0);
+    valorCapex + somaServicosRecorrentesVoz * vigencia + (custosMateriaisAdicionais ?? 0);
   const vozRoiInd = computeRoiIndicators({
     capex: valorCapex,
     despesasTotais: despesasTotaisVoz,
@@ -1070,8 +1071,11 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   // Backup não possui CAPEX nem vigência configurada → indicadores baseiam-se
   // apenas no custo recorrente. roiSistema = vigência informada (default 1).
   const roiSistemaBk = (input.roiVigencia ?? input.vigencia ?? 1);
-  const despesasOpMensaisBk = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
-  const despesasTotaisBk = despesasOpMensaisBk * roiSistemaBk;
+  // Despesa operacional MENSAL de contrato = "Custo Backup por contrato" × Qtd TB (custo fixo do contrato).
+  const despesasOpMensaisBk = custoPorContratoBackup * qtdBackupTB;
+  // Total recorrente (entra nas despesas totais, multiplicado pela vigência) inclui também "Custo Backup TB".
+  const somaRecorrentesBk = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
+  const despesasTotaisBk = somaRecorrentesBk * roiSistemaBk;
   const bkRoiInd = computeRoiIndicators({
     capex: 0,
     despesasTotais: despesasTotaisBk,
