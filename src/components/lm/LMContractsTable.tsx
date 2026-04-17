@@ -425,6 +425,7 @@ export default function LMContractsTable() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Paginação */}
