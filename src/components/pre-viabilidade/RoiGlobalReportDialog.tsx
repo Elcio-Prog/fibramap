@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef } from "react";
-import { Check, ChevronsUpDown, ScrollText, Download, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, ScrollText, Download, Loader2, CheckCircle2, XCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
-import { PreViabilidade } from "@/hooks/usePreViabilidades";
+import { PreViabilidade, getRoiIndicators } from "@/hooks/usePreViabilidades";
+import SolicitarAprovacaoDialog from "@/components/pre-viabilidade/SolicitarAprovacaoDialog";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
   const [openCombobox, setOpenCombobox] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
   const { toast } = useToast();
   const reportRef = React.useRef<HTMLDivElement>(null);
 
@@ -104,6 +106,19 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
   const despesasFixas = (totals.capex + totals.custosMateriais + totals.finder + totals.campanha) - totals.taxaInstalacao;
   const receitasMensais = totals.ticketMensal - totals.opex - totals.valorLm;
   const roiGlobalFinal = receitasMensais > 0 ? despesasFixas / receitasMensais : 0;
+
+  // ROI Target Global: usa o "ROI Escolhido" do PRIMEIRO item do relatório consolidado
+  // (mesma fonte da tabela e do sistema de aprovação individual)
+  const firstItem = filteredData[0] ?? null;
+  const { roiEscolhido: roiTargetGlobal } = firstItem
+    ? getRoiIndicators(firstItem.dados_precificacao)
+    : { roiEscolhido: null as number | null };
+
+  const isViavelGlobal =
+    roiTargetGlobal != null && roiGlobalFinal > 0 && roiGlobalFinal <= roiTargetGlobal;
+  const isInviavelGlobal =
+    roiTargetGlobal != null && roiGlobalFinal > roiTargetGlobal;
+
 
   const getBandaModelo = (item: PreViabilidade) => {
     const p = item.produto_nt || (item.dados_precificacao && item.dados_precificacao.produto);
@@ -764,6 +779,57 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                     </div>
                   </div>
                 </div>
+
+                {/* Status de Viabilidade Global + Aprovação */}
+                {roiTargetGlobal != null && (
+                  <div
+                    className={cn(
+                      "mt-6 p-5 rounded-2xl border-2 flex flex-col md:flex-row items-center justify-between gap-4",
+                      isViavelGlobal && "bg-green-50 border-green-300",
+                      isInviavelGlobal && "bg-destructive/5 border-destructive/30"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isViavelGlobal ? (
+                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                      ) : (
+                        <XCircle className="h-8 w-8 text-destructive" />
+                      )}
+                      <div>
+                        <div
+                          className={cn(
+                            "text-lg font-bold",
+                            isViavelGlobal ? "text-green-700" : "text-destructive"
+                          )}
+                        >
+                          {isViavelGlobal
+                            ? "Projeto VIÁVEL globalmente"
+                            : "Projeto INVIÁVEL globalmente — necessita aprovação"}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          ROI Target Global (1º item):{" "}
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {roiTargetGlobal.toFixed(2)} meses
+                          </span>{" "}
+                          • ROI Global Final:{" "}
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {roiGlobalFinal.toFixed(2)} meses
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {isInviavelGlobal && firstItem && (
+                      <Button
+                        onClick={() => setApprovalOpen(true)}
+                        className="gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                      >
+                        <Send className="h-4 w-4" />
+                        Solicitar Aprovação Global
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -778,6 +844,23 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         </div>
 
       </DialogContent>
+
+      {/* Diálogo de Aprovação Global — usa o 1º item do consolidado como referência */}
+      {firstItem && (
+        <SolicitarAprovacaoDialog
+          open={approvalOpen}
+          onOpenChange={setApprovalOpen}
+          preViabilidadeId={firstItem.id}
+          numero={firstItem.numero}
+          vigencia={firstItem.vigencia}
+          dadosPrecificacao={firstItem.dados_precificacao}
+          hasEquipment={
+            !!firstItem.produto_nt &&
+            firstItem.produto_nt.toLowerCase() !== "conectividade"
+          }
+          previsaoRoi={roiGlobalFinal}
+        />
+      )}
     </Dialog>
   );
 }
