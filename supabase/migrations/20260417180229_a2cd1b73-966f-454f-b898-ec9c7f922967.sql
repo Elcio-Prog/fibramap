@@ -1,0 +1,1 @@
+TRUNCATE TABLE public.lm_contracts RESTART IDENTITY;
