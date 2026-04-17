@@ -5,6 +5,7 @@ import { Wifi, Upload, Search, List, ClipboardList, History, FileCheck, Calculat
 import { cn } from "@/lib/utils";
 import CartButton from "@/components/cart/CartButton";
 import ProfileDropdown from "@/components/ProfileDropdown";
+import BackgroundTasksIndicator from "@/components/BackgroundTasksIndicator";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const wsLinks = [
@@ -56,6 +57,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <BackgroundTasksIndicator />
           <CartButton />
           <ProfileDropdown />
         </div>
