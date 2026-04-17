@@ -24,6 +24,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
 import { useFormPrecificacao } from "@/hooks/useFormPrecificacao";
+import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
 
 import { TIPO_SOLICITACAO_OPTIONS, BLOCO_IP_OPTIONS, VIGENCIA_OPTIONS } from "@/lib/field-options";
 
@@ -120,6 +121,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const { isInCart, isSent, loadSentIds } = useCart();
 
   const { toast } = useToast();
+  const { start: startBgTask, update: updateBgTask, complete: completeBgTask, fail: failBgTask } = useBackgroundTasks();
+  const bgTaskIdRef = useRef<string | null>(null);
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: geoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: lpuItems, isLoading: loadingLpu } = useLpuItems();
