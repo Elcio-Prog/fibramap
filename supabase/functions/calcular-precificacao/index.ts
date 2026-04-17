@@ -123,11 +123,12 @@ function fatorBandaBGP(banda: number): number {
  *   mensalidadeBase       = despesasTotais / roiSistema                       (parcela mensal "neutra")
  *   despesaCacReais       = mensalidadeBase × cacPct                          (R$ absoluto)
  *   margemReais           = (mensalidadeBase + despesaCacReais) × margemPct   (R$ absoluto, aplicado sobre base+CAC)
+ *   despesasMensaisAntesCac = valores mensais que devem entrar ANTES de CAC/Margem
+ *                             (ex.: VOZ = soma dos recorrentes mensais do produto)
  *   despesasOpMensaisContrato = custos operacionais MENSAIS de contrato do produto
  *                          (Conectividade = 0, pois já estão embutidos no valor do mega;
- *                           Firewall/Switch/Wifi/Backup = custo por contrato;
- *                           VOZ = soma dos serviços recorrentes)
- *   mensalidadeMinima     = mensalidadeBase + despesaCacReais + margemReais + despesasOpMensaisContrato
+ *                           Firewall/Switch/Wifi/Backup = custo por contrato)
+ *   mensalidadeMinima     = (mensalidadeBase + despesasMensaisAntesCac) + despesaCacReais + margemReais + despesasOpMensaisContrato
  *   roiTarget             = despesasTotais / mensalidadeMinima
  *   roiEscolhido (regra4) = roiTarget < roiSistema → roiTarget ; senão → roiSistema
  *   roiFinal              = despesasTotais / ticketMensal
@@ -139,6 +140,8 @@ function computeRoiIndicators(args: {
   cacPct: number;
   margemPct: number;
   ticketMensal?: number;
+  /** Valores mensais que entram na base antes da aplicação de CAC e Margem. */
+  despesasMensaisAntesCac?: number;
   /** Despesas operacionais MENSAIS recorrentes (de contrato). Default 0 (Conectividade). */
   despesasOpMensaisContrato?: number;
   /** mantido para compatibilidade — não é mais usado no cálculo */
@@ -153,6 +156,7 @@ function computeRoiIndicators(args: {
   mensalidadeMinima: number;
   despesaCacReais: number;
   margemReais: number;
+  despesasMensaisAntesCac: number;
   despesasOpMensaisContrato: number;
 } {
   const despesasTotais = args.despesasTotais || 0;
@@ -160,13 +164,15 @@ function computeRoiIndicators(args: {
   const cacPct = args.cacPct || 0;
   const margemPct = args.margemPct || 0;
   const ticketMensal = args.ticketMensal ?? 0;
+  const despesasMensaisAntesCac = args.despesasMensaisAntesCac || 0;
   const despesasOpMensaisContrato = args.despesasOpMensaisContrato || 0;
 
   const mensalidadeBase = roiSistema > 0 ? despesasTotais / roiSistema : 0;
-  const despesaCacReais = mensalidadeBase * cacPct;
-  const margemReais = (mensalidadeBase + despesaCacReais) * margemPct;
+  const baseAntesCac = mensalidadeBase + despesasMensaisAntesCac;
+  const despesaCacReais = baseAntesCac * cacPct;
+  const margemReais = (baseAntesCac + despesaCacReais) * margemPct;
   const mensalidadeMinima =
-    mensalidadeBase + despesaCacReais + margemReais + despesasOpMensaisContrato;
+    baseAntesCac + despesaCacReais + margemReais + despesasOpMensaisContrato;
   const roiTarget = mensalidadeMinima > 0 ? despesasTotais / mensalidadeMinima : 0;
 
   // Regra 4: se ROI_Target < ROI_Sistema → usar ROI_Target, senão manter ROI_Sistema.
@@ -185,6 +191,7 @@ function computeRoiIndicators(args: {
     mensalidadeMinima,
     despesaCacReais,
     margemReais,
+    despesasMensaisAntesCac,
     despesasOpMensaisContrato,
   };
 }
@@ -196,6 +203,9 @@ function pushRoiMemoria(
 ) {
   memoria.push({ label: "Indicadores de ROI / Aprovação", valor: 0, isHeader: true });
   memoria.push({ label: "Mensalidade Base (Despesas/ROI Sistema)", valor: ind.mensalidadeBase, isSubItem: true });
+  if (ind.despesasMensaisAntesCac > 0) {
+    memoria.push({ label: "+ Recorrentes Mensais (antes de CAC/Margem)", valor: ind.despesasMensaisAntesCac, isSubItem: true });
+  }
   memoria.push({ label: "+ Despesa CAC (Base × CAC%)", valor: ind.despesaCacReais, isSubItem: true });
   memoria.push({ label: "+ Margem de Lucro ((Base + CAC) × Margem%)", valor: ind.margemReais, isSubItem: true });
   if (ind.despesasOpMensaisContrato > 0) {
@@ -993,7 +1003,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   }
 
   // ─── Indicadores ROI / Aprovação (VOZ) ───
-  // Soma de TODOS os serviços recorrentes (entra no total das despesas, multiplicado pela vigência).
+  // Soma mensal dos recorrentes que entram ANTES de CAC/Margem na mensalidade.
   const somaServicosRecorrentesVoz =
     valorContratoPabx +
     valorNovasLinhas +
@@ -1010,7 +1020,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
   // Despesa operacional MENSAL de contrato = "Total unitario Custo OPERACIONAL" (apenas o custo fixo do contrato).
   const despesasOpMensaisVoz = valorContratos;
   const despesasTotaisVoz =
-    valorCapex + somaServicosRecorrentesVoz * vigencia + (custosMateriaisAdicionais ?? 0);
+    valorCapex + (custosMateriaisAdicionais ?? 0);
   const vozRoiInd = computeRoiIndicators({
     capex: valorCapex,
     despesasTotais: despesasTotaisVoz,
@@ -1018,6 +1028,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: vozDespesaCAC,
     margemPct: vozMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasMensaisAntesCac: somaServicosRecorrentesVoz,
     despesasOpMensaisContrato: despesasOpMensaisVoz,
   });
   valorMinimo = roundDown4(vozRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
