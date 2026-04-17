@@ -303,14 +303,14 @@ export default function ImportWizard({ isComplement = false }: { isComplement?: 
         const result = await geocodeAddress(item.endereco);
         if (result) {
           await supabase
-            .from("compras_lm")
+            .from("lm_contracts")
             .update({ lat: result.lat, lng: result.lng, geocoding_status: "done" } as any)
-            .eq("endereco", item.endereco);
+            .eq("endereco_instalacao", item.endereco);
         } else {
           await supabase
-            .from("compras_lm")
+            .from("lm_contracts")
             .update({ geocoding_status: "failed" } as any)
-            .eq("endereco", item.endereco);
+            .eq("endereco_instalacao", item.endereco);
         }
         // Rate limit between items
         await new Promise(r => setTimeout(r, 1100));
