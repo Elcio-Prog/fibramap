@@ -513,20 +513,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("Vigência (meses)", vigencia);
   addMem("ROI Vigência", roiVigencia);
 
-  // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Exibição: aplica %CAC e %Margem sobre o Valor Mínimo final (já consolidado).
-  // CAC(R$) = ValorMin * %CAC ; Margem(R$) = (ValorMin + CAC) * %Margem
-  const valorBaseExibicao = valorMinimo - (valorOpexInput ?? 0);
-  const despesaCacReais = valorBaseExibicao * linkcustoCAC;
-  const margemLucroReais = (valorBaseExibicao + despesaCacReais) * linktaxaLink;
-  const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
-  if (custoOperacionalTotalMargem !== 0) {
-    memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
-    memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
-    memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
-  }
-
-  // ─── Indicadores ROI / Aprovação ───
+  // ─── Indicadores ROI / Aprovação (calculados primeiro p/ reaproveitar CAC/Margem em R$) ───
   // Despesas_Totais para Conectividade = CAPEX + custos operacionais que oneram o projeto.
   // Custos operacionais mensais → multiplicamos pela vigência para colocar na mesma base do CAPEX.
   const despesasOperacionaisMensais =
@@ -539,13 +526,25 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     (custoLastMile ?? 0) +
     (custosMateriaisAdicionais ?? 0);
   const roiInd = computeRoiIndicators({
-    capex: valorCapex,
     despesasTotais,
     roiSistema: roiVigencia,
     cacPct: linkcustoCAC,
     margemPct: linktaxaLink,
     ticketMensal: input.ticketMensal,
   });
+
+  // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
+  // Reaproveita os valores absolutos calculados em computeRoiIndicators
+  // para garantir consistência com a Mensalidade Mínima exibida abaixo.
+  const despesaCacReais = roiInd.despesaCacReais;
+  const margemLucroReais = roiInd.margemReais;
+  const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
+  if (custoOperacionalTotalMargem !== 0) {
+    memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
+    memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
+    memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
+  }
+
   pushRoiMemoria(memoria, roiInd, input.ticketMensal);
 
   addMem("Valor OPEX", valorOpexInput ?? 0);
