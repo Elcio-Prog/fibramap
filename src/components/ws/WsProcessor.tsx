@@ -397,6 +397,16 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (!resume) setResults(null);
     setProgress({ current: 0, total: totalItems || 1, currentItem: "Preparando dados..." });
 
+    // Register background task (cancel handler triggers cancelRef)
+    const taskId = startBgTask({
+      type: "ws-batch",
+      label: `Lote WS – ${batchTitle || batchId.slice(0, 8)}`,
+      total: totalItems || 0,
+      link: `/ws/batch/${batchId}`,
+      cancel: () => { cancelRef.current = true; },
+    });
+    bgTaskIdRef.current = taskId;
+
     try {
       const allItems: any[] = [];
       let offset = 0;
@@ -422,6 +432,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       if (allItems.length === 0) {
         toast({ title: "Nenhum item encontrado no lote", variant: "destructive" });
         setProcessing(false);
+        failBgTask(taskId, "Nenhum item encontrado no lote");
+        bgTaskIdRef.current = null;
         return;
       }
 
@@ -456,6 +468,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       await supabase.from("ws_batches").update({ status: "processing" }).eq("id", batchId);
       setBatchStatus("processing");
 
+      updateBgTask(taskId, { total: allItems.length, progress: previousResults.length });
+
       const wsItems: WsItemInput[] = allItems.map(mapRowToInput);
       const accumulated = [...previousResults];
       setResults(accumulated.length > 0 ? [...accumulated] : null);
@@ -472,13 +486,21 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
         geoElements as any,
         lpuItems || [],
         comprasLM || [],
-        (p) => setProgress(p),
+        (p) => {
+          setProgress(p);
+          updateBgTask(taskId, {
+            progress: p.current,
+            total: p.total,
+            message: p.currentItem,
+          });
+        },
         (result, _index) => {
           accumulated.push(result);
           setResults([...accumulated]);
           processedSoFar = accumulated.length;
           if (!result.is_viable && result.geo_source !== "nao_encontrado") failedSoFar++;
           setProcessedCount(accumulated.length);
+          updateBgTask(taskId, { progress: accumulated.length });
         },
         startIndex,
         preProvidersWithCities,
@@ -499,6 +521,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       setBatchStatus("processed");
 
       toast({ title: `Processamento concluído — ${allResults.length} itens` });
+      completeBgTask(taskId, {
+        message: `${allResults.length} itens processados`,
+        link: `/ws/batch/${batchId}`,
+      });
 
       // Reload to get observacoes
       await loadResults();
@@ -506,8 +532,10 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       toast({ title: "Erro no processamento", description: err.message, variant: "destructive" });
       await supabase.from("ws_batches").update({ status: "paused" }).eq("id", batchId);
       setBatchStatus("paused");
+      failBgTask(taskId, err?.message ?? "Erro no processamento");
     } finally {
       setProcessing(false);
+      bgTaskIdRef.current = null;
     }
   };
 
