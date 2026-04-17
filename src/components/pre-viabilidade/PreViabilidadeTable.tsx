@@ -338,6 +338,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
         vigencia={aprovacaoTarget?.vigencia ?? null}
         dadosPrecificacao={(aprovacaoTarget?.dados_precificacao as Record<string, any>) ?? null}
         hasEquipment={false}
+        previsaoRoi={(aprovacaoTarget as any)?.previsao_roi ?? null}
       />
 
       <div className="flex items-center justify-between mt-3">

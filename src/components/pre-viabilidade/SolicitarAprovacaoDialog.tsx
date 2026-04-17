@@ -44,6 +44,7 @@ interface Props {
   vigencia: number | null;
   dadosPrecificacao: Record<string, any> | null;
   hasEquipment: boolean;
+  previsaoRoi: number | null;
 }
 
 export default function SolicitarAprovacaoDialog({
@@ -54,6 +55,7 @@ export default function SolicitarAprovacaoDialog({
   vigencia,
   dadosPrecificacao,
   hasEquipment,
+  previsaoRoi,
 }: Props) {
   const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
@@ -102,65 +104,68 @@ export default function SolicitarAprovacaoDialog({
           return;
         }
 
-        // Get base ROI from vigencia
+        // ROI escolhido (referência) vem da precificação do projeto.
+        // Fallback: ROI base da tabela vigencia_vs_roi.
         const roiRows = roiRes.data || [];
         const vigStr = vigencia != null ? String(vigencia) : null;
-        const baseRoi =
+        const baseRoiFromTable =
           roiRows.find((r) => r.meses === vigStr)?.roi ?? null;
+        const roiEscolhido =
+          (dadosPrecificacao?.roiVigencia as number | null | undefined) ??
+          baseRoiFromTable;
 
-        // Determine the value to compare
-        let comparisonValue: number | null = null;
+        // Níveis manuais (level > 0), ordenados por roi_increment crescente
+        const manualLevels = config.levels
+          .filter((l) => l.level > 0)
+          .sort((a, b) => (a.roi_increment ?? 0) - (b.roi_increment ?? 0));
 
         if (config.criteria === "valor") {
-          // Use ticket_mensal or valor_minimo from precificacao
-          comparisonValue =
+          // Modo Valor: compara ticket mensal contra value_limit
+          const valor =
             dadosPrecificacao?.ticket_mensal ??
             dadosPrecificacao?.valor_minimo ??
             null;
-        } else {
-          // ROI mode: base + increment
-          comparisonValue = baseRoi;
-        }
-
-        // Find the matching level (levels sorted by level asc, skip level 0)
-        const manualLevels = config.levels
-          .filter((l) => l.level > 0)
-          .sort((a, b) => a.level - b.level);
-
-        if (config.criteria === "roi" && comparisonValue != null) {
-          // For ROI: find the first level where base ROI <= base + increment
-          // Actually the logic is: the system auto-approves at base ROI.
-          // If the item needs approval, we escalate to the first level whose
-          // threshold (roi_increment) the item exceeds.
-          // Higher increment = more lenient. We find the level whose increment
-          // is needed based on the ROI gap.
-          // Simple approach: pick first level, escalate if value_limit exceeded
           let matched: ApprovalLevel | null = null;
-          for (const lvl of manualLevels) {
-            matched = lvl;
-            if (lvl.value_limit > 0 && comparisonValue <= lvl.value_limit) {
-              break;
+          if (valor != null) {
+            for (const lvl of [...manualLevels].sort(
+              (a, b) => (a.value_limit ?? 0) - (b.value_limit ?? 0)
+            )) {
+              matched = lvl;
+              if (lvl.value_limit > 0 && valor <= lvl.value_limit) break;
             }
           }
-          setResolvedLevel(matched ?? manualLevels[0] ?? null);
-        } else if (config.criteria === "valor" && comparisonValue != null) {
-          // For Valor: find first level where value <= value_limit
-          let matched: ApprovalLevel | null = null;
-          for (const lvl of manualLevels) {
-            matched = lvl;
-            if (lvl.value_limit > 0 && comparisonValue <= lvl.value_limit) {
-              break;
-            }
-          }
-          setResolvedLevel(matched ?? manualLevels[0] ?? null);
+          setResolvedLevel(matched ?? manualLevels[manualLevels.length - 1] ?? null);
+          setResolvedLabel(
+            valor != null
+              ? `Critério: Valor (R$ ${Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+              : "Critério: Valor"
+          );
         } else {
-          // Fallback: first manual level
-          setResolvedLevel(manualLevels[0] ?? null);
-        }
+          // Modo ROI: usa o ROI escolhido como referência.
+          // Para cada nível, threshold = roiEscolhido + roi_increment.
+          // Pega o MENOR nível cujo threshold >= previsao_roi do projeto.
+          // Ex: roiEscolhido=5,5 → nível 1 cobre até 6,5 (+1); nível 2 até 7,5 (+2)...
+          let matched: ApprovalLevel | null = null;
+          if (roiEscolhido != null && previsaoRoi != null) {
+            for (const lvl of manualLevels) {
+              const threshold = roiEscolhido + (lvl.roi_increment ?? 0);
+              if (previsaoRoi <= threshold) {
+                matched = lvl;
+                break;
+              }
+            }
+            // Estourou todos: usa o nível mais alto
+            if (!matched) matched = manualLevels[manualLevels.length - 1] ?? null;
+          } else {
+            matched = manualLevels[0] ?? null;
+          }
+          setResolvedLevel(matched);
 
-        setResolvedLabel(
-          config.criteria === "valor" ? "Critério: Valor" : "Critério: ROI"
-        );
+          const parts: string[] = ["Critério: ROI"];
+          if (roiEscolhido != null) parts.push(`escolhido ${roiEscolhido.toFixed(2)}`);
+          if (previsaoRoi != null) parts.push(`previsto ${previsaoRoi.toFixed(2)}`);
+          setResolvedLabel(parts.join(" • "));
+        }
       } catch {
         setResolvedLevel(null);
         setResolvedLabel("Erro ao determinar nível");
@@ -170,7 +175,7 @@ export default function SolicitarAprovacaoDialog({
     };
 
     resolve();
-  }, [open, vigencia, dadosPrecificacao, hasEquipment]);
+  }, [open, vigencia, dadosPrecificacao, hasEquipment, previsaoRoi]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
