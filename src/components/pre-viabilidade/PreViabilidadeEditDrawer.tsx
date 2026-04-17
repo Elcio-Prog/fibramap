@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
+import AttachmentsField, { Anexo } from "./AttachmentsField";
 
 const PRODUTOS = ["Conectividade", "Firewall", "VOZ", "Switch", "Wifi", "Backup"] as const;
 
@@ -259,6 +260,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
     data_reavaliacao: "",
   });
   const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
 
   // Load projetista options from configuracoes
   useEffect(() => {
@@ -275,6 +277,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
     setValorMinimo(item.valor_minimo ?? null);
     setValorCapex((item.dados_precificacao as any)?.valorCapex ?? 0);
     setMemoriaCalculo((item.dados_precificacao as any)?.memoriaCalculo ?? null);
+    setAnexos(Array.isArray((item as any).anexos) ? (item as any).anexos : []);
     initialLoadDone.current = false;
 
     // Load calculator state from dados_precificacao
@@ -484,6 +487,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           protocolo: meta.protocolo || null,
           dados_precificacao: buildDadosPrecificacao(),
           data_reavaliacao: meta.data_reavaliacao || null,
+          anexos: anexos as any,
         } as any,
       });
       // Recalculate ROI Global for the umbrella group
@@ -645,6 +649,14 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
           <Label className="text-xs text-muted-foreground">Observações</Label>
           <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} disabled={isLimitedEdit} />
+        </div>
+        <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
+          <AttachmentsField
+            value={anexos}
+            onChange={setAnexos}
+            disabled={isLimitedEdit}
+            folderPrefix={item?.id}
+          />
         </div>
       </div>
     </div>
