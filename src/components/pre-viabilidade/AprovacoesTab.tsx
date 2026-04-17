@@ -96,7 +96,7 @@ export default function AprovacoesTab() {
       const { data, error } = await supabase
         .from("pre_viabilidades")
         .select(
-          "id, numero, nome_cliente, cnpj_cliente, endereco, produto_nt, vigencia, ticket_mensal, valor_minimo, previsao_roi, status_aprovacao, dados_precificacao"
+          "id, numero, nome_cliente, cnpj_cliente, endereco, produto_nt, tipo_solicitacao, vigencia, ticket_mensal, valor_minimo, previsao_roi, status_aprovacao, dados_precificacao"
         )
         .in("id", pvIds);
       if (error) throw error;
