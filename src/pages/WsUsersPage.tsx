@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, Eye, ShoppingBag, Wrench } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, Eye, ShoppingBag, Wrench, Database } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -76,7 +76,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação" };
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
       toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
@@ -131,6 +131,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
+                      <SelectItem value="lm">Last Mile</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -146,7 +147,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao"; label: string; icon: any; globalSearch: string }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -218,7 +219,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação" };
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
 
   const changeRole = useMutation({
     mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
@@ -310,6 +311,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
+                      <SelectItem value="lm">Last Mile</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
