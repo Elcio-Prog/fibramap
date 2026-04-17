@@ -107,6 +107,19 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
   const receitasMensais = totals.ticketMensal - totals.opex - totals.valorLm;
   const roiGlobalFinal = receitasMensais > 0 ? despesasFixas / receitasMensais : 0;
 
+  // ROI Target Global: usa o "ROI Escolhido" do PRIMEIRO item do relatório consolidado
+  // (mesma fonte da tabela e do sistema de aprovação individual)
+  const firstItem = filteredData[0] ?? null;
+  const { roiEscolhido: roiTargetGlobal } = firstItem
+    ? getRoiIndicators(firstItem.dados_precificacao)
+    : { roiEscolhido: null as number | null };
+
+  const isViavelGlobal =
+    roiTargetGlobal != null && roiGlobalFinal > 0 && roiGlobalFinal <= roiTargetGlobal;
+  const isInviavelGlobal =
+    roiTargetGlobal != null && roiGlobalFinal > roiTargetGlobal;
+
+
   const getBandaModelo = (item: PreViabilidade) => {
     const p = item.produto_nt || (item.dados_precificacao && item.dados_precificacao.produto);
     const dp = item.dados_precificacao || {};
