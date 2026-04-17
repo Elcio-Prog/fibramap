@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { BackgroundTasksProvider } from "@/contexts/BackgroundTasksContext";
+import { WsSingleSearchStateProvider } from "@/contexts/WsSingleSearchStateContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import WsLayout from "@/components/WsLayout";
@@ -193,6 +194,7 @@ const App = () => (
       <AuthProvider>
         <CartProvider>
           <BackgroundTasksProvider>
+            <WsSingleSearchStateProvider>
             <BrowserRouter>
               <Routes>
                 <Route path="/landing" element={<LandingRoute />} />
@@ -206,6 +208,7 @@ const App = () => (
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </BrowserRouter>
+            </WsSingleSearchStateProvider>
           </BackgroundTasksProvider>
         </CartProvider>
       </AuthProvider>
