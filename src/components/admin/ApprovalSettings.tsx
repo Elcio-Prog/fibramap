@@ -36,12 +36,25 @@ type GlobalRules = {
 
 // ── Defaults ───────────────────────────────────────────────────────────────────
 
+// Reservado: nível "Diretoria" é sempre o último e não pode ser removido.
+const DIRETORIA_LEVEL = 999;
+const DIRETORIA_LABEL = "Diretoria";
+
+const makeDiretoria = (email = ""): ApprovalLevel => ({
+  level: DIRETORIA_LEVEL,
+  label: DIRETORIA_LABEL,
+  roi_increment: 0,
+  value_limit: 0,
+  responsible_email: email,
+});
+
 const DEFAULT_STANDARD: ApprovalConfig = {
   criteria: "roi",
   levels: [
     { level: 0, label: "Sistema", roi_increment: 0, value_limit: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, value_limit: 5000, responsible_email: "" },
     { level: 2, label: "Nível 2", roi_increment: 2, value_limit: 10000, responsible_email: "" },
+    makeDiretoria(),
   ],
 };
 
@@ -50,6 +63,7 @@ const DEFAULT_EQUIPMENT: ApprovalConfig = {
   levels: [
     { level: 0, label: "Sistema", roi_increment: 0, value_limit: 0, responsible_email: "" },
     { level: 1, label: "Nível 1", roi_increment: 1, value_limit: 5000, responsible_email: "" },
+    makeDiretoria(),
   ],
 };
 
@@ -57,6 +71,23 @@ const DEFAULT_GLOBAL: GlobalRules = {
   capex_limit: 30000,
   monthly_ticket_limit: 5000,
 };
+
+/** Garante que o nível Diretoria exista e seja o ÚLTIMO da lista. Preserva email se já existir. */
+const ensureDiretoria = (config: ApprovalConfig): ApprovalConfig => {
+  const existing = config.levels.find(
+    (l) => l.level === DIRETORIA_LEVEL || l.label?.toLowerCase() === DIRETORIA_LABEL.toLowerCase()
+  );
+  const others = config.levels.filter(
+    (l) => l.level !== DIRETORIA_LEVEL && l.label?.toLowerCase() !== DIRETORIA_LABEL.toLowerCase()
+  );
+  const diretoria: ApprovalLevel = existing
+    ? { ...existing, level: DIRETORIA_LEVEL, label: DIRETORIA_LABEL }
+    : makeDiretoria();
+  return { ...config, levels: [...others, diretoria] };
+};
+
+const getDiretoriaEmail = (config: ApprovalConfig): string =>
+  config.levels.find((l) => l.level === DIRETORIA_LEVEL)?.responsible_email ?? "";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
