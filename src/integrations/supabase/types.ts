@@ -748,6 +748,7 @@ export type Database = {
       }
       pre_viabilidades: {
         Row: {
+          anexos: Json
           aprovado_por: string | null
           cnpj_cliente: string | null
           codigo_smark: string | null
@@ -785,6 +786,7 @@ export type Database = {
           vigencia: number | null
         }
         Insert: {
+          anexos?: Json
           aprovado_por?: string | null
           cnpj_cliente?: string | null
           codigo_smark?: string | null
@@ -822,6 +824,7 @@ export type Database = {
           vigencia?: number | null
         }
         Update: {
+          anexos?: Json
           aprovado_por?: string | null
           cnpj_cliente?: string | null
           codigo_smark?: string | null
