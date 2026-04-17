@@ -44,11 +44,15 @@ interface CalcInput {
   paisInternacional?: string;
   minInternacional?: number;
   qtdBackupTB?: number;
+  /** Valor que o vendedor quer ofertar ao cliente (mensalidade). Usado para calcular ROI_Final e decidir aprovação. */
+  ticketMensal?: number;
 }
 
 interface MemoriaItem {
   label: string;
   valor: number;
+  isHeader?: boolean;
+  isSubItem?: boolean;
 }
 
 interface CalcOutput {
@@ -57,6 +61,16 @@ interface CalcOutput {
   valorOpex: number;
   mensagem?: string;
   memoriaCalculo?: MemoriaItem[];
+  /** ROI calculado: Despesas_Totais / Mensalidade_Mínima (após CAC e Margem). */
+  roiTarget?: number;
+  /** ROI da tabela vigencia_vs_roi (mesmo usado no Método 2). */
+  roiSistema?: number;
+  /** ROI escolhido: min(ROI_Target, ROI_Sistema). */
+  roiEscolhido?: number;
+  /** ROI calculado a partir do ticket que o vendedor quer ofertar. */
+  roiFinal?: number;
+  /** true se ROI_Final ≤ ROI_Escolhido. */
+  aprovado?: boolean;
 }
 
 export function useCalcularPrecificacao() {
