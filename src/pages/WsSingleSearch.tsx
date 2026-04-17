@@ -42,6 +42,7 @@ import {
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
 import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
+import { useWsSingleSearchState } from "@/contexts/WsSingleSearchStateContext";
 
 // Per-row pricing parameters
 interface RowPricingParams {
