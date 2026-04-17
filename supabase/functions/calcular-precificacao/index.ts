@@ -669,9 +669,10 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
   }
 
   // ─── Indicadores ROI / Aprovação (Firewall) ───
-  // Despesas_Totais = CAPEX + custos operacionais (custo por contrato × vigência)
-  const despesasTotaisFw =
-    valorCapex + custoPorContrato * vigencia + (custosMateriaisAdicionais ?? 0);
+  // Despesas_Totais = apenas CAPEX (+ materiais adicionais).
+  // O Custo por Contrato é MENSAL e entra somente no final (despesasOpMensaisContrato),
+  // após CAC e Margem — NÃO multiplicado pela vigência.
+  const despesasTotaisFw = valorCapex + (custosMateriaisAdicionais ?? 0);
   const fwRoiInd = computeRoiIndicators({
     capex: valorCapex,
     despesasTotais: despesasTotaisFw,
@@ -747,8 +748,8 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
   }
 
   // ─── Indicadores ROI / Aprovação (Switch) ───
-  const despesasTotaisSw =
-    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  // Despesas_Totais = apenas CAPEX (+ materiais adicionais). Custo de Contrato entra só no final (mensal).
+  const despesasTotaisSw = valorCapex + (custosMateriaisAdicionais ?? 0);
   const swRoiInd = computeRoiIndicators({
     capex: valorCapex,
     despesasTotais: despesasTotaisSw,
@@ -826,8 +827,8 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
   }
 
   // ─── Indicadores ROI / Aprovação (Wifi) ───
-  const despesasTotaisWf =
-    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  // Despesas_Totais = apenas CAPEX (+ materiais adicionais). Custo de Contrato entra só no final (mensal).
+  const despesasTotaisWf = valorCapex + (custosMateriaisAdicionais ?? 0);
   const wfRoiInd = computeRoiIndicators({
     capex: valorCapex,
     despesasTotais: despesasTotaisWf,
@@ -1083,9 +1084,10 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   // apenas no custo recorrente. roiSistema = vigência informada (default 1).
   const roiSistemaBk = (input.roiVigencia ?? input.vigencia ?? 1);
   // Despesa operacional MENSAL de contrato = "Custo Backup por contrato" × Qtd TB (custo fixo do contrato).
+  // Entra somente no final, depois de CAC e Margem — NÃO multiplicada pela vigência.
   const despesasOpMensaisBk = custoPorContratoBackup * qtdBackupTB;
-  // Total recorrente (entra nas despesas totais, multiplicado pela vigência) inclui também "Custo Backup TB".
-  const somaRecorrentesBk = (custoPorContratoBackup + custoPorTB) * qtdBackupTB;
+  // Despesas Totais: apenas o "Custo Backup TB" (variável) × Qtd TB × vigência.
+  const somaRecorrentesBk = custoPorTB * qtdBackupTB;
   const despesasTotaisBk = somaRecorrentesBk * roiSistemaBk;
   const bkRoiInd = computeRoiIndicators({
     capex: 0,
