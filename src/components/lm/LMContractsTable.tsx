@@ -22,6 +22,7 @@ import {
   ExternalLink,
   FileSpreadsheet,
   FileText,
+  Pencil,
   RotateCcw,
   Search,
   Upload as UploadIcon,
