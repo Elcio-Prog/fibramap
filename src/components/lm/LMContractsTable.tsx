@@ -365,7 +365,7 @@ export default function LMContractsTable() {
 
       {/* Tabela */}
       <div className="rounded-md border">
-        <div className="max-h-[560px] overflow-auto">
+        <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))]">
               {table.getHeaderGroups().map((hg) => (
