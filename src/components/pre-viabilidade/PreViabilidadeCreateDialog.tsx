@@ -254,6 +254,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
     criado_por: "",
     protocolo: "",
   });
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -261,6 +262,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
       setStep(1);
       setValorMinimo(null);
       setValorCapex(0);
+      setAnexos([]);
       initialLoadDone.current = false;
       setMeta({
         nome_cliente: initialData?.nome_cliente || "",
@@ -418,6 +420,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         roi_global: null,
         comentarios_aprovador: null,
         origem: "manual",
+        anexos: anexos as any,
       } as any]);
 
       if (meta.id_guardachuva) {
@@ -568,6 +571,9 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         <div className="sm:col-span-2 lg:col-span-3">
           <Label className="text-xs text-muted-foreground">Observações</Label>
           <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} />
+        </div>
+        <div className="sm:col-span-2 lg:col-span-3">
+          <AttachmentsField value={anexos} onChange={setAnexos} />
         </div>
       </div>
     </div>
