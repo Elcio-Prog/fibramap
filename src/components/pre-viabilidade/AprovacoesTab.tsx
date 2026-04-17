@@ -62,6 +62,8 @@ export default function AprovacoesTab() {
   const qc = useQueryClient();
   const [submittingToken, setSubmittingToken] = useState<string | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [filtroProduto, setFiltroProduto] = useState<string>("all");
+  const [filtroTipo, setFiltroTipo] = useState<string>("all");
 
   const { data: tokens, isLoading } = useQuery({
     queryKey: ["aprovacao-tokens-pendentes", user?.email, isAdmin],
