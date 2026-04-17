@@ -713,17 +713,19 @@ export default function WsSingleSearch() {
     }
 
     if (radiusResults) {
-      const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c"];
-      const partnerColors: Record<string, string> = {};
-      let ci = 0;
       for (const r of radiusResults) {
         if (!r.compra.lat || !r.compra.lng) continue;
-        if (!partnerColors[r.compra.parceiro]) { partnerColors[r.compra.parceiro] = colors[ci % colors.length]; ci++; }
-        const c = partnerColors[r.compra.parceiro];
+        const status = (r.compra.status || "").trim().toLowerCase();
+        const c = status === "cancelado"
+          ? "#dc2626"
+          : status === "ativo"
+            ? "#16a34a"
+            : "#f59e0b";
+        const partnerName = r.compra.nome_pn || r.compra.parceiro;
         const distLabel = r.distanceM >= 1000 ? `${(r.distanceM / 1000).toFixed(1)} km` : `${r.distanceM.toFixed(0)} m`;
-        L.circleMarker([r.compra.lat, r.compra.lng], { radius: 5, fillColor: c, color: "#fff", weight: 1.5, fillOpacity: 0.85 })
+        L.circleMarker([r.compra.lat, r.compra.lng], { radius: 5, fillColor: c, color: "#fff", weight: 1.5, fillOpacity: 0.9 })
           .addTo(layerGroup).bindPopup(
-            `<b>${r.compra.parceiro}</b><br/>${r.compra.cliente || ""}<br/>R$ ${r.compra.valor_mensal.toFixed(2)}${r.compra.banda_mbps ? `<br/>${r.compra.banda_mbps} Mbps` : ""}<br/><b>${distLabel}</b>`
+            `<b>${partnerName}</b><br/>${r.compra.cliente || ""}<br/><i>${r.compra.status || ""}</i><br/>R$ ${r.compra.valor_mensal.toFixed(2)}${r.compra.banda_mbps ? `<br/>${r.compra.banda_mbps} Mbps` : ""}<br/><b>${distLabel}</b>`
           );
       }
     }
