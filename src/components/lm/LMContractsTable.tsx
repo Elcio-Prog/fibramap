@@ -12,8 +12,6 @@ import {
 import { format, isAfter, isBefore, parseISO, addDays, startOfToday } from "date-fns";
 import {
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   Columns3,
   Download,
   Eye,
