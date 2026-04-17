@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, User, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getRoiIndicators } from "@/hooks/usePreViabilidades";
 
 const MOTIVO_OPTIONS = [
   "Concorrência direta",
@@ -98,9 +99,9 @@ export default function SolicitarAprovacaoDialog({
           return;
         }
 
-        // ROI escolhido vem direto da precificação do projeto (única fonte de verdade)
-        const roiEscolhido =
-          (dadosPrecificacao?.roiVigencia as number | null | undefined) ?? null;
+        // ROI escolhido: usa a MESMA fonte que a tabela (memoriaCalculo → "ROI Escolhido"),
+        // não o valor cru de roiVigencia, para garantir consistência visual e de regra.
+        const { roiEscolhido } = getRoiIndicators(dadosPrecificacao);
 
         // Níveis manuais (level > 0), ordenados por roi_increment crescente
         const manualLevels = config.levels
