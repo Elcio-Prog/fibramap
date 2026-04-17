@@ -108,7 +108,7 @@ export default function LMContractsTable() {
   const [terminoFrom, setTerminoFrom] = useState("");
   const [terminoTo, setTerminoTo] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "data_termino", desc: false }]);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<LMContract | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -229,7 +229,7 @@ export default function LMContractsTable() {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   useEffect(() => { table.setPageSize(pageSize); }, [pageSize, table]);
@@ -364,19 +364,20 @@ export default function LMContractsTable() {
       </div>
 
       {/* Tabela */}
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id} className="whitespace-nowrap text-xs">
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
+      <div className="rounded-md border">
+        <div className="max-h-[560px] overflow-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))]">
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id}>
+                  {hg.headers.map((h) => (
+                    <TableHead key={h.id} className="whitespace-nowrap bg-background text-xs">
+                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
@@ -424,6 +425,7 @@ export default function LMContractsTable() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Paginação */}
