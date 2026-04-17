@@ -229,7 +229,7 @@ export default function LMContractsTable() {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   useEffect(() => { table.setPageSize(pageSize); }, [pageSize, table]);
