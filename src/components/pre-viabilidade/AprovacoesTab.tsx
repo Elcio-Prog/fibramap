@@ -113,6 +113,31 @@ export default function AprovacoesTab() {
     return m;
   }, [pvs]);
 
+  const produtosUnicos = useMemo(() => {
+    const set = new Set<string>();
+    (pvs || []).forEach((p) => {
+      if (p.produto_nt) set.add(p.produto_nt);
+    });
+    return Array.from(set).sort();
+  }, [pvs]);
+
+  const tiposUnicos = useMemo(() => {
+    const set = new Set<string>();
+    (pvs || []).forEach((p) => {
+      if (p.tipo_solicitacao) set.add(p.tipo_solicitacao);
+    });
+    return Array.from(set).sort();
+  }, [pvs]);
+
+  const tokensFiltrados = useMemo(() => {
+    return (tokens || []).filter((tk) => {
+      const pv = pvById.get(tk.pre_viabilidade_id);
+      if (filtroProduto !== "all" && pv?.produto_nt !== filtroProduto) return false;
+      if (filtroTipo !== "all" && pv?.tipo_solicitacao !== filtroTipo) return false;
+      return true;
+    });
+  }, [tokens, pvById, filtroProduto, filtroTipo]);
+
   const decide = async (tk: TokenRow, acao: "aprovar" | "reprovar") => {
     setSubmittingToken(tk.token);
     try {
