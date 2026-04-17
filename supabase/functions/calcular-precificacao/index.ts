@@ -533,10 +533,6 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("ROI Vigência", roiVigencia);
 
   // ─── Indicadores ROI / Aprovação (Conectividade) ───
-  // Regra atual do negócio: para Conectividade, a base de custos do Método 2
-  // parte dos custos gerais já apurados no projeto. Os custos recorrentes de
-  // banda/IP/LM já ficam embutidos no valor do mega e não entram novamente
-  // como despesa operacional mensal do contrato.
   const despesasTotais = custosGerais;
   const roiInd = computeRoiIndicators({
     despesasTotais,
@@ -545,21 +541,28 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     margemPct: linktaxaLink,
     ticketMensal: input.ticketMensal,
   });
-  valorMinimo = roundDown4(roiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
 
-  // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
-  // Reaproveita os valores absolutos calculados em computeRoiIndicators
-  // para garantir consistência com a Mensalidade Mínima exibida abaixo.
-  const despesaCacReais = roiInd.despesaCacReais;
-  const margemLucroReais = roiInd.margemReais;
-  const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
-  if (custoOperacionalTotalMargem !== 0) {
-    memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
-    memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
-    memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
+  // ⚠️ LAST MILE preserva o cálculo original (Método 1/2/3 com piso 850/300,
+  // valorLastMile, dark fiber, etc.). Não aplica a nova fórmula
+  // custosGerais/ROI + CAC + Margem usada nas demais tecnologias.
+  const isLastMile = input.tecnologia === "LAST MILE";
+  if (!isLastMile) {
+    valorMinimo = roundDown4(roiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
+
+    const despesaCacReais = roiInd.despesaCacReais;
+    const margemLucroReais = roiInd.margemReais;
+    const custoOperacionalTotalMargem = despesaCacReais + margemLucroReais;
+    if (custoOperacionalTotalMargem !== 0) {
+      memoria.push({ label: "Custos Operacionais Totais + Margem Alvo", valor: custoOperacionalTotalMargem, isHeader: true });
+      memoria.push({ label: "Despesa CAC (R$)", valor: despesaCacReais, isSubItem: true });
+      memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
+    }
+    pushRoiMemoria(memoria, roiInd, input.ticketMensal);
+  } else {
+    // Last Mile: valorMinimo já calculado pelos Métodos 1/2/3 acima.
+    valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+    pushRoiMemoria(memoria, roiInd, input.ticketMensal);
   }
-
-  pushRoiMemoria(memoria, roiInd, input.ticketMensal);
 
   addMem("Valor OPEX", valorOpexInput ?? 0);
   addMem("Valor Mínimo", valorMinimo);
