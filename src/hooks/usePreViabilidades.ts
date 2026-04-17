@@ -99,34 +99,56 @@ export function useUpdatePreViabilidade() {
   });
 }
 
+/**
+ * Lê um valor da memória de cálculo pelo label (case-insensitive, contains).
+ */
+function readMemoria(dp: any, labelContains: string): number | null {
+  const mem = Array.isArray(dp?.memoriaCalculo) ? dp.memoriaCalculo : [];
+  const needle = labelContains.toLowerCase();
+  const found = mem.find((m: any) => typeof m?.label === "string" && m.label.toLowerCase().includes(needle));
+  return found && Number.isFinite(Number(found.valor)) ? Number(found.valor) : null;
+}
+
+/**
+ * Extrai os indicadores de ROI da memória de cálculo (gravados pelo Edge Function calcular-precificacao).
+ * Retorna ROI Target, Sistema, Escolhido (regra 4) e a Mensalidade Mínima.
+ */
+export function getRoiIndicators(dp: any): {
+  roiTarget: number | null;
+  roiSistema: number | null;
+  roiEscolhido: number | null;
+  mensalidadeMinima: number | null;
+  despesasTotais: number | null;
+} {
+  const roiTarget = readMemoria(dp, "ROI Target");
+  const roiSistema = readMemoria(dp, "ROI Sistema") ?? (dp?.roiVigencia != null ? Number(dp.roiVigencia) : null);
+  const roiEscolhido = readMemoria(dp, "ROI Escolhido") ?? (
+    roiTarget != null && roiSistema != null
+      ? (roiTarget > 0 && roiTarget < roiSistema ? roiTarget : roiSistema)
+      : null
+  );
+  const mensalidadeMinima = readMemoria(dp, "Mensalidade Mínima");
+  // Despesas_Totais = ROI_Target × Mensalidade_Mínima
+  const despesasTotais =
+    roiTarget != null && mensalidadeMinima != null && mensalidadeMinima > 0
+      ? roiTarget * mensalidadeMinima
+      : null;
+
+  return { roiTarget, roiSistema, roiEscolhido, mensalidadeMinima, despesasTotais };
+}
+
+/**
+ * Nova lógica: ROI_Final = Despesas_Totais / ticket_mensal.
+ * Substitui o cálculo antigo (despesas/receitas). Usa os indicadores já gravados
+ * em dados_precificacao.memoriaCalculo pelo motor de precificação.
+ *
+ * Aprovação: ROI_Final ≤ ROI_Escolhido (regra 4).
+ */
 export function calculateIndividualROI(ticketMensal: number | null, dp: any) {
-  if (!ticketMensal) return 0;
-  const dados = dp || {};
-  
-  // CUSTO TOTAL = taxa_instalacao_lm + lancamento_custos_materiais + custo_radio + capex + valor_total_reais
-  const custoTotal =
-    (dados.custoLastMile ?? 0) +
-    (dados.custosMateriaisAdicionais ?? 0) +
-    (dados.custo_radio ?? 0) +
-    (dados.valorCapex ?? 0) +
-    (dados.valor_total_reais ?? 0);
-
-  const usouFinder2 = dados.usou_finder2 ?? 0;
-  const campanhaComercialMeses = dados.campanha_comercial_meses ?? 0;
-  const taxaInstalacao = dados.taxaInstalacao ?? 0;
-  const mediaMensalidadeLm = dados.media_mensalidade_lm ?? 0;
-  const opex = dados.valorOpex ?? 0;
-
-  // Receitas = Ticket Mensal - OPEX - Valor LM
-  const receitas = ticketMensal - mediaMensalidadeLm - opex;
-
-  if (receitas <= 0) return 0;
-
-  // Despesas = CAPEX + Lançamento + Finder + Campanha + Taxa Instalação LM - Taxa de Instalação
-  const finder = ticketMensal * (usouFinder2 / 100);
-  const despesas = (dados.valorCapex ?? 0) + (dados.custosMateriaisAdicionais ?? 0) + finder + campanhaComercialMeses + (dados.custoLastMile ?? 0) - taxaInstalacao;
-
-  const roi = despesas / receitas;
+  if (!ticketMensal || ticketMensal <= 0) return 0;
+  const { despesasTotais } = getRoiIndicators(dp);
+  if (despesasTotais == null || despesasTotais <= 0) return 0;
+  const roi = despesasTotais / ticketMensal;
   return Math.round(roi * 10) / 10;
 }
 
