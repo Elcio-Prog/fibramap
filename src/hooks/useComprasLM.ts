@@ -40,6 +40,7 @@ function rowToCompra(row: any): CompraLM {
     id: row.id,
     user_id: row.user_id ?? null,
     parceiro: row.pn ?? "",
+    nome_pn: row.nome_pn ?? null,
     cliente: row.nome_cliente ?? null,
     endereco: row.endereco_instalacao ?? "",
     cidade: row.cidade ?? null,
