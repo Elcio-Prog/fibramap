@@ -217,8 +217,8 @@ export default function ImportWizard() {
       const endereco = getValue("endereco_instalacao");
       const valorStr = getValue("valor_mensal_tr");
 
-      // Skip apenas linhas 100% vazias na planilha inteira (não só nas colunas mapeadas)
-      const allEmpty = row.every((c) => c === "" || c === null || c === undefined);
+      // Skip apenas linhas 100% vazias (todos os campos mapeados)
+      const allEmpty = SYSTEM_FIELDS.every((f) => getValue(f.key) === undefined);
       if (allEmpty) { ignored++; continue; }
 
       let valor: number | null = null;
