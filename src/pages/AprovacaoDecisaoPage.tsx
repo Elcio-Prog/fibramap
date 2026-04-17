@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, Clock } from "lucide-react";
+import { getRoiIndicators } from "@/hooks/usePreViabilidades";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/aprovacao-decidir`;
 
@@ -141,14 +142,18 @@ export default function AprovacaoDecisaoPage() {
             <Field label="Valor Mínimo" value={fmtMoney(pv?.valor_minimo)} />
             <Field
               label="Previsão ROI"
-              value={pv?.previsao_roi != null ? `${Number(pv.previsao_roi).toFixed(2)}%` : "—"}
+              value={pv?.previsao_roi != null ? Number(pv.previsao_roi).toFixed(2).replace(".", ",") : "—"}
             />
-            {pv?.dados_precificacao?.roiVigencia != null && (
-              <Field
-                label="ROI Limite (Vigência)"
-                value={`${Number(pv.dados_precificacao.roiVigencia).toFixed(2)}%`}
-              />
-            )}
+            {(() => {
+              const { roiEscolhido } = getRoiIndicators(pv?.dados_precificacao);
+              if (roiEscolhido == null) return null;
+              return (
+                <Field
+                  label="ROI Limite Calculado (ROI máximo aceito para esse projeto)"
+                  value={Number(roiEscolhido).toFixed(2).replace(".", ",")}
+                />
+              );
+            })()}
           </div>
 
           <div className="space-y-2 pt-2">
