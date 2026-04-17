@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,9 @@ export default function GeoGridTab() {
   const [viabFetched, setViabFetched] = useState(false);
   const PAGE_SIZE = 100;
 
+  // Track active background task id for this GeoGrid sync
+  const taskIdRef = useRef<string | null>(null);
+
   // Viabilidade helpers
   const handleFetchViabilidade = async () => {
     setViabFetched(true);
@@ -50,6 +53,7 @@ export default function GeoGridTab() {
       total: 0,
       link: "/settings",
     });
+    taskIdRef.current = taskId;
     try {
       await fetchViabilidade();
       const now = new Date().toISOString();
@@ -67,15 +71,24 @@ export default function GeoGridTab() {
       complete(taskId, { message: "Sincronização concluída" });
     } catch (err: any) {
       fail(taskId, err?.message ?? "Falha ao sincronizar GeoGrid");
+    } finally {
+      taskIdRef.current = null;
     }
   };
 
   // Reflect progress from the hook into the background task
   useEffect(() => {
-    // We can't easily get the running task id from hook, so update the latest geogrid task by label:
-    // Use a simpler approach via a ref captured on start. But to keep this localized, we'll
-    // patch the task list through a side effect using a stable label match.
-  }, [enrichProgress, enrichingViab]);
+    if (!taskIdRef.current) return;
+    if (enrichingViab && enrichProgress.total > 0) {
+      update(taskIdRef.current, {
+        progress: enrichProgress.done,
+        total: enrichProgress.total,
+        message: `Enriquecendo ${enrichProgress.done}/${enrichProgress.total}`,
+      });
+    } else if (loadingViab) {
+      update(taskIdRef.current, { message: "Buscando viabilidade…" });
+    }
+  }, [enrichProgress, enrichingViab, loadingViab, update]);
 
   const viabFiltered = useMemo(() => {
     setViabPage(1);
