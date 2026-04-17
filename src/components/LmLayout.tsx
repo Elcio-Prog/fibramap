@@ -1,10 +1,11 @@
 import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   Database, LogOut, Menu, Settings, ChevronLeft, ChevronRight,
-  LayoutDashboard, Upload, Bell,
+  LayoutDashboard, Upload, Bell, Network, Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ function getInitials(displayName?: string | null, fullName?: string | null, emai
 
 export default function LmLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -200,6 +202,26 @@ export default function LmLayout({ children }: { children: ReactNode }) {
                     {user?.email ?? ""}
                   </p>
                 </DropdownMenuLabel>
+
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator className="bg-sidebar-border" />
+                    <DropdownMenuItem
+                      onClick={() => navigate("/")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Network className="h-4 w-4" />
+                      FibraMap
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/ws")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Wifi className="h-4 w-4" />
+                      Usuários
+                    </DropdownMenuItem>
+                  </>
+                )}
 
                 <DropdownMenuSeparator className="bg-sidebar-border" />
                 <DropdownMenuItem
