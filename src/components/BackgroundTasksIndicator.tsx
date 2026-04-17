@@ -24,7 +24,7 @@ function timeAgo(ts: number) {
 
 function StatusIcon({ status }: { status: BgTask["status"] }) {
   if (status === "running") return <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />;
-  if (status === "done") return <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />;
+  if (status === "done") return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
   if (status === "error") return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
   return <X className="h-3.5 w-3.5 text-muted-foreground" />;
 }
