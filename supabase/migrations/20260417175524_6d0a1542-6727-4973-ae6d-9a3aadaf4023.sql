@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.lm_contracts_num_contrato_cliente_unique;
