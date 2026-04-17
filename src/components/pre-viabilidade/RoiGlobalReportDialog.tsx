@@ -53,6 +53,7 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
   const [openCombobox, setOpenCombobox] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [approvalOpen, setApprovalOpen] = useState(false);
   const { toast } = useToast();
   const reportRef = React.useRef<HTMLDivElement>(null);
 
