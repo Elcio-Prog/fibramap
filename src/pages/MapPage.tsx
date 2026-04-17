@@ -167,13 +167,19 @@ export default function MapPage() {
 
     for (const r of comprasLM) {
       if (!r.lat || !r.lng) continue;
-      const color = r.status?.toUpperCase() === "ATIVO" ? "#2ecc71" : "#e74c3c";
+      const statusNorm = (r.status || "").trim().toLowerCase();
+      const color = statusNorm === "cancelado"
+        ? "#dc2626"
+        : statusNorm === "ativo"
+          ? "#16a34a"
+          : "#f59e0b";
+      const partnerName = r.nome_pn || r.parceiro;
       const precoMbps = r.banda_mbps && r.banda_mbps > 0 ? `<br/>R$/Mbps: ${(r.valor_mensal / r.banda_mbps).toFixed(2)}` : "";
-      const tooltipText = `<b>${r.parceiro}</b>${r.cliente ? `<br/>${r.cliente}` : ""}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/>R$ ${r.valor_mensal.toFixed(2)}`;
+      const tooltipText = `<b>${partnerName}</b>${r.cliente ? `<br/>${r.cliente}` : ""}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/>R$ ${r.valor_mensal.toFixed(2)}`;
       const marker = L.circleMarker([r.lat, r.lng], {
-        radius: 4, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.85,
+        radius: 4, fillColor: color, color: "#fff", weight: 1.5, fillOpacity: 0.9,
       }).bindTooltip(tooltipText, { sticky: true, direction: "top", opacity: 0.95 }).bindPopup(
-        `<b>${r.parceiro}</b>` +
+        `<b>${partnerName}</b>` +
         `${r.cliente ? `<br/>Cliente: ${r.cliente}` : ""}` +
         `${r.banda_mbps ? `<br/>Banda: ${r.banda_mbps} Mbps` : ""}` +
         `<br/>Valor: R$ ${r.valor_mensal.toFixed(2)}` +
