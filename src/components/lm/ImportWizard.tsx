@@ -63,12 +63,14 @@ function parseCidadeUF(endereco: string): { cidade?: string; uf?: string } {
   return {};
 }
 
-function parseBool(v: any): boolean | undefined {
-  if (v === undefined || v === null || v === "") return undefined;
+function parseBool(v: any): boolean {
+  if (v === undefined || v === null || v === "") return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
   const s = String(v).trim().toLowerCase();
-  if (["sim", "true", "1", "yes", "s", "y"].includes(s)) return true;
-  if (["nao", "não", "false", "0", "no", "n"].includes(s)) return false;
-  return undefined;
+  if (["", "nao", "não", "false", "0", "no", "n", "f"].includes(s)) return false;
+  // Qualquer outro valor não-vazio (sim, true, 1, x, simples, etc.) = true
+  return true;
 }
 
 function parseDate(v: any): string | undefined {
@@ -253,8 +255,7 @@ export default function ImportWizard() {
           const n = parseFloat(String(v).replace(",", "."));
           if (!isNaN(n)) (item as any)[f.key] = n;
         } else if (BOOL_FIELDS.includes(f.key)) {
-          const b = parseBool(v);
-          if (b !== undefined) (item as any)[f.key] = b;
+          (item as any)[f.key] = parseBool(v);
         } else if (DATE_FIELDS.includes(f.key)) {
           const d = parseDate(v);
           if (d) (item as any)[f.key] = d;
