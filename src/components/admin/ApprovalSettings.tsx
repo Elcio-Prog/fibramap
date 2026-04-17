@@ -295,8 +295,8 @@ export default function ApprovalSettings() {
 
       for (const row of data || []) {
         const val = row.valor as any;
-        if (row.chave === "approval_config_standard" && val?.levels) setStandard(val);
-        if (row.chave === "approval_config_equipment" && val?.levels) setEquipment(val);
+        if (row.chave === "approval_config_standard" && val?.levels) setStandard(ensureDiretoria(val));
+        if (row.chave === "approval_config_equipment" && val?.levels) setEquipment(ensureDiretoria(val));
         if (row.chave === "approval_global_rules" && val?.capex_limit != null)
           setGlobalRules(val);
       }
