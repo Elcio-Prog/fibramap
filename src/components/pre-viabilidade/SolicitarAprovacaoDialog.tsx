@@ -103,10 +103,15 @@ export default function SolicitarAprovacaoDialog({
         // não o valor cru de roiVigencia, para garantir consistência visual e de regra.
         const { roiEscolhido } = getRoiIndicators(dadosPrecificacao);
 
-        // Níveis manuais (level > 0), ordenados por roi_increment crescente
-        const manualLevels = config.levels
-          .filter((l) => l.level > 0)
+        // Níveis manuais (level > 0), ordenados por roi_increment crescente.
+        // O nível "Diretoria" (level === 999) é sempre o ÚLTIMO fallback,
+        // independentemente do roi_increment cadastrado.
+        const DIRETORIA_LEVEL = 999;
+        const nonDiretoria = config.levels
+          .filter((l) => l.level > 0 && l.level !== DIRETORIA_LEVEL)
           .sort((a, b) => (a.roi_increment ?? 0) - (b.roi_increment ?? 0));
+        const diretoria = config.levels.find((l) => l.level === DIRETORIA_LEVEL);
+        const manualLevels = diretoria ? [...nonDiretoria, diretoria] : nonDiretoria;
 
         if (config.criteria === "valor") {
           // Modo Valor: compara ticket mensal contra value_limit
