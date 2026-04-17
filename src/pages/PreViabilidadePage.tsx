@@ -2,7 +2,7 @@ import { useState } from "react";
 import { usePreViabilidades, PreViabilidade } from "@/hooks/usePreViabilidades";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import PreViabilidadeTable from "@/components/pre-viabilidade/PreViabilidadeTable";
 import PreViabilidadeFilters from "@/components/pre-viabilidade/PreViabilidadeFilters";
@@ -10,15 +10,16 @@ import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidad
 import PreViabilidadeCreateDialog from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 import RoiGlobalReportDialog from "@/components/pre-viabilidade/RoiGlobalReportDialog";
 import AprovacoesTab from "@/components/pre-viabilidade/AprovacoesTab";
-import { Loader2, FileCheck, X, Plus, BarChart, Inbox } from "lucide-react";
+import { Loader2, FileCheck, X, Plus, BarChart, Inbox, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function PreViabilidadePage() {
-  const { data, isLoading } = usePreViabilidades();
+  const { data, isLoading, isFetching } = usePreViabilidades();
   const { isAdmin, isImplantacao } = useUserRole();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
@@ -26,6 +27,11 @@ export default function PreViabilidadePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [tab, setTab] = useState("registros");
+
+  const handleReload = () => {
+    qc.invalidateQueries({ queryKey: ["pre-viabilidades"] });
+    qc.invalidateQueries({ queryKey: ["aprovacoes-pendentes-count"] });
+  };
 
   // Pending approvals count badge
   const { data: pendingCount } = useQuery({
@@ -58,6 +64,16 @@ export default function PreViabilidadePage() {
         </div>
         {tab === "registros" && (
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleReload}
+              disabled={isFetching}
+              className="gap-2 bg-background"
+              title="Recarregar"
+            >
+              <RefreshCw className={`h-4 w-4 text-primary ${isFetching ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Recarregar</span>
+            </Button>
             <Button variant="outline" onClick={() => setReportOpen(true)} className="gap-2 bg-background">
               <BarChart className="h-4 w-4 text-primary" />
               <span className="hidden sm:inline">Gerar Relatório Roi Global</span>
