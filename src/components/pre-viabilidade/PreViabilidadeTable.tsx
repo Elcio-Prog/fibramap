@@ -245,9 +245,11 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                           const { roiEscolhido } = getRoiIndicators(row.dados_precificacao);
                           if (roiEscolhido != null && roiEscolhido > 0) {
                             const ok = row.previsao_roi <= roiEscolhido;
-                            return <StatusBadge value={`${row.previsao_roi.toFixed(1)} / ${roiEscolhido}`} className={ok ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200"} />;
+                            const escolhidoStr = (Math.round(roiEscolhido * 100) / 100).toString().replace(".", ",");
+                            const previstoStr = row.previsao_roi.toFixed(1).replace(".", ",");
+                            return <StatusBadge value={`${previstoStr} / ${escolhidoStr}`} className={ok ? "bg-emerald-100 text-emerald-800 border-emerald-200" : "bg-red-100 text-red-800 border-red-200"} />;
                           }
-                          return <span className="text-muted-foreground">{row.previsao_roi.toFixed(1)}</span>;
+                          return <span className="text-muted-foreground">{row.previsao_roi.toFixed(1).replace(".", ",")}</span>;
                         })() : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">{row.roi_global ?? "—"}</td>
