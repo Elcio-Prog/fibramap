@@ -29,12 +29,37 @@ export interface GeoGridItemRede {
 }
 
 async function callGeoGridProxy(endpoint: string, params?: Record<string, any>) {
-  const { data, error } = await supabase.functions.invoke("geogrid-proxy", {
-    body: { endpoint, params },
-  });
-  if (error) throw new Error(error.message || "Erro ao chamar GeoGrid");
-  if (!data?.ok) throw new Error(`GeoGrid retornou status ${data?.status}`);
-  return data?.data;
+  // Retry com exponential backoff para 429 (rate limit)
+  const MAX_ATTEMPTS = 5;
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const { data, error } = await supabase.functions.invoke("geogrid-proxy", {
+      body: { endpoint, params },
+    });
+    if (error) {
+      lastErr = new Error(error.message || "Erro ao chamar GeoGrid");
+      // Erro de rede — espera e tenta de novo
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+        continue;
+      }
+      throw lastErr;
+    }
+    if (data?.status === 429) {
+      // Rate limited — backoff exponencial: 2s, 4s, 8s, 16s, 32s
+      lastErr = new Error("GeoGrid retornou status 429");
+      if (attempt < MAX_ATTEMPTS) {
+        const waitMs = 2000 * Math.pow(2, attempt - 1);
+        console.warn(`[GeoGrid] 429 (tentativa ${attempt}/${MAX_ATTEMPTS}) — aguardando ${waitMs}ms`);
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
+      }
+      throw lastErr;
+    }
+    if (!data?.ok) throw new Error(`GeoGrid retornou status ${data?.status}`);
+    return data?.data;
+  }
+  throw lastErr ?? new Error("GeoGrid: falha após múltiplas tentativas");
 }
 
 function safeStr(val: any): string {
@@ -322,7 +347,7 @@ export function useGeoGridViabilidade() {
 
         for (let i = 0; i < filtered.length; i++) {
           if (i > 0) {
-            await new Promise((r) => setTimeout(r, 300));
+            await new Promise((r) => setTimeout(r, 500));
           }
           const baseItem = filtered[i];
           try {
@@ -350,7 +375,7 @@ export function useGeoGridViabilidade() {
 
                 if (!recipId) continue;
 
-                await new Promise((resolve) => setTimeout(resolve, 300));
+                await new Promise((resolve) => setTimeout(resolve, 500));
 
                 try {
                   const portasResult = await callGeoGridProxy(`viabilidade/${recipId}/portas`, { disponivel: "S" });
