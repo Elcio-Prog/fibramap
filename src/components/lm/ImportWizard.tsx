@@ -215,14 +215,15 @@ export default function ImportWizard() {
       const endereco = getValue("endereco_instalacao");
       const valorStr = getValue("valor_mensal_tr");
 
-      // Skip apenas linhas completamente vazias
-      if (!pn && !endereco && !valorStr) { ignored++; continue; }
+      // Skip apenas linhas 100% vazias (todos os campos mapeados)
+      const allEmpty = SYSTEM_FIELDS.every((f) => getValue(f.key) === undefined);
+      if (allEmpty) { ignored++; continue; }
 
-      if (!endereco) { errors.push(`Linha ${lineNum}: Endereço de Instalação vazio`); continue; }
-      if (valorStr === undefined) { errors.push(`Linha ${lineNum}: Valor Mensal (TR) vazio`); continue; }
-
-      const valor = parseFloat(String(valorStr).replace(",", "."));
-      if (isNaN(valor)) { errors.push(`Linha ${lineNum}: Valor Mensal (TR) inválido`); continue; }
+      let valor: number | null = null;
+      if (valorStr !== undefined) {
+        const n = parseFloat(String(valorStr).replace(",", "."));
+        if (!isNaN(n)) valor = n;
+      }
 
       // Auto-extrair cidade/UF se não mapeados
       let cidadeVal = getValue("cidade");
@@ -234,10 +235,10 @@ export default function ImportWizard() {
       }
 
       const item: LMContractInput = {
-        endereco_instalacao: String(endereco),
-        valor_mensal_tr: valor,
         user_id: user?.id ?? null,
-        geocoding_status: "pending",
+        geocoding_status: endereco ? "pending" : "skipped",
+        ...(endereco ? { endereco_instalacao: String(endereco) } : {}),
+        ...(valor !== null ? { valor_mensal_tr: valor } : {}),
         ...(pn ? { pn: String(pn) } : {}),
         ...(cidadeVal ? { cidade: String(cidadeVal) } : {}),
         ...(ufVal ? { uf: String(ufVal) } : {}),
