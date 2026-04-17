@@ -35,6 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { LMContract, LM_FIELD_LABELS, LM_STATUS_OPTIONS, useLMContracts } from "@/hooks/useLMContracts";
 import LMContractDrawer from "./LMContractDrawer";
@@ -180,25 +181,7 @@ export default function LMContractsTable() {
       enableSorting: true,
     });
 
-    const actionsCol: ColumnDef<LMContract> = {
-      id: "__actions",
-      header: () => <span className="sr-only">Ações</span>,
-      cell: ({ row }) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-2 text-xs"
-          onClick={(e) => { e.stopPropagation(); setSelected(row.original); }}
-          title="Editar contrato"
-        >
-          <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
-        </Button>
-      ),
-      enableSorting: false,
-    };
-
     return [
-      actionsCol,
       make("numero", { cell: (v) => <span className="text-xs font-semibold tabular-nums text-muted-foreground">#{v}</span>, sortable: true, size: 60 }),
       make("status", { cell: (v) => <StatusBadge status={v} />, sortable: true }),
       make("pn"),
@@ -417,17 +400,25 @@ export default function LMContractsTable() {
                   else if (!isAfter(dt, in30)) highlight = "bg-amber-500/10 hover:bg-amber-500/15";
                 }
                 return (
-                  <TableRow
-                    key={row.id}
-                    className={cn("cursor-pointer", highlight)}
-                    onClick={() => setSelected(r)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="whitespace-nowrap py-2">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                  <ContextMenu key={row.id}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        className={cn("cursor-pointer", highlight)}
+                        onDoubleClick={() => setSelected(r)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="whitespace-nowrap py-2">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <ContextMenuItem onClick={() => setSelected(r)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" /> Editar contrato
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })
             )}
