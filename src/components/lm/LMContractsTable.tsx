@@ -174,7 +174,7 @@ export default function LMContractsTable() {
         if (v == null || v === "") return <span className="text-muted-foreground">—</span>;
         return <span className="text-xs">{String(v)}</span>;
       },
-      enableSorting: opts?.sortable ?? SORTABLE_BY_DEFAULT.has(id) ? true : true,
+      enableSorting: true,
     });
 
     return [
