@@ -832,7 +832,6 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
                 )}
               </div>
             </div>
-            </div>
           ) : (
             <div className="flex h-32 flex-col items-center justify-center rounded-xl border border-dashed text-muted-foreground p-8">
               {selectedId ? (
@@ -845,6 +844,23 @@ export default function RoiGlobalReportDialog({ open, onOpenChange, data }: Prop
         </div>
 
       </DialogContent>
+
+      {/* Diálogo de Aprovação Global — usa o 1º item do consolidado como referência */}
+      {firstItem && (
+        <SolicitarAprovacaoDialog
+          open={approvalOpen}
+          onOpenChange={setApprovalOpen}
+          preViabilidadeId={firstItem.id}
+          numero={firstItem.numero}
+          vigencia={firstItem.vigencia}
+          dadosPrecificacao={firstItem.dados_precificacao}
+          hasEquipment={
+            !!firstItem.produto_nt &&
+            firstItem.produto_nt.toLowerCase() !== "conectividade"
+          }
+          previsaoRoi={roiGlobalFinal}
+        />
+      )}
     </Dialog>
   );
 }
