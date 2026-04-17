@@ -255,8 +255,7 @@ export default function ImportWizard() {
           const n = parseFloat(String(v).replace(",", "."));
           if (!isNaN(n)) (item as any)[f.key] = n;
         } else if (BOOL_FIELDS.includes(f.key)) {
-          const b = parseBool(v);
-          if (b !== undefined) (item as any)[f.key] = b;
+          (item as any)[f.key] = parseBool(v);
         } else if (DATE_FIELDS.includes(f.key)) {
           const d = parseDate(v);
           if (d) (item as any)[f.key] = d;
