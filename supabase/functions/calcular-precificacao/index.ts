@@ -497,9 +497,6 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     };
   }
 
-  // Final rounding + opex
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
-
   // Build memoria de calculo (only non-zero items)
   const memoria: MemoriaItem[] = [];
   const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
@@ -544,6 +541,7 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
     margemPct: linktaxaLink,
     ticketMensal: input.ticketMensal,
   });
+  valorMinimo = roundDown4(roiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
 
   // ─── Custos Operacionais Totais + Margem Alvo (em R$) ───
   // Reaproveita os valores absolutos calculados em computeRoiIndicators
@@ -640,11 +638,7 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     valorCapex - (taxaInstalacao ?? 0) + (custosMateriaisAdicionais ?? 0)
   );
 
-  let valorMinimo =
-    safeDivide(custosGerais, roiVigencia) +
-    custoPorContrato * (1 + pabxDespesaCAC) * (1 + pabxMargemLucro);
-
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+  let valorMinimo = 0;
 
   const memoria: MemoriaItem[] = [];
   const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
@@ -683,6 +677,7 @@ function calcFirewall(input: CalcInput, db: DbCosts): CalcOutput {
     ticketMensal: input.ticketMensal,
     despesasOpMensaisContrato: custoPorContrato,
   });
+  valorMinimo = roundDown4(fwRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
   pushRoiMemoria(memoria, fwRoiInd, input.ticketMensal);
 
   addMem("Valor OPEX", valorOpexInput ?? 0);
@@ -723,12 +718,7 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
     valorCapex - (taxaInstalacao ?? 0) + (custosMateriaisAdicionais ?? 0)
   );
 
-  let valorMinimo =
-    (safeDivide(custosGerais, roiVigencia) + custoPorContrato) *
-    (1 + pabxDespesaCAC) *
-    (1 + pabxMargemLucro);
-
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+  let valorMinimo = 0;
 
   const memoriaS: MemoriaItem[] = [];
   const addMemS = (label: string, valor: number) => { if (valor !== 0) memoriaS.push({ label, valor }); };
@@ -764,6 +754,7 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
     ticketMensal: input.ticketMensal,
     despesasOpMensaisContrato: custoPorContrato,
   });
+  valorMinimo = roundDown4(swRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
   pushRoiMemoria(memoriaS, swRoiInd, input.ticketMensal);
 
   addMemS("Valor OPEX", valorOpexInput ?? 0);
@@ -805,12 +796,7 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
     valorCapex - (taxaInstalacao ?? 0) + (custosMateriaisAdicionais ?? 0)
   );
 
-  let valorMinimo =
-    (safeDivide(custosGerais, roiVigencia) + custoPorContrato) *
-    (1 + pabxDespesaCAC) *
-    (1 + pabxMargemLucro);
-
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+  let valorMinimo = 0;
 
   const memoriaW: MemoriaItem[] = [];
   const addMemW = (label: string, valor: number) => { if (valor !== 0) memoriaW.push({ label, valor }); };
@@ -847,6 +833,7 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
     ticketMensal: input.ticketMensal,
     despesasOpMensaisContrato: custoPorContrato,
   });
+  valorMinimo = roundDown4(wfRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
   pushRoiMemoria(memoriaW, wfRoiInd, input.ticketMensal);
 
   addMemW("Valor OPEX", valorOpexInput ?? 0);
@@ -974,25 +961,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
       ? (db.custosPabx.get("Suporte por contrato (Custo de Operação)") ?? 0)
       : 0;
 
-  let valorMinimo =
-    (valorContratoPabx +
-      valorContratos +
-      valorNovasLinhas +
-      valorPortabilidades +
-      valorRamais +
-      valorCanais +
-      valorFixoLocalCalc +
-      valorFixoLDNCalc +
-      valorMovelLocalCalc +
-      valorMovelLDNCalc +
-      valor0800MovelCalc +
-      valor0800FixoCalc +
-      valorInternacional +
-      safeDivide(custosGerais - 1, roiVigencia)) *
-    (1 + vozDespesaCAC) *
-    (1 + vozMargemLucro);
-
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+  let valorMinimo = 0;
 
   const memoriaV: MemoriaItem[] = [];
   const addMemV = (label: string, valor: number) => { if (valor !== 0) memoriaV.push({ label, valor }); };
@@ -1056,6 +1025,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     ticketMensal: input.ticketMensal,
     despesasOpMensaisContrato: despesasOpMensaisVoz,
   });
+  valorMinimo = roundDown4(vozRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
   pushRoiMemoria(memoriaV, vozRoiInd, input.ticketMensal);
 
   addMemV("Valor OPEX", valorOpexInput ?? 0);
@@ -1082,13 +1052,7 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
   const custoPorContratoBackup = db.custosPabx.get("Custo Backup por contrato") ?? 0;
   const custoPorTB = db.custosPabx.get("Custo Backup TB") ?? 0;
 
-  let valorMinimo =
-    (custoPorContratoBackup + custoPorTB) *
-    qtdBackupTB *
-    (1 + pabxDespesaCAC) *
-    (1 + pabxMargemLucro);
-
-  valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
+  let valorMinimo = 0;
 
   const memoria: MemoriaItem[] = [];
   const addMem = (label: string, valor: number) => { if (valor !== 0) memoria.push({ label, valor }); };
@@ -1123,6 +1087,7 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
     ticketMensal: input.ticketMensal,
     despesasOpMensaisContrato: despesasOpMensaisBk,
   });
+  valorMinimo = roundDown4(bkRoiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
   pushRoiMemoria(memoria, bkRoiInd, input.ticketMensal);
 
   addMem("Valor OPEX", valorOpexInput ?? 0);
