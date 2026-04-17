@@ -86,6 +86,7 @@ function SenhaCell({ senha }: { senha: string | null }) {
 }
 
 const COLUMN_ORDER: (keyof LMContract)[] = [
+  "numero",
   "status", "pn", "nome_pn", "grupo", "recorrencia", "cont_guarda_chuva",
   "modelo_tr", "valor_mensal_tr", "observacao_contrato_lm", "item_sap",
   "protocolo_elleven", "nome_cliente", "etiqueta", "num_contrato_cliente",
@@ -94,7 +95,7 @@ const COLUMN_ORDER: (keyof LMContract)[] = [
   "site_portal", "login", "senha",
 ];
 
-const SORTABLE_BY_DEFAULT = new Set(["data_termino", "valor_mensal_tr", "status", "nome_cliente"]);
+const SORTABLE_BY_DEFAULT = new Set(["numero", "data_termino", "valor_mensal_tr", "status", "nome_cliente"]);
 
 export default function LMContractsTable() {
   const { data: rows = [], isLoading } = useLMContracts();
@@ -179,6 +180,7 @@ export default function LMContractsTable() {
     });
 
     return [
+      make("numero", { cell: (v) => <span className="text-xs font-semibold tabular-nums text-muted-foreground">#{v}</span>, sortable: true, size: 60 }),
       make("status", { cell: (v) => <StatusBadge status={v} />, sortable: true }),
       make("pn"),
       make("nome_pn"),
