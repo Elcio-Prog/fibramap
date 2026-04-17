@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, Eye, ShoppingBag, Wrench } from "lucide-react";
+import { UserPlus, RefreshCw, Shield, ShieldOff, KeyRound, Loader2, Users, Wifi, Clock, Eye, ShoppingBag, Wrench, Database } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -76,7 +76,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação" };
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
       toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
@@ -131,6 +131,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
+                      <SelectItem value="lm">Last Mile</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -146,7 +147,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao"; label: string; icon: any; globalSearch: string }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -218,7 +219,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação" };
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
 
   const changeRole = useMutation({
     mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
@@ -310,6 +311,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                       <SelectItem value="ws_user">WS</SelectItem>
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
+                      <SelectItem value="lm">Last Mile</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -398,6 +400,14 @@ export default function WsUsersPage() {
       return (data as any).users as ManagedUser[];
     },
   });
+  const { data: lmList } = useQuery({
+    queryKey: ["managed-users", "lm"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "lm" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
   const { data: pendingList } = useQuery({
     queryKey: ["managed-users", "pending"],
     queryFn: async () => {
@@ -411,8 +421,9 @@ export default function WsUsersPage() {
   const adminCount = adminList?.length ?? 0;
   const vendedorCount = vendedorList?.length ?? 0;
   const implantacaoCount = implantacaoList?.length ?? 0;
+  const lmCount = lmList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount + vendedorCount + implantacaoCount;
+  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount;
 
   const [globalSearch, setGlobalSearch] = useState("");
 
@@ -428,6 +439,7 @@ export default function WsUsersPage() {
           <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> WS ({wsCount})</TabsTrigger>
           <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
           <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Validação ({implantacaoCount})</TabsTrigger>
+          <TabsTrigger value="lm" className="gap-2"><Database className="h-3.5 w-3.5" /> Last Mile ({lmCount})</TabsTrigger>
           <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
@@ -439,6 +451,9 @@ export default function WsUsersPage() {
         </TabsContent>
         <TabsContent value="implantacao" className="mt-4">
           <UserList role="implantacao" label="Validação" icon={Wrench} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="lm" className="mt-4">
+          <UserList role="lm" label="Last Mile" icon={Database} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />

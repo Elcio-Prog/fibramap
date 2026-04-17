@@ -41,7 +41,13 @@ export function UserDetailModal({ user, role, open, onOpenChange }: UserDetailMo
   const phone = profile?.phone || null;
   const createdAt = user.created_at ? format(new Date(user.created_at), "dd/MM/yyyy") : "—";
 
-  const roleLabel = role === "admin" ? "Administrador" : role === "ws_user" ? "Usuário WS" : "Pendente";
+  const roleLabel =
+    role === "admin" ? "Administrador" :
+    role === "ws_user" ? "Usuário WS" :
+    role === "vendedor" ? "Vendedor" :
+    role === "implantacao" ? "Validação" :
+    role === "lm" ? "Last Mile" :
+    "Pendente";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
