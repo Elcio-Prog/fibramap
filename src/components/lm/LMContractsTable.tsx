@@ -366,8 +366,8 @@ export default function LMContractsTable() {
       {/* Tabela */}
       <div className="rounded-md border">
         <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))]">
+          <table className="w-full caption-bottom text-sm">
+            <TableHeader className="sticky top-0 z-10 bg-background [&_tr]:border-b">
               {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id}>
                   {hg.headers.map((h) => (
@@ -378,53 +378,53 @@ export default function LMContractsTable() {
                 </TableRow>
               ))}
             </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center text-sm text-muted-foreground">
-                  Carregando contratos...
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center text-sm text-muted-foreground">
-                  Nenhum contrato encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => {
-                const r = row.original;
-                let highlight = "";
-                if (r.data_termino) {
-                  const dt = parseISO(r.data_termino);
-                  if (isBefore(dt, today)) highlight = "bg-destructive/10 hover:bg-destructive/15";
-                  else if (!isAfter(dt, in30)) highlight = "bg-amber-500/10 hover:bg-amber-500/15";
-                }
-                return (
-                  <ContextMenu key={row.id}>
-                    <ContextMenuTrigger asChild>
-                      <TableRow
-                        className={cn("cursor-pointer", highlight)}
-                        onDoubleClick={() => setSelected(r)}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="whitespace-nowrap py-2">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuItem onClick={() => setSelected(r)}>
-                        <Pencil className="mr-2 h-3.5 w-3.5" /> Editar contrato
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center text-sm text-muted-foreground">
+                    Carregando contratos...
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={table.getAllLeafColumns().length} className="h-24 text-center text-sm text-muted-foreground">
+                    Nenhum contrato encontrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => {
+                  const r = row.original;
+                  let highlight = "";
+                  if (r.data_termino) {
+                    const dt = parseISO(r.data_termino);
+                    if (isBefore(dt, today)) highlight = "bg-destructive/10 hover:bg-destructive/15";
+                    else if (!isAfter(dt, in30)) highlight = "bg-amber-500/10 hover:bg-amber-500/15";
+                  }
+                  return (
+                    <ContextMenu key={row.id}>
+                      <ContextMenuTrigger asChild>
+                        <TableRow
+                          className={cn("cursor-pointer", highlight)}
+                          onDoubleClick={() => setSelected(r)}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="whitespace-nowrap py-2">
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem onClick={() => setSelected(r)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" /> Editar contrato
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  );
+                })
+              )}
+            </TableBody>
+          </table>
         </div>
       </div>
 
