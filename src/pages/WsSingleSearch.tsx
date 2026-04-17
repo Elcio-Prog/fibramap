@@ -42,6 +42,7 @@ import {
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
 import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
+import { useWsSingleSearchState } from "@/contexts/WsSingleSearchStateContext";
 
 // Per-row pricing parameters
 interface RowPricingParams {
@@ -87,6 +88,7 @@ export default function WsSingleSearch() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { start: startBgTask, complete: completeBgTask, fail: failBgTask, update: updateBgTask } = useBackgroundTasks();
+  const { getSnapshot, setSnapshot } = useWsSingleSearchState();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
@@ -109,35 +111,38 @@ export default function WsSingleSearch() {
     }))
     .filter(pp => pp.cities.length > 0);
 
+  // Hidrata estado salvo (uma vez na montagem) — ao trocar de seção e voltar, mantém todos os resultados
+  const snap = getSnapshot();
+
   // Input fields
-  const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">("address");
-  const [address, setAddress] = useState("");
-  const [addressNumber, setAddressNumber] = useState("");
-  const [coordLat, setCoordLat] = useState("");
-  const [coordLng, setCoordLng] = useState("");
-  const [cep, setCep] = useState("");
-  const [cepAddress, setCepAddress] = useState("");
-  const [cepNumber, setCepNumber] = useState("");
+  const [inputMode, setInputMode] = useState<"address" | "coords" | "cep">(snap?.inputMode ?? "address");
+  const [address, setAddress] = useState(snap?.address ?? "");
+  const [addressNumber, setAddressNumber] = useState(snap?.addressNumber ?? "");
+  const [coordLat, setCoordLat] = useState(snap?.coordLat ?? "");
+  const [coordLng, setCoordLng] = useState(snap?.coordLng ?? "");
+  const [cep, setCep] = useState(snap?.cep ?? "");
+  const [cepAddress, setCepAddress] = useState(snap?.cepAddress ?? "");
+  const [cepNumber, setCepNumber] = useState(snap?.cepNumber ?? "");
   const [cepLoading, setCepLoading] = useState(false);
-  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(null);
-  const [resolvedGeo, setResolvedGeo] = useState<{ lat: number; lng: number; display: string } | null>(null);
+  const [cepData, setCepData] = useState<{ logradouro: string; bairro: string; localidade: string; uf: string } | null>(snap?.cepData ?? null);
+  const [resolvedGeo, setResolvedGeo] = useState<{ lat: number; lng: number; display: string } | null>(snap?.resolvedGeo ?? null);
 
   // WS extra fields
-  const [cliente, setCliente] = useState("");
-  const [designacao, setDesignacao] = useState("");
+  const [cliente, setCliente] = useState(snap?.cliente ?? "");
+  const [designacao, setDesignacao] = useState(snap?.designacao ?? "");
   const tipoLink = "";
-  const [velocidade, setVelocidade] = useState("");
+  const [velocidade, setVelocidade] = useState(snap?.velocidade ?? "");
 
   // Results
   const [loading, setLoading] = useState(false);
   const [searchPhase, setSearchPhase] = useState("");
-  const [options, setOptions] = useState<SingleSearchOption[]>([]);
-  const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(null);
+  const [options, setOptions] = useState<SingleSearchOption[]>(snap?.options ?? []);
+  const [geoResult, setGeoResult] = useState<{ lat: number; lng: number; display: string } | null>(snap?.geoResult ?? null);
 
   // Radius
-  const [radius, setRadius] = useState(5);
-  const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(null);
-  const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
+  const [radius, setRadius] = useState<number>(snap?.radius ?? 5);
+  const [radiusResults, setRadiusResults] = useState<RadiusResult[] | null>(snap?.radiusResults ?? null);
+  const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(snap?.selectedOptionIdx ?? null);
 
   // Pré Viabilidade dialog
   const [preViabOpen, setPreViabOpen] = useState(false);
@@ -145,8 +150,8 @@ export default function WsSingleSearch() {
 
   // Pricing parameters per row
   const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
-  const [rowPricing, setRowPricing] = useState<Record<number, RowPricingParams>>({});
-  const [rowValorMinimo, setRowValorMinimo] = useState<Record<number, number | null>>({});
+  const [rowPricing, setRowPricing] = useState<Record<number, RowPricingParams>>(snap?.rowPricing ?? {});
+  const [rowValorMinimo, setRowValorMinimo] = useState<Record<number, number | null>>(snap?.rowValorMinimo ?? {});
   const [rowCalcLoading, setRowCalcLoading] = useState<Record<number, boolean>>({});
   const calcTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
@@ -225,12 +230,34 @@ export default function WsSingleSearch() {
     };
   }, [rowPricing, options, calcularRow]);
 
-  // Reset pricing state when options change
+  // Reset pricing state when options change (skip on first mount to preserve restored snapshot)
+  const optionsResetMountRef = useRef(true);
   useEffect(() => {
+    if (optionsResetMountRef.current) {
+      optionsResetMountRef.current = false;
+      return;
+    }
     setRowPricing({});
     setRowValorMinimo({});
     setRowCalcLoading({});
   }, [options]);
+
+  // Persiste snapshot global a cada mudança relevante para sobreviver navegação entre seções
+  useEffect(() => {
+    setSnapshot({
+      inputMode, address, addressNumber, coordLat, coordLng,
+      cep, cepAddress, cepNumber, cepData, resolvedGeo,
+      cliente, designacao, velocidade,
+      options, geoResult, radius, radiusResults, selectedOptionIdx,
+      rowPricing, rowValorMinimo,
+    });
+  }, [
+    inputMode, address, addressNumber, coordLat, coordLng,
+    cep, cepAddress, cepNumber, cepData, resolvedGeo,
+    cliente, designacao, velocidade,
+    options, geoResult, radius, radiusResults, selectedOptionIdx,
+    rowPricing, rowValorMinimo, setSnapshot,
+  ]);
 
   const { addItems, isInCart, isSent } = useCart();
   // Map
