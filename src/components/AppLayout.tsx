@@ -271,6 +271,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                       <Wifi className="h-4 w-4" />
                       Usuários
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/lm")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Truck className="h-4 w-4" />
+                      Last Mile
+                    </DropdownMenuItem>
                   </>
                 )}
 
