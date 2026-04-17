@@ -119,12 +119,14 @@ function fatorBandaBGP(banda: number): number {
  * Aplicado uniformemente a todos os produtos.
  *
  * Regras (definidas pelo negócio):
- *  - capex             = CAPEX puro (lançamento + equipamentos)
- *  - despesasTotais    = CAPEX + custos operacionais (banda, IP, last mile, taxa instalação LM, contratos, etc.)
+ *  - despesasTotais    = Custos Gerais (CAPEX + custos operacionais ao longo da vigência)
  *  - cacPct, margemPct = percentuais (ex.: 0.12, 0.20) já carregados do BD
  *  - roiSistema        = ROI configurado para a vigência (tabela vigencia_vs_roi)
- *  - mensalidadeBase   = capex / roiSistema
- *  - mensalidadeMinima = mensalidadeBase × (1 + cacPct) × (1 + margemPct)
+ *  - mensalidadeBase   = despesasTotais / roiSistema       (parcela mensal "neutra")
+ *  - despesaCacReais   = mensalidadeBase × cacPct          (R$ absoluto adicionado)
+ *  - margemReais       = mensalidadeBase × (1 + cacPct) × margemPct  (cascata sobre base+CAC)
+ *  - mensalidadeMinima = mensalidadeBase + despesaCacReais + margemReais
+ *                      = mensalidadeBase × (1 + cacPct) × (1 + margemPct)
  *  - roiTarget         = despesasTotais / mensalidadeMinima
  *  - roiEscolhido      = ROI_Target < ROI_Sistema → ROI_Target ; senão → ROI_Sistema  (regra 4)
  *  - ticketMensal      = valor que o vendedor quer ofertar
@@ -132,12 +134,13 @@ function fatorBandaBGP(banda: number): number {
  *  - aprovado          = roiFinal ≤ roiEscolhido
  */
 function computeRoiIndicators(args: {
-  capex: number;
   despesasTotais: number;
   roiSistema: number;
   cacPct: number;
   margemPct: number;
   ticketMensal?: number;
+  /** mantido para compatibilidade — não é mais usado no cálculo */
+  capex?: number;
 }): {
   roiTarget: number;
   roiSistema: number;
@@ -146,24 +149,25 @@ function computeRoiIndicators(args: {
   aprovado: boolean;
   mensalidadeBase: number;
   mensalidadeMinima: number;
+  despesaCacReais: number;
+  margemReais: number;
 } {
-  const capex = args.capex || 0;
   const despesasTotais = args.despesasTotais || 0;
   const roiSistema = args.roiSistema || 0;
   const cacPct = args.cacPct || 0;
   const margemPct = args.margemPct || 0;
   const ticketMensal = args.ticketMensal ?? 0;
 
-  const mensalidadeBase = roiSistema > 0 ? capex / roiSistema : 0;
-  const mensalidadeMinima = mensalidadeBase * (1 + cacPct) * (1 + margemPct);
+  const mensalidadeBase = roiSistema > 0 ? despesasTotais / roiSistema : 0;
+  const despesaCacReais = mensalidadeBase * cacPct;
+  const margemReais = mensalidadeBase * (1 + cacPct) * margemPct;
+  const mensalidadeMinima = mensalidadeBase + despesaCacReais + margemReais;
   const roiTarget = mensalidadeMinima > 0 ? despesasTotais / mensalidadeMinima : 0;
 
   // Regra 4: se ROI_Target < ROI_Sistema → usar ROI_Target, senão manter ROI_Sistema.
   const roiEscolhido = roiTarget > 0 && roiTarget < roiSistema ? roiTarget : roiSistema;
 
   const roiFinal = ticketMensal > 0 ? despesasTotais / ticketMensal : 0;
-  // Aprovado: o prazo de retorno calculado a partir do ticket ofertado
-  // não pode exceder o prazo de retorno aceitável (roiEscolhido).
   const aprovado = ticketMensal > 0 && roiEscolhido > 0 && roiFinal <= roiEscolhido;
 
   return {
@@ -174,6 +178,8 @@ function computeRoiIndicators(args: {
     aprovado,
     mensalidadeBase,
     mensalidadeMinima,
+    despesaCacReais,
+    margemReais,
   };
 }
 
@@ -183,7 +189,7 @@ function pushRoiMemoria(
   ticketMensal?: number
 ) {
   memoria.push({ label: "Indicadores de ROI / Aprovação", valor: 0, isHeader: true });
-  memoria.push({ label: "Mensalidade Mínima (CAPEX/ROI × CAC × Margem)", valor: ind.mensalidadeMinima, isSubItem: true });
+  memoria.push({ label: "Mensalidade Mínima (CustosGerais/ROI × (1+CAC) × (1+Margem))", valor: ind.mensalidadeMinima, isSubItem: true });
   memoria.push({ label: "ROI Target (Despesas/Mens.Mínima)", valor: ind.roiTarget, isSubItem: true });
   memoria.push({ label: "ROI Sistema (vigência)", valor: ind.roiSistema, isSubItem: true });
   memoria.push({ label: "ROI Escolhido (regra 4)", valor: ind.roiEscolhido, isSubItem: true });
