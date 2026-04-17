@@ -13,6 +13,8 @@ const STATUS_STYLES: Record<string, string> = {
   "Fechado - Auto Avaliação": "bg-gray-100 text-gray-600 border-gray-200",
   "Ativa": "bg-emerald-100 text-emerald-800 border-emerald-200",
   "Pendente": "bg-amber-100 text-amber-800 border-amber-200",
+  "Aprovado": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "Reprovado": "bg-red-100 text-red-800 border-red-200",
   "Viável": "bg-emerald-100 text-emerald-800 border-emerald-200",
   "Abaixo do Valor": "bg-red-100 text-red-800 border-red-200",
   "Inviabilidade Técnica": "bg-red-100 text-red-800 border-red-200",
