@@ -400,6 +400,14 @@ export default function WsUsersPage() {
       return (data as any).users as ManagedUser[];
     },
   });
+  const { data: lmList } = useQuery({
+    queryKey: ["managed-users", "lm"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "lm" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
   const { data: pendingList } = useQuery({
     queryKey: ["managed-users", "pending"],
     queryFn: async () => {
@@ -413,8 +421,9 @@ export default function WsUsersPage() {
   const adminCount = adminList?.length ?? 0;
   const vendedorCount = vendedorList?.length ?? 0;
   const implantacaoCount = implantacaoList?.length ?? 0;
+  const lmCount = lmList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount + vendedorCount + implantacaoCount;
+  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount;
 
   const [globalSearch, setGlobalSearch] = useState("");
 
@@ -430,6 +439,7 @@ export default function WsUsersPage() {
           <TabsTrigger value="ws" className="gap-2"><Wifi className="h-3.5 w-3.5" /> WS ({wsCount})</TabsTrigger>
           <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
           <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Validação ({implantacaoCount})</TabsTrigger>
+          <TabsTrigger value="lm" className="gap-2"><Database className="h-3.5 w-3.5" /> Last Mile ({lmCount})</TabsTrigger>
           <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
@@ -441,6 +451,9 @@ export default function WsUsersPage() {
         </TabsContent>
         <TabsContent value="implantacao" className="mt-4">
           <UserList role="implantacao" label="Validação" icon={Wrench} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="lm" className="mt-4">
+          <UserList role="lm" label="Last Mile" icon={Database} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
