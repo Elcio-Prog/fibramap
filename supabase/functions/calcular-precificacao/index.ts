@@ -522,18 +522,12 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   addMem("Vigência (meses)", vigencia);
   addMem("ROI Vigência", roiVigencia);
 
-  // ─── Indicadores ROI / Aprovação (calculados primeiro p/ reaproveitar CAC/Margem em R$) ───
-  // Despesas_Totais para Conectividade = CAPEX + custos operacionais que oneram o projeto.
-  // Custos operacionais mensais → multiplicamos pela vigência para colocar na mesma base do CAPEX.
-  const despesasOperacionaisMensais =
-    linkcustoBlocoIP +
-    (linkcustoBanda1 + linkcustoBanda2) * linkFatorBanda +
-    (valorLastMile ?? 0);
-  const despesasTotais =
-    valorCapex +
-    despesasOperacionaisMensais * vigencia +
-    (custoLastMile ?? 0) +
-    (custosMateriaisAdicionais ?? 0);
+  // ─── Indicadores ROI / Aprovação (Conectividade) ───
+  // Regra atual do negócio: para Conectividade, a base de custos do Método 2
+  // parte dos custos gerais já apurados no projeto. Os custos recorrentes de
+  // banda/IP/LM já ficam embutidos no valor do mega e não entram novamente
+  // como despesa operacional mensal do contrato.
+  const despesasTotais = custosGerais;
   const roiInd = computeRoiIndicators({
     despesasTotais,
     roiSistema: roiVigencia,
