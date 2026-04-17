@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
 import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
+import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
 
 // Per-row pricing parameters
 interface RowPricingParams {
@@ -85,6 +86,7 @@ interface RadiusResult {
 export default function WsSingleSearch() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { start: startBgTask, complete: completeBgTask, fail: failBgTask, update: updateBgTask } = useBackgroundTasks();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
@@ -384,6 +386,14 @@ export default function WsSingleSearch() {
     setGeoResult(null);
     setSelectedOptionIdx(null);
 
+    const taskId = startBgTask({
+      type: "ws-single",
+      label: cliente ? `Busca unitária – ${cliente}` : "Busca unitária",
+      total: 0,
+      link: "/ws/single",
+    });
+    updateBgTask(taskId, { message: "Geocodificando endereço…" });
+
     try {
       let geo: { lat: number; lng: number; display: string } | null = null;
 
@@ -409,15 +419,18 @@ export default function WsSingleSearch() {
         toast({ title: "Endereço não encontrado", variant: "destructive" });
         setLoading(false);
         setSearchPhase("");
+        failBgTask(taskId, "Endereço não encontrado");
         return;
       }
 
       setSearchPhase("Buscando caixas e calculando rota...");
+      updateBgTask(taskId, { message: "Buscando caixas e calculando rota…" });
 
       if (!providers?.length || !allGeoElements?.length || !allLpuItems) {
         toast({ title: "Dados de rede ainda carregando, aguarde...", variant: "destructive" });
         setLoading(false);
         setSearchPhase("");
+        failBgTask(taskId, "Dados de rede ainda carregando");
         return;
       }
 
@@ -468,9 +481,15 @@ export default function WsSingleSearch() {
 
       if (result.options.length === 0) {
         toast({ title: "Nenhuma opção viável encontrada" });
+        completeBgTask(taskId, { message: "Nenhuma opção viável" });
+      } else {
+        completeBgTask(taskId, {
+          message: `${result.options.length} opção(ões) encontrada(s)`,
+        });
       }
     } catch (err: any) {
       toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
+      failBgTask(taskId, err?.message ?? "Erro na busca");
     } finally {
       setLoading(false);
       setSearchPhase("");
