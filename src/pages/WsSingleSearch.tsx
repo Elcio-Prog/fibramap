@@ -869,10 +869,41 @@ export default function WsSingleSearch() {
             <Slider min={1} max={50} step={1} value={[radius]} onValueChange={([v]) => setRadius(v)} />
           </div>
 
-           <Button onClick={handleSearch} disabled={loading || dataLoading} className="w-full gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              {loading ? (searchPhase || "Buscando...") : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
-           </Button>
+           <div className="flex gap-2">
+             <Button onClick={handleSearch} disabled={loading || dataLoading} className="flex-1 gap-2">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : dataLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                {loading ? (searchPhase || "Buscando...") : dataLoading ? "Carregando dados..." : "Buscar Viabilidade"}
+             </Button>
+             <Button
+               type="button"
+               variant="outline"
+               onClick={() => {
+                 setAddress("");
+                 setAddressNumber("");
+                 setCoordLat("");
+                 setCoordLng("");
+                 setCep("");
+                 setCepAddress("");
+                 setCepNumber("");
+                 setCepData(null);
+                 setResolvedGeo(null);
+                 setCliente("");
+                 setDesignacao("");
+                 setVelocidade("");
+                 setOptions([]);
+                 setRadiusResults(null);
+                 setGeoResult(null);
+                 setSelectedOptionIdx(null);
+                 setSearchPhase("");
+                 setRowPricing({});
+                 setRowValorMinimo({});
+                 setRowCalcLoading({});
+               }}
+               disabled={loading}
+             >
+               Limpar
+             </Button>
+           </div>
         </CardContent>
       </Card>
 
