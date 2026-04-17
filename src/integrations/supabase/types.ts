@@ -504,7 +504,7 @@ export type Database = {
           created_at: string
           data_assinatura: string | null
           data_termino: string | null
-          endereco_instalacao: string
+          endereco_instalacao: string | null
           etiqueta: string | null
           geocoding_status: string
           grupo: string | null
@@ -531,7 +531,7 @@ export type Database = {
           uf: string | null
           updated_at: string
           user_id: string | null
-          valor_mensal_tr: number
+          valor_mensal_tr: number | null
           vigencia_meses: number | null
         }
         Insert: {
@@ -540,7 +540,7 @@ export type Database = {
           created_at?: string
           data_assinatura?: string | null
           data_termino?: string | null
-          endereco_instalacao?: string
+          endereco_instalacao?: string | null
           etiqueta?: string | null
           geocoding_status?: string
           grupo?: string | null
@@ -567,7 +567,7 @@ export type Database = {
           uf?: string | null
           updated_at?: string
           user_id?: string | null
-          valor_mensal_tr?: number
+          valor_mensal_tr?: number | null
           vigencia_meses?: number | null
         }
         Update: {
@@ -576,7 +576,7 @@ export type Database = {
           created_at?: string
           data_assinatura?: string | null
           data_termino?: string | null
-          endereco_instalacao?: string
+          endereco_instalacao?: string | null
           etiqueta?: string | null
           geocoding_status?: string
           grupo?: string | null
@@ -603,7 +603,7 @@ export type Database = {
           uf?: string | null
           updated_at?: string
           user_id?: string | null
-          valor_mensal_tr?: number
+          valor_mensal_tr?: number | null
           vigencia_meses?: number | null
         }
         Relationships: []

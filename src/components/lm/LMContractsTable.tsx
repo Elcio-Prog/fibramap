@@ -22,6 +22,7 @@ import {
   ExternalLink,
   FileSpreadsheet,
   FileText,
+  Pencil,
   RotateCcw,
   Search,
   Upload as UploadIcon,
@@ -179,7 +180,25 @@ export default function LMContractsTable() {
       enableSorting: true,
     });
 
+    const actionsCol: ColumnDef<LMContract> = {
+      id: "__actions",
+      header: () => <span className="sr-only">Ações</span>,
+      cell: ({ row }) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs"
+          onClick={(e) => { e.stopPropagation(); setSelected(row.original); }}
+          title="Editar contrato"
+        >
+          <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
+        </Button>
+      ),
+      enableSorting: false,
+    };
+
     return [
+      actionsCol,
       make("numero", { cell: (v) => <span className="text-xs font-semibold tabular-nums text-muted-foreground">#{v}</span>, sortable: true, size: 60 }),
       make("status", { cell: (v) => <StatusBadge status={v} />, sortable: true }),
       make("pn"),

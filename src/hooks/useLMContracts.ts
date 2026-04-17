@@ -13,14 +13,14 @@ export interface LMContract {
   recorrencia: string | null;
   cont_guarda_chuva: string | null;
   modelo_tr: string | null;
-  valor_mensal_tr: number;
+  valor_mensal_tr: number | null;
   observacao_contrato_lm: string | null;
   item_sap: string | null;
   protocolo_elleven: string | null;
   nome_cliente: string | null;
   etiqueta: string | null;
   num_contrato_cliente: string | null;
-  endereco_instalacao: string;
+  endereco_instalacao: string | null;
 
   data_assinatura: string | null;
   vigencia_meses: number | null;
