@@ -409,7 +409,7 @@ export default function ApprovalSettings() {
         <CardContent>
           <LevelTable
             config={equipment}
-            onChange={setEquipment}
+            onChange={(c) => setEquipment(ensureDiretoria(c))}
           />
         </CardContent>
       </Card>
@@ -423,6 +423,25 @@ export default function ApprovalSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Email Diretoria — fonte única (puxado dos níveis configurados) */}
+          <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-primary/10 text-primary border-primary/20">Diretoria</Badge>
+              <span className="text-xs text-muted-foreground">
+                Responsável final — usado em todas as regras globais de exceção
+              </span>
+            </div>
+            <div className="text-sm font-medium">
+              {getDiretoriaEmail(standard) || getDiretoriaEmail(equipment) || (
+                <span className="italic text-destructive">
+                  Nenhum email configurado para Diretoria. Defina-o nas tabelas acima.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
           <div className="space-y-2">
             <Label>Limite de CAPEX</Label>
             <Input
@@ -437,7 +456,7 @@ export default function ApprovalSettings() {
             <p className="text-xs text-muted-foreground flex items-start gap-1">
               <Info className="h-3 w-3 mt-0.5 shrink-0" />
               Vendas com CAPEX acima de {formatCurrency(globalRules.capex_limit)} sempre
-              requerem aprovação Nível 5.
+              requerem aprovação da <strong className="text-foreground">Diretoria</strong>.
             </p>
           </div>
 
@@ -460,8 +479,8 @@ export default function ApprovalSettings() {
             <p className="text-xs text-muted-foreground flex items-start gap-1">
               <Info className="h-3 w-3 mt-0.5 shrink-0" />
               Contratos novos ou vendas na base com Ticket Mensal igual ou acima de{" "}
-              {formatCurrency(globalRules.monthly_ticket_limit)} sempre requerem aprovação
-              Nível 5.
+              {formatCurrency(globalRules.monthly_ticket_limit)} sempre requerem aprovação da{" "}
+              <strong className="text-foreground">Diretoria</strong>.
             </p>
           </div>
         </CardContent>
