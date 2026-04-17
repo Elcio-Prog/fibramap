@@ -816,10 +816,33 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaW.push({ label: "Margem de Lucro (R$)", valor: wfMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Wifi) ───
+  const despesasTotaisWf =
+    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  const wfRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisWf,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaW, wfRoiInd, input.ticketMensal);
+
   addMemW("Valor OPEX", valorOpexInput ?? 0);
   addMemW("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaW };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaW,
+    roiTarget: wfRoiInd.roiTarget,
+    roiSistema: wfRoiInd.roiSistema,
+    roiEscolhido: wfRoiInd.roiEscolhido,
+    roiFinal: wfRoiInd.roiFinal,
+    aprovado: wfRoiInd.aprovado,
+  };
 }
 
 function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
