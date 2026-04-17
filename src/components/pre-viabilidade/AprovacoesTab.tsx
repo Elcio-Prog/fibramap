@@ -122,8 +122,11 @@ export default function AprovacoesTab() {
         title: acao === "aprovar" ? "Aprovação registrada" : "Reprovação registrada",
         description: `Pré-Viabilidade #${pvById.get(tk.pre_viabilidade_id)?.numero ?? ""} atualizada`,
       });
-      qc.invalidateQueries({ queryKey: ["aprovacao-tokens-pendentes"] });
-      qc.invalidateQueries({ queryKey: ["pre_viabilidades"] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["aprovacao-tokens-pendentes"] }),
+        qc.invalidateQueries({ queryKey: ["aprovacao-tokens-pending-count"] }),
+        qc.invalidateQueries({ queryKey: ["pre-viabilidades"] }),
+      ]);
     } catch (e: any) {
       toast({
         title: "Erro ao registrar decisão",
