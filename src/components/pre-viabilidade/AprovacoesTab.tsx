@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getRoiIndicators } from "@/hooks/usePreViabilidades";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -316,16 +317,20 @@ export default function AprovacoesTab() {
                   label="Previsão ROI"
                   value={
                     pv?.previsao_roi != null
-                      ? `${Number(pv.previsao_roi).toFixed(2)}%`
+                      ? Number(pv.previsao_roi).toFixed(2).replace(".", ",")
                       : "—"
                   }
                 />
-                {pv?.dados_precificacao?.roiVigencia != null && (
-                  <Field
-                    label="ROI Limite (Vigência)"
-                    value={`${Number(pv.dados_precificacao.roiVigencia).toFixed(2)}%`}
-                  />
-                )}
+                {(() => {
+                  const { roiEscolhido } = getRoiIndicators(pv?.dados_precificacao);
+                  if (roiEscolhido == null) return null;
+                  return (
+                    <Field
+                      label="ROI Limite Calculado (ROI máximo aceito para esse projeto)"
+                      value={Number(roiEscolhido).toFixed(2).replace(".", ",")}
+                    />
+                  );
+                })()}
               </div>
 
               <Textarea
