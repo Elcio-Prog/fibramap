@@ -4,7 +4,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
@@ -13,8 +12,6 @@ import {
 import { format, isAfter, isBefore, parseISO, addDays, startOfToday } from "date-fns";
 import {
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   Columns3,
   Download,
   Eye,
@@ -108,7 +105,6 @@ export default function LMContractsTable() {
   const [terminoFrom, setTerminoFrom] = useState("");
   const [terminoTo, setTerminoTo] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "data_termino", desc: false }]);
-  const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<LMContract | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -228,11 +224,7 @@ export default function LMContractsTable() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
   });
-
-  useEffect(() => { table.setPageSize(pageSize); }, [pageSize, table]);
 
   const clearFilters = () => {
     setGlobalFilter("");
@@ -253,9 +245,6 @@ export default function LMContractsTable() {
   const in30 = addDays(today, 30);
 
   const totalRows = filteredData.length;
-  const pageIndex = table.getState().pagination.pageIndex;
-  const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-  const to = Math.min((pageIndex + 1) * pageSize, totalRows);
 
   return (
     <div className="space-y-4">
@@ -365,7 +354,7 @@ export default function LMContractsTable() {
 
       {/* Tabela */}
       <div className="rounded-md border">
-        <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
+        <div className="max-h-[calc(100vh-280px)] min-h-[500px] overflow-y-auto overflow-x-auto">
           <table className="w-full caption-bottom text-sm">
             <TableHeader className="sticky top-0 z-10 bg-background [&_tr]:border-b">
               {table.getHeaderGroups().map((hg) => (
@@ -428,28 +417,9 @@ export default function LMContractsTable() {
         </div>
       </div>
 
-      {/* Paginação */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs text-muted-foreground">
-          Mostrando {from}–{to} de {totalRows} contratos
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="h-8 w-[80px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button size="sm" variant="outline" className="h-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Página {pageIndex + 1} de {Math.max(1, table.getPageCount())}
-          </span>
-          <Button size="sm" variant="outline" className="h-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Total */}
+      <div className="text-xs text-muted-foreground">
+        Mostrando {totalRows} contratos
       </div>
 
       <LMContractDrawer contract={selected} open={!!selected} onClose={() => setSelected(null)} />
