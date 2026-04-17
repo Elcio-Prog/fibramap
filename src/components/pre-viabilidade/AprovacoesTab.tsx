@@ -41,6 +41,7 @@ type PvRow = {
   cnpj_cliente: string | null;
   endereco: string | null;
   produto_nt: string | null;
+  tipo_solicitacao: string | null;
   vigencia: number | null;
   ticket_mensal: number | null;
   valor_minimo: number | null;
