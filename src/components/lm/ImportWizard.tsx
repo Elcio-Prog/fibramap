@@ -17,7 +17,7 @@ type FieldKey = keyof LMContract;
 
 const SYSTEM_FIELDS: { key: FieldKey; required?: boolean }[] = [
   { key: "status" },
-  { key: "pn", required: true },
+  { key: "pn" },
   { key: "nome_pn" },
   { key: "grupo" },
   { key: "recorrencia" },
