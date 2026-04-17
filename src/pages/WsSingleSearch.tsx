@@ -230,12 +230,34 @@ export default function WsSingleSearch() {
     };
   }, [rowPricing, options, calcularRow]);
 
-  // Reset pricing state when options change
+  // Reset pricing state when options change (skip on first mount to preserve restored snapshot)
+  const optionsResetMountRef = useRef(true);
   useEffect(() => {
+    if (optionsResetMountRef.current) {
+      optionsResetMountRef.current = false;
+      return;
+    }
     setRowPricing({});
     setRowValorMinimo({});
     setRowCalcLoading({});
   }, [options]);
+
+  // Persiste snapshot global a cada mudança relevante para sobreviver navegação entre seções
+  useEffect(() => {
+    setSnapshot({
+      inputMode, address, addressNumber, coordLat, coordLng,
+      cep, cepAddress, cepNumber, cepData, resolvedGeo,
+      cliente, designacao, velocidade,
+      options, geoResult, radius, radiusResults, selectedOptionIdx,
+      rowPricing, rowValorMinimo,
+    });
+  }, [
+    inputMode, address, addressNumber, coordLat, coordLng,
+    cep, cepAddress, cepNumber, cepData, resolvedGeo,
+    cliente, designacao, velocidade,
+    options, geoResult, radius, radiusResults, selectedOptionIdx,
+    rowPricing, rowValorMinimo, setSnapshot,
+  ]);
 
   const { addItems, isInCart, isSent } = useCart();
   // Map
