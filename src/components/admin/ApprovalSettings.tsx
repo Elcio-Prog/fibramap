@@ -389,7 +389,7 @@ export default function ApprovalSettings() {
         <CardContent>
           <LevelTable
             config={standard}
-            onChange={setStandard}
+            onChange={(c) => setStandard(ensureDiretoria(c))}
           />
         </CardContent>
       </Card>
