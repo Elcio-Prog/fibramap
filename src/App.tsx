@@ -41,13 +41,18 @@ import PrecificacaoPage from "@/pages/admin/PrecificacaoPage";
 import CalcularPage from "@/pages/admin/Calcular";
 import PreViabilidadePage from "@/pages/PreViabilidadePage";
 import AprovacaoDecisaoPage from "@/pages/AprovacaoDecisaoPage";
+import LmLayout from "@/components/LmLayout";
+import LmDashboardPage from "@/pages/lm/LmDashboardPage";
+import LmBasePage from "@/pages/lm/LmBasePage";
+import LmImportarPage from "@/pages/lm/LmImportarPage";
+import LmAlertasPage from "@/pages/lm/LmAlertasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { session, loading } = useAuth();
-  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLm, isLoading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return (
@@ -58,7 +63,10 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/landing" replace />;
-  if (!isAdmin && !isImplantacao) return <Navigate to={(isWsUser || isVendedor) ? "/ws" : "/landing"} replace />;
+  if (!isAdmin && !isImplantacao) {
+    if (isLm) return <Navigate to="/lm" replace />;
+    return <Navigate to={(isWsUser || isVendedor) ? "/ws" : "/landing"} replace />;
+  }
 
   return (
     <AppLayout>
@@ -89,6 +97,35 @@ function ProtectedRoutes() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
+  );
+}
+
+function LmRoutes() {
+  const { session, loading } = useAuth();
+  const { isLm, isAdmin, isLoading: roleLoading } = useUserRole();
+
+  if (loading || roleLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) return <Navigate to="/landing" replace />;
+  if (!isLm && !isAdmin) return <Navigate to="/" replace />;
+
+  return (
+    <LmLayout>
+      <Routes>
+        <Route path="/" element={<LmDashboardPage />} />
+        <Route path="/base" element={<LmBasePage />} />
+        <Route path="/importar" element={<LmImportarPage />} />
+        <Route path="/alertas" element={<LmAlertasPage />} />
+        <Route path="/account" element={<UserSettingsPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </LmLayout>
   );
 }
 
