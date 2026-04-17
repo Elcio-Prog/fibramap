@@ -762,6 +762,7 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: pabxDespesaCAC,
     margemPct: pabxMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasOpMensaisContrato: custoPorContrato,
   });
   pushRoiMemoria(memoriaS, swRoiInd, input.ticketMensal);
 
@@ -844,6 +845,7 @@ function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: pabxDespesaCAC,
     margemPct: pabxMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasOpMensaisContrato: custoPorContrato,
   });
   pushRoiMemoria(memoriaW, wfRoiInd, input.ticketMensal);
 
@@ -1052,6 +1054,7 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: vozDespesaCAC,
     margemPct: vozMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasOpMensaisContrato: despesasOpMensaisVoz,
   });
   pushRoiMemoria(memoriaV, vozRoiInd, input.ticketMensal);
 
@@ -1118,6 +1121,7 @@ function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
     cacPct: pabxDespesaCAC,
     margemPct: pabxMargemLucro,
     ticketMensal: input.ticketMensal,
+    despesasOpMensaisContrato: despesasOpMensaisBk,
   });
   pushRoiMemoria(memoria, bkRoiInd, input.ticketMensal);
 
