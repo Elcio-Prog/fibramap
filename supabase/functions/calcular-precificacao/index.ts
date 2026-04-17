@@ -546,8 +546,13 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
   // valorLastMile, dark fiber, etc.). Não aplica a nova fórmula
   // custosGerais/ROI + CAC + Margem usada nas demais tecnologias.
   const isLastMile = input.tecnologia === "LAST MILE";
+  // Preserva o valor antigo (Métodos 1/2/3 com custo do mega) como piso mínimo
+  // para Conectividade não-LM. A nova fórmula CAC/Margem só aumenta o valor;
+  // nunca reduz abaixo do que o cálculo histórico por custo de mega exigiria.
+  const valorMinimoAntigo = valorMinimo;
   if (!isLastMile) {
-    valorMinimo = roundDown4(roiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
+    const novaMensalidade = roundDown4(roiInd.mensalidadeMinima) + (valorOpexInput ?? 0);
+    valorMinimo = Math.max(novaMensalidade, valorMinimoAntigo);
 
     const despesaCacReais = roiInd.despesaCacReais;
     const margemLucroReais = roiInd.margemReais;
@@ -558,6 +563,9 @@ function calcConectividade(input: CalcInput, db: DbCosts, setup: { capex_last_mi
       memoria.push({ label: `Margem de Lucro (${subproduto}) (R$)`, valor: margemLucroReais, isSubItem: true });
     }
     pushRoiMemoria(memoria, roiInd, input.ticketMensal);
+    if (valorMinimoAntigo > novaMensalidade) {
+      memoria.push({ label: "Piso Mínimo (Custo do Mega - Método 1/2/3)", valor: valorMinimoAntigo, isSubItem: true });
+    }
   } else {
     // Last Mile: valorMinimo já calculado pelos Métodos 1/2/3 acima.
     valorMinimo = roundDown4(valorMinimo) + (valorOpexInput ?? 0);
