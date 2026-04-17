@@ -734,10 +734,33 @@ function calcSwitch(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaS.push({ label: "Margem de Lucro (R$)", valor: swMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (Switch) ───
+  const despesasTotaisSw =
+    valorCapex + custoPorContrato * roiVigencia + (custosMateriaisAdicionais ?? 0);
+  const swRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisSw,
+    roiSistema: roiVigencia,
+    cacPct: pabxDespesaCAC,
+    margemPct: pabxMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaS, swRoiInd, input.ticketMensal);
+
   addMemS("Valor OPEX", valorOpexInput ?? 0);
   addMemS("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaS };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaS,
+    roiTarget: swRoiInd.roiTarget,
+    roiSistema: swRoiInd.roiSistema,
+    roiEscolhido: swRoiInd.roiEscolhido,
+    roiFinal: swRoiInd.roiFinal,
+    aprovado: swRoiInd.aprovado,
+  };
 }
 
 function calcWifi(input: CalcInput, db: DbCosts): CalcOutput {
