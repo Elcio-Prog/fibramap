@@ -228,11 +228,7 @@ export default function LMContractsTable() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
   });
-
-  useEffect(() => { table.setPageSize(pageSize); }, [pageSize, table]);
 
   const clearFilters = () => {
     setGlobalFilter("");
