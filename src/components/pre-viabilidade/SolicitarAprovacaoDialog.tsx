@@ -84,18 +84,12 @@ export default function SolicitarAprovacaoDialog({
           ? "approval_config_equipment"
           : "approval_config_standard";
 
-        // Fetch approval config and vigencia_vs_roi in parallel
-        const [configRes, roiRes] = await Promise.all([
-          supabase
-            .from("configuracoes")
-            .select("valor")
-            .eq("chave", configKey)
-            .maybeSingle(),
-          supabase
-            .from("vigencia_vs_roi")
-            .select("meses, roi")
-            .order("meses"),
-        ]);
+        // Fetch approval config
+        const configRes = await supabase
+          .from("configuracoes")
+          .select("valor")
+          .eq("chave", configKey)
+          .maybeSingle();
 
         const config = configRes.data?.valor as ApprovalConfig | null;
         if (!config?.levels) {
@@ -104,15 +98,9 @@ export default function SolicitarAprovacaoDialog({
           return;
         }
 
-        // ROI escolhido (referência) vem da precificação do projeto.
-        // Fallback: ROI base da tabela vigencia_vs_roi.
-        const roiRows = roiRes.data || [];
-        const vigStr = vigencia != null ? String(vigencia) : null;
-        const baseRoiFromTable =
-          roiRows.find((r) => r.meses === vigStr)?.roi ?? null;
+        // ROI escolhido vem direto da precificação do projeto (única fonte de verdade)
         const roiEscolhido =
-          (dadosPrecificacao?.roiVigencia as number | null | undefined) ??
-          baseRoiFromTable;
+          (dadosPrecificacao?.roiVigencia as number | null | undefined) ?? null;
 
         // Níveis manuais (level > 0), ordenados por roi_increment crescente
         const manualLevels = config.levels
