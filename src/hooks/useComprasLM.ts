@@ -11,6 +11,7 @@ export interface CompraLM {
   id: string;
   user_id: string | null;
   parceiro: string;
+  nome_pn: string | null;
   cliente: string | null;
   endereco: string;
   cidade: string | null;
