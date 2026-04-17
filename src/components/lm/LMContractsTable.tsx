@@ -108,7 +108,7 @@ export default function LMContractsTable() {
   const [terminoFrom, setTerminoFrom] = useState("");
   const [terminoTo, setTerminoTo] = useState("");
   const [sorting, setSorting] = useState<SortingState>([{ id: "data_termino", desc: false }]);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
   const [selected, setSelected] = useState<LMContract | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
