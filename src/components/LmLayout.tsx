@@ -203,6 +203,26 @@ export default function LmLayout({ children }: { children: ReactNode }) {
                   </p>
                 </DropdownMenuLabel>
 
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator className="bg-sidebar-border" />
+                    <DropdownMenuItem
+                      onClick={() => navigate("/")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Network className="h-4 w-4" />
+                      FibraMap
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigate("/ws")}
+                      className="cursor-pointer gap-2 text-sidebar-foreground/80 hover:!bg-sidebar-accent hover:!text-sidebar-accent-foreground focus:!bg-sidebar-accent focus:!text-sidebar-accent-foreground"
+                    >
+                      <Wifi className="h-4 w-4" />
+                      Usuários
+                    </DropdownMenuItem>
+                  </>
+                )}
+
                 <DropdownMenuSeparator className="bg-sidebar-border" />
                 <DropdownMenuItem
                   onClick={() => navigate("/account")}
