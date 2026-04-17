@@ -7,8 +7,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle2, XCircle, Mail, Inbox, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Mail, Inbox, Clock, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TokenRow = {
   id: string;
@@ -34,6 +41,7 @@ type PvRow = {
   cnpj_cliente: string | null;
   endereco: string | null;
   produto_nt: string | null;
+  tipo_solicitacao: string | null;
   vigencia: number | null;
   ticket_mensal: number | null;
   valor_minimo: number | null;
@@ -54,6 +62,8 @@ export default function AprovacoesTab() {
   const qc = useQueryClient();
   const [submittingToken, setSubmittingToken] = useState<string | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [filtroProduto, setFiltroProduto] = useState<string>("all");
+  const [filtroTipo, setFiltroTipo] = useState<string>("all");
 
   const { data: tokens, isLoading } = useQuery({
     queryKey: ["aprovacao-tokens-pendentes", user?.email, isAdmin],
@@ -88,7 +98,7 @@ export default function AprovacoesTab() {
       const { data, error } = await supabase
         .from("pre_viabilidades")
         .select(
-          "id, numero, nome_cliente, cnpj_cliente, endereco, produto_nt, vigencia, ticket_mensal, valor_minimo, previsao_roi, status_aprovacao, dados_precificacao"
+          "id, numero, nome_cliente, cnpj_cliente, endereco, produto_nt, tipo_solicitacao, vigencia, ticket_mensal, valor_minimo, previsao_roi, status_aprovacao, dados_precificacao"
         )
         .in("id", pvIds);
       if (error) throw error;
@@ -102,6 +112,31 @@ export default function AprovacoesTab() {
     (pvs || []).forEach((p) => m.set(p.id, p));
     return m;
   }, [pvs]);
+
+  const produtosUnicos = useMemo(() => {
+    const set = new Set<string>();
+    (pvs || []).forEach((p) => {
+      if (p.produto_nt) set.add(p.produto_nt);
+    });
+    return Array.from(set).sort();
+  }, [pvs]);
+
+  const tiposUnicos = useMemo(() => {
+    const set = new Set<string>();
+    (pvs || []).forEach((p) => {
+      if (p.tipo_solicitacao) set.add(p.tipo_solicitacao);
+    });
+    return Array.from(set).sort();
+  }, [pvs]);
+
+  const tokensFiltrados = useMemo(() => {
+    return (tokens || []).filter((tk) => {
+      const pv = pvById.get(tk.pre_viabilidade_id);
+      if (filtroProduto !== "all" && pv?.produto_nt !== filtroProduto) return false;
+      if (filtroTipo !== "all" && pv?.tipo_solicitacao !== filtroTipo) return false;
+      return true;
+    });
+  }, [tokens, pvById, filtroProduto, filtroTipo]);
 
   const decide = async (tk: TokenRow, acao: "aprovar" | "reprovar") => {
     setSubmittingToken(tk.token);
@@ -161,9 +196,68 @@ export default function AprovacoesTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-      {tokens.map((tk) => {
-        const pv = pvById.get(tk.pre_viabilidade_id);
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded-md border bg-muted/30">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">Filtros:</span>
+
+        <Select value={filtroProduto} onValueChange={setFiltroProduto}>
+          <SelectTrigger className="h-8 w-[200px] text-xs">
+            <SelectValue placeholder="Produto NT" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os produtos</SelectItem>
+            {produtosUnicos.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+          <SelectTrigger className="h-8 w-[200px] text-xs">
+            <SelectValue placeholder="Tipo de Solicitação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {tiposUnicos.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filtroProduto !== "all" || filtroTipo !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => {
+              setFiltroProduto("all");
+              setFiltroTipo("all");
+            }}
+          >
+            <X className="h-3 w-3" />
+            Limpar
+          </Button>
+        )}
+
+        <span className="ml-auto text-xs text-muted-foreground">
+          {tokensFiltrados.length} de {tokens.length}
+        </span>
+      </div>
+
+      {tokensFiltrados.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Inbox className="h-8 w-8 mb-2 opacity-60" />
+          <p className="text-sm">Nenhum resultado para os filtros aplicados</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {tokensFiltrados.map((tk) => {
+            const pv = pvById.get(tk.pre_viabilidade_id);
         const isSubmitting = submittingToken === tk.token;
         const expired = new Date(tk.expires_at) < new Date();
         return (
@@ -278,6 +372,8 @@ export default function AprovacoesTab() {
           </Card>
         );
       })}
+        </div>
+      )}
     </div>
   );
 }
