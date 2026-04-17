@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { BackgroundTasksProvider } from "@/contexts/BackgroundTasksContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import AppLayout from "@/components/AppLayout";
 import WsLayout from "@/components/WsLayout";
@@ -191,19 +192,21 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <CartProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/landing" element={<LandingRoute />} />
-              <Route path="/aprovacao/:token" element={<AprovacaoDecisaoPage />} />
-              <Route path="/auth" element={<AuthRoute />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/ws/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/ws/login" element={<WsAuthRoute />} />
-              <Route path="/ws/*" element={<WsRoutes />} />
-              <Route path="/*" element={<ProtectedRoutes />} />
-            </Routes>
-          </BrowserRouter>
+          <BackgroundTasksProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/landing" element={<LandingRoute />} />
+                <Route path="/aprovacao/:token" element={<AprovacaoDecisaoPage />} />
+                <Route path="/auth" element={<AuthRoute />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/ws/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/ws/login" element={<WsAuthRoute />} />
+                <Route path="/ws/*" element={<WsRoutes />} />
+                <Route path="/*" element={<ProtectedRoutes />} />
+              </Routes>
+            </BrowserRouter>
+          </BackgroundTasksProvider>
         </CartProvider>
       </AuthProvider>
     </TooltipProvider>
