@@ -7,8 +7,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle2, XCircle, Mail, Inbox, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Mail, Inbox, Clock, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TokenRow = {
   id: string;
