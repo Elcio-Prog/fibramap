@@ -1009,10 +1009,48 @@ function calcVoz(input: CalcInput, db: DbCosts): CalcOutput {
     memoriaV.push({ label: "Margem de Lucro (R$)", valor: vozMargemReais, isSubItem: true });
   }
 
+  // ─── Indicadores ROI / Aprovação (VOZ) ───
+  // Despesas operacionais mensais incluem todos os serviços recorrentes.
+  const despesasOpMensaisVoz =
+    valorContratoPabx +
+    valorContratos +
+    valorNovasLinhas +
+    valorPortabilidades +
+    valorRamais +
+    valorCanais +
+    valorFixoLocalCalc +
+    valorFixoLDNCalc +
+    valorMovelLocalCalc +
+    valorMovelLDNCalc +
+    valor0800MovelCalc +
+    valor0800FixoCalc +
+    valorInternacional;
+  const despesasTotaisVoz =
+    valorCapex + despesasOpMensaisVoz * vigencia + (custosMateriaisAdicionais ?? 0);
+  const vozRoiInd = computeRoiIndicators({
+    capex: valorCapex,
+    despesasTotais: despesasTotaisVoz,
+    roiSistema: roiVigencia,
+    cacPct: vozDespesaCAC,
+    margemPct: vozMargemLucro,
+    ticketMensal: input.ticketMensal,
+  });
+  pushRoiMemoria(memoriaV, vozRoiInd, input.ticketMensal);
+
   addMemV("Valor OPEX", valorOpexInput ?? 0);
   addMemV("Valor Mínimo", valorMinimo);
 
-  return { valorMinimo, valorCapex, valorOpex: valorOpexInput ?? 0, memoriaCalculo: memoriaV };
+  return {
+    valorMinimo,
+    valorCapex,
+    valorOpex: valorOpexInput ?? 0,
+    memoriaCalculo: memoriaV,
+    roiTarget: vozRoiInd.roiTarget,
+    roiSistema: vozRoiInd.roiSistema,
+    roiEscolhido: vozRoiInd.roiEscolhido,
+    roiFinal: vozRoiInd.roiFinal,
+    aprovado: vozRoiInd.aprovado,
+  };
 }
 
 function calcBackup(input: CalcInput, db: DbCosts): CalcOutput {
