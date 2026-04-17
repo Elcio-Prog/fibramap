@@ -14,12 +14,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+    // Email sending is paused — internal approval flow only.
 
     // Auth: requesting user
     const authHeader = req.headers.get("Authorization");
@@ -115,125 +112,10 @@ Deno.serve(async (req) => {
       })
       .eq("id", preViabilidadeId);
 
-    // Build URLs - use the app origin
-    const origin =
-      req.headers.get("origin") ||
-      req.headers.get("referer")?.replace(/\/+$/, "") ||
-      "https://fibramap.lovable.app";
-    const appOrigin = origin.split("/").slice(0, 3).join("/");
-    const linkBase = `${appOrigin}/aprovacao/${tokenRow.token}`;
-
-    // Build pricing details
-    const dp = (pv.dados_precificacao as Record<string, any>) || {};
-    const fmtMoney = (v: any) =>
-      v == null ? "—" : `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const fmt = (v: any) => (v == null || v === "" ? "—" : String(v));
-
-    const pricingRows: string[] = [];
-    const addRow = (label: string, value: string) => {
-      pricingRows.push(
-        `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee;color:#555;font-size:13px;">${label}</td><td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:13px;">${value}</td></tr>`
-      );
-    };
-
-    addRow("Nº Pré-Viabilidade", `#${pv.numero}`);
-    addRow("Cliente", fmt(pv.nome_cliente));
-    addRow("CNPJ", fmt(pv.cnpj_cliente));
-    addRow("Endereço", fmt(pv.endereco));
-    addRow("Produto NT", fmt(pv.produto_nt));
-    addRow("Vigência", pv.vigencia ? `${pv.vigencia} meses` : "—");
-    addRow("Ticket Mensal", fmtMoney(pv.ticket_mensal));
-    addRow("Valor Mínimo", fmtMoney(pv.valor_minimo));
-    addRow("Previsão ROI", pv.previsao_roi != null ? `${Number(pv.previsao_roi).toFixed(2)}%` : "—");
-    if (dp.roiVigencia != null) addRow("ROI Limite (Vigência)", `${Number(dp.roiVigencia).toFixed(2)}%`);
-    if (dp.precoLink != null) addRow("Preço Link", fmtMoney(dp.precoLink));
-    if (dp.custoTotal != null) addRow("Custo Total", fmtMoney(dp.custoTotal));
-    if (dp.equipamentos && Array.isArray(dp.equipamentos) && dp.equipamentos.length > 0) {
-      const eqList = dp.equipamentos
-        .map((e: any) => `${e.nome || e.equipamento || "?"}${e.quantidade ? ` (x${e.quantidade})` : ""}`)
-        .join(", ");
-      addRow("Equipamentos", eqList);
-    }
-
-    const html = `
-<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:24px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-        <tr><td style="background:#0f172a;padding:20px 24px;color:#fff;">
-          <h1 style="margin:0;font-size:18px;font-weight:600;">FibraMap · Solicitação de Aprovação</h1>
-          <p style="margin:6px 0 0;font-size:13px;opacity:.85;">${nivelLabel || `Nível ${nivel}`}</p>
-        </td></tr>
-        <tr><td style="padding:24px;">
-          <p style="margin:0 0 12px;font-size:14px;color:#333;">Olá,</p>
-          <p style="margin:0 0 16px;font-size:14px;color:#333;line-height:1.5;">
-            <strong>${solicitanteNome}</strong> solicitou sua aprovação para a pré-viabilidade abaixo.
-          </p>
-          <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px;margin:0 0 20px;border-radius:4px;">
-            <p style="margin:0;font-size:13px;color:#78350f;"><strong>Motivo:</strong> ${motivo}</p>
-          </div>
-
-          <h2 style="font-size:14px;color:#0f172a;margin:0 0 8px;border-bottom:2px solid #0f172a;padding-bottom:4px;">Detalhes</h2>
-          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 24px;">
-            ${pricingRows.join("")}
-          </table>
-
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td align="center" style="padding:8px;">
-                <a href="${linkBase}?acao=aprovar"
-                   style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:600;font-size:14px;">
-                  ✓ Aprovar
-                </a>
-              </td>
-              <td align="center" style="padding:8px;">
-                <a href="${linkBase}?acao=reprovar"
-                   style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:600;font-size:14px;">
-                  ✗ Reprovar
-                </a>
-              </td>
-            </tr>
-          </table>
-
-          <p style="margin:24px 0 0;font-size:12px;color:#888;text-align:center;">
-            Ou abra a página de decisão: <a href="${linkBase}" style="color:#0f172a;">${linkBase}</a>
-          </p>
-          <p style="margin:8px 0 0;font-size:11px;color:#aaa;text-align:center;">
-            Este link expira em 30 dias.
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`.trim();
-
-    // Send via Resend gateway
-    const resp = await fetch(`${GATEWAY_URL}/emails`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
-      },
-      body: JSON.stringify({
-        from: "FibraMap Aprovações <onboarding@resend.dev>",
-        to: [responsavelEmail],
-        subject: `[FibraMap] Aprovação Pré-Viabilidade #${pv.numero} — ${nivelLabel || `Nível ${nivel}`}`,
-        html,
-      }),
-    });
-
-    const respData = await resp.json();
-    if (!resp.ok) {
-      console.error("Resend error", resp.status, respData);
-      throw new Error(`Resend [${resp.status}]: ${JSON.stringify(respData)}`);
-    }
-
+    // Email sending is paused — token + status update is sufficient for the
+    // internal approval inbox.
     return new Response(
-      JSON.stringify({ success: true, token: tokenRow.token, email: respData }),
+      JSON.stringify({ success: true, token: tokenRow.token, emailSent: false }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
