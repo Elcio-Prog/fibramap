@@ -239,6 +239,8 @@ export default function ImportWizard() {
       const item: LMContractInput = {
         user_id: user?.id ?? null,
         geocoding_status: endereco ? "pending" : "skipped",
+        is_last_mile: true,
+        simples_nacional: false,
         ...(endereco ? { endereco_instalacao: String(endereco) } : {}),
         ...(valor !== null ? { valor_mensal_tr: valor } : {}),
         ...(pn ? { pn: String(pn) } : {}),
