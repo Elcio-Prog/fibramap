@@ -17,7 +17,7 @@ type FieldKey = keyof LMContract;
 
 const SYSTEM_FIELDS: { key: FieldKey; required?: boolean }[] = [
   { key: "status" },
-  { key: "pn", required: true },
+  { key: "pn" },
   { key: "nome_pn" },
   { key: "grupo" },
   { key: "recorrencia" },
@@ -215,10 +215,9 @@ export default function ImportWizard() {
       const endereco = getValue("endereco_instalacao");
       const valorStr = getValue("valor_mensal_tr");
 
-      // Skip linhas completamente vazias
-      if (!pn && !endereco && !valorStr) continue;
+      // Skip apenas linhas completamente vazias
+      if (!pn && !endereco && !valorStr) { ignored++; continue; }
 
-      if (!pn) { errors.push(`Linha ${lineNum}: PN vazio`); continue; }
       if (!endereco) { errors.push(`Linha ${lineNum}: Endereço de Instalação vazio`); continue; }
       if (valorStr === undefined) { errors.push(`Linha ${lineNum}: Valor Mensal (TR) vazio`); continue; }
 
@@ -235,11 +234,11 @@ export default function ImportWizard() {
       }
 
       const item: LMContractInput = {
-        pn: String(pn),
         endereco_instalacao: String(endereco),
         valor_mensal_tr: valor,
         user_id: user?.id ?? null,
         geocoding_status: "pending",
+        ...(pn ? { pn: String(pn) } : {}),
         ...(cidadeVal ? { cidade: String(cidadeVal) } : {}),
         ...(ufVal ? { uf: String(ufVal) } : {}),
       };
