@@ -168,46 +168,61 @@ function LevelTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {levels.filter((l) => l.level > 0).map((lvl, idx) => {
+            {levels.filter((l) => l.level > 0).map((lvl) => {
               const realIdx = levels.findIndex((l) => l.level === lvl.level);
+              const isDiretoria = lvl.level === DIRETORIA_LEVEL;
               return (
-                <TableRow key={lvl.level}>
-                  <TableCell className="font-medium">{lvl.label}</TableCell>
-
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium">+</span>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        className="w-20"
-                        value={lvl.roi_increment ?? ""}
-                        onChange={(e) =>
-                          updateLevel(realIdx, {
-                            roi_increment: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
+                <TableRow key={lvl.level} className={isDiretoria ? "bg-muted/40" : undefined}>
+                  <TableCell className="font-medium">
+                    {isDiretoria ? (
+                      <Badge className="bg-primary/10 text-primary border-primary/20">{lvl.label}</Badge>
+                    ) : (
+                      lvl.label
+                    )}
                   </TableCell>
 
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium">≤</span>
-                      <Input
-                        type="number"
-                        step="1000"
-                        min="0"
-                        className="w-28"
-                        value={lvl.value_limit ?? ""}
-                        onChange={(e) =>
-                          updateLevel(realIdx, {
-                            value_limit: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
+                    {isDiretoria ? (
+                      <span className="text-xs text-muted-foreground italic">Fallback final</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-medium">+</span>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          className="w-20"
+                          value={lvl.roi_increment ?? ""}
+                          onChange={(e) =>
+                            updateLevel(realIdx, {
+                              roi_increment: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    {isDiretoria ? (
+                      <span className="text-xs text-muted-foreground italic">—</span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-medium">≤</span>
+                        <Input
+                          type="number"
+                          step="1000"
+                          min="0"
+                          className="w-28"
+                          value={lvl.value_limit ?? ""}
+                          onChange={(e) =>
+                            updateLevel(realIdx, {
+                              value_limit: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
                   </TableCell>
 
                   <TableCell>
@@ -227,14 +242,16 @@ function LevelTable({
                   </TableCell>
 
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeLevel(realIdx)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isDiretoria && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeLevel(realIdx)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
