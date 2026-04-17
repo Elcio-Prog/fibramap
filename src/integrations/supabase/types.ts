@@ -115,81 +115,6 @@ export type Database = {
           },
         ]
       }
-      compras_lm: {
-        Row: {
-          banda_mbps: number | null
-          cidade: string | null
-          cliente: string | null
-          codigo_sap: string | null
-          created_at: string
-          data_fim: string | null
-          data_inicio: string | null
-          endereco: string
-          geocoding_status: string
-          id: string
-          id_etiqueta: string | null
-          lat: number | null
-          lng: number | null
-          nr_contrato: string | null
-          observacoes: string | null
-          parceiro: string
-          setup: number | null
-          status: string
-          uf: string | null
-          updated_at: string
-          user_id: string | null
-          valor_mensal: number
-        }
-        Insert: {
-          banda_mbps?: number | null
-          cidade?: string | null
-          cliente?: string | null
-          codigo_sap?: string | null
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          endereco: string
-          geocoding_status?: string
-          id?: string
-          id_etiqueta?: string | null
-          lat?: number | null
-          lng?: number | null
-          nr_contrato?: string | null
-          observacoes?: string | null
-          parceiro: string
-          setup?: number | null
-          status?: string
-          uf?: string | null
-          updated_at?: string
-          user_id?: string | null
-          valor_mensal: number
-        }
-        Update: {
-          banda_mbps?: number | null
-          cidade?: string | null
-          cliente?: string | null
-          codigo_sap?: string | null
-          created_at?: string
-          data_fim?: string | null
-          data_inicio?: string | null
-          endereco?: string
-          geocoding_status?: string
-          id?: string
-          id_etiqueta?: string | null
-          lat?: number | null
-          lng?: number | null
-          nr_contrato?: string | null
-          observacoes?: string | null
-          parceiro?: string
-          setup?: number | null
-          status?: string
-          uf?: string | null
-          updated_at?: string
-          user_id?: string | null
-          valor_mensal?: number
-        }
-        Relationships: []
-      }
       configuracoes: {
         Row: {
           chave: string
@@ -569,6 +494,114 @@ export type Database = {
           token?: string
           updated_at?: string
           url?: string
+        }
+        Relationships: []
+      }
+      lm_contracts: {
+        Row: {
+          cidade: string | null
+          cont_guarda_chuva: string | null
+          created_at: string
+          data_assinatura: string | null
+          data_termino: string | null
+          endereco_instalacao: string
+          etiqueta: string | null
+          geocoding_status: string
+          grupo: string | null
+          id: string
+          is_last_mile: boolean
+          item_sap: string | null
+          lat: number | null
+          lng: number | null
+          login: string | null
+          modelo_tr: string | null
+          nome_cliente: string | null
+          nome_pn: string | null
+          num_contrato_cliente: string | null
+          observacao_contrato_lm: string | null
+          observacao_geral: string | null
+          pn: string | null
+          protocolo_elleven: string | null
+          recorrencia: string | null
+          senha: string | null
+          simples_nacional: boolean
+          site_portal: string | null
+          status: string
+          uf: string | null
+          updated_at: string
+          user_id: string | null
+          valor_mensal_tr: number
+          vigencia_meses: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cont_guarda_chuva?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          data_termino?: string | null
+          endereco_instalacao?: string
+          etiqueta?: string | null
+          geocoding_status?: string
+          grupo?: string | null
+          id?: string
+          is_last_mile?: boolean
+          item_sap?: string | null
+          lat?: number | null
+          lng?: number | null
+          login?: string | null
+          modelo_tr?: string | null
+          nome_cliente?: string | null
+          nome_pn?: string | null
+          num_contrato_cliente?: string | null
+          observacao_contrato_lm?: string | null
+          observacao_geral?: string | null
+          pn?: string | null
+          protocolo_elleven?: string | null
+          recorrencia?: string | null
+          senha?: string | null
+          simples_nacional?: boolean
+          site_portal?: string | null
+          status?: string
+          uf?: string | null
+          updated_at?: string
+          user_id?: string | null
+          valor_mensal_tr?: number
+          vigencia_meses?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cont_guarda_chuva?: string | null
+          created_at?: string
+          data_assinatura?: string | null
+          data_termino?: string | null
+          endereco_instalacao?: string
+          etiqueta?: string | null
+          geocoding_status?: string
+          grupo?: string | null
+          id?: string
+          is_last_mile?: boolean
+          item_sap?: string | null
+          lat?: number | null
+          lng?: number | null
+          login?: string | null
+          modelo_tr?: string | null
+          nome_cliente?: string | null
+          nome_pn?: string | null
+          num_contrato_cliente?: string | null
+          observacao_contrato_lm?: string | null
+          observacao_geral?: string | null
+          pn?: string | null
+          protocolo_elleven?: string | null
+          recorrencia?: string | null
+          senha?: string | null
+          simples_nacional?: boolean
+          site_portal?: string | null
+          status?: string
+          uf?: string | null
+          updated_at?: string
+          user_id?: string | null
+          valor_mensal_tr?: number
+          vigencia_meses?: number | null
         }
         Relationships: []
       }

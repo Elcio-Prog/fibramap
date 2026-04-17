@@ -38,13 +38,13 @@ export default function BaseLMPage() {
         const result = await geocodeAddress(item.endereco, item.cidade, item.uf);
         if (result) {
           await supabase
-            .from("compras_lm")
+            .from("lm_contracts")
             .update({ lat: result.lat, lng: result.lng, geocoding_status: "done" } as any)
             .eq("id", item.id);
           successCount++;
         } else {
           await supabase
-            .from("compras_lm")
+            .from("lm_contracts")
             .update({ geocoding_status: "failed" } as any)
             .eq("id", item.id);
           failCount++;
