@@ -196,9 +196,68 @@ export default function AprovacoesTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-      {tokens.map((tk) => {
-        const pv = pvById.get(tk.pre_viabilidade_id);
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 p-2 rounded-md border bg-muted/30">
+        <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">Filtros:</span>
+
+        <Select value={filtroProduto} onValueChange={setFiltroProduto}>
+          <SelectTrigger className="h-8 w-[200px] text-xs">
+            <SelectValue placeholder="Produto NT" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os produtos</SelectItem>
+            {produtosUnicos.map((p) => (
+              <SelectItem key={p} value={p}>
+                {p}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+          <SelectTrigger className="h-8 w-[200px] text-xs">
+            <SelectValue placeholder="Tipo de Solicitação" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os tipos</SelectItem>
+            {tiposUnicos.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filtroProduto !== "all" || filtroTipo !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => {
+              setFiltroProduto("all");
+              setFiltroTipo("all");
+            }}
+          >
+            <X className="h-3 w-3" />
+            Limpar
+          </Button>
+        )}
+
+        <span className="ml-auto text-xs text-muted-foreground">
+          {tokensFiltrados.length} de {tokens.length}
+        </span>
+      </div>
+
+      {tokensFiltrados.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Inbox className="h-8 w-8 mb-2 opacity-60" />
+          <p className="text-sm">Nenhum resultado para os filtros aplicados</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {tokensFiltrados.map((tk) => {
+            const pv = pvById.get(tk.pre_viabilidade_id);
         const isSubmitting = submittingToken === tk.token;
         const expired = new Date(tk.expires_at) < new Date();
         return (
