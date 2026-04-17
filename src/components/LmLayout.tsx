@@ -47,6 +47,7 @@ function getInitials(displayName?: string | null, fullName?: string | null, emai
 
 export default function LmLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
