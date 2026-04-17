@@ -203,20 +203,21 @@ export default function RadiusSearch() {
     L.marker([center.lat, center.lng]).addTo(layerGroup).bindPopup("Centro da busca");
 
     if (results) {
-      const colors = ["#e74c3c", "#2ecc71", "#3498db", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e"];
-      const partnerColors: Record<string, string> = {};
-      let ci = 0;
-
       for (const r of results) {
         if (!r.lat || !r.lng) continue;
-        if (!partnerColors[r.parceiro]) { partnerColors[r.parceiro] = colors[ci % colors.length]; ci++; }
-        const color = partnerColors[r.parceiro];
+        const status = (r.status || "").trim().toLowerCase();
+        const color = status === "cancelado"
+          ? "#dc2626"
+          : status === "ativo"
+            ? "#16a34a"
+            : "#f59e0b";
+        const partnerName = r.nome_pn || r.parceiro;
         const dist = haversineDistance(center.lat, center.lng, r.lat, r.lng);
         const distLabel = dist >= 1000 ? `${(dist / 1000).toFixed(1)} km` : `${dist.toFixed(0)} m`;
         L.circleMarker([r.lat, r.lng], {
           radius: 6, fillColor: color, color: "#fff", weight: 2, fillOpacity: 0.9,
         }).addTo(layerGroup).bindPopup(
-          `<b>${r.parceiro}</b><br/>${r.cliente || ""}<br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
+          `<b>${partnerName}</b><br/>${r.cliente || ""}<br/><i>${r.status || ""}</i><br/>R$ ${r.valor_mensal.toFixed(2)}${r.banda_mbps ? `<br/>${r.banda_mbps} Mbps` : ""}<br/><b>Distância: ${distLabel}</b>`
         );
       }
     }
