@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type AppRole = "admin" | "ws_user" | "vendedor" | "implantacao";
+export type AppRole = "admin" | "ws_user" | "vendedor" | "implantacao" | "lm";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -31,6 +31,7 @@ export function useUserRole() {
     isWsUser: roles?.includes("ws_user") || false,
     isVendedor: roles?.includes("vendedor") || false,
     isImplantacao: roles?.includes("implantacao") || false,
+    isLm: roles?.includes("lm") || false,
     isLoading: !isReady,
   };
 }
