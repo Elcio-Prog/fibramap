@@ -20,6 +20,7 @@ interface Props {
   data: PreViabilidade[];
   search: string;
   statusFilter: string;
+  viabilidadeFilter: string;
   guardaChuvaFilter: string | null;
   onGuardaChuvaClick: (id: string | null) => void;
   onEdit: (item: PreViabilidade) => void;
@@ -34,7 +35,7 @@ const formatCurrency = (v: number | null | undefined) => {
 
 const PAGE_OPTIONS = [10, 25, 50];
 
-export default function PreViabilidadeTable({ data, search, statusFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
+export default function PreViabilidadeTable({ data, search, statusFilter, viabilidadeFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
   const { isAdmin, isImplantacao } = useUserRole();
   const canEdit = isAdmin || isImplantacao;
   const { toast } = useToast();
@@ -74,6 +75,20 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
     let list = data;
     if (guardaChuvaFilter) list = list.filter((r) => r.id_guardachuva === guardaChuvaFilter);
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
+    if (viabilidadeFilter !== "all") {
+      list = list.filter((r) => {
+        const derived = r.inviabilidade_tecnica
+          ? "Inviabilidade Técnica"
+          : (r.viabilidade === "Aguardando Projetista" && !r.distancia_projetista)
+              ? "Aguardando Projetista"
+              : (r.ticket_mensal != null && r.valor_minimo != null)
+                  ? (r.ticket_mensal >= r.valor_minimo
+                      ? (r.viabilidade === "Viabilizado pelo Sistema" ? "Viabilizado pelo Sistema" : "Viável")
+                      : "Abaixo do Valor")
+                  : r.viabilidade;
+        return derived === viabilidadeFilter;
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((r) =>
@@ -90,7 +105,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
       return sortDir === "asc" ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
     });
     return list;
-  }, [data, guardaChuvaFilter, statusFilter, search, sortKey, sortDir]);
+  }, [data, guardaChuvaFilter, statusFilter, viabilidadeFilter, search, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
