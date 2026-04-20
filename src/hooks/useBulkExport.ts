@@ -87,6 +87,19 @@ function buildPayloadItem(item: CartItem, mapping: FieldMappingEntry[]): Record<
   return obj;
 }
 
+/** Map subproduto (e.g. "NT LINK DEDICADO FULL") → categoria NT (e.g. "Conectividade") */
+function getCategoriaNT(subproduto: string | null | undefined): string {
+  if (!subproduto) return "Conectividade";
+  const s = subproduto.toUpperCase();
+  if (s.startsWith("NT LINK") || s === "NT EVENTO" || s === "NT PTT" || s === "NT L2L" || s === "NT DARK FIBER") return "Conectividade";
+  if (s.includes("FIREWALL")) return "Firewall";
+  if (s.includes("SWITCH")) return "Switch";
+  if (s.includes("WIFI") || s.includes("WIRELESS") || s.includes("AP")) return "Wifi";
+  if (s.includes("VOZ") || s.includes("PABX") || s.includes("TELEFONE")) return "VOZ";
+  if (s.includes("BACKUP")) return "Backup";
+  return "Conectividade";
+}
+
 /** Required fields that must be filled before sending */
 export const REQUIRED_CART_FIELDS: { key: keyof CartItem; label: string }[] = [
   { key: "produto", label: "Produto" },
@@ -178,6 +191,7 @@ export function useBulkExport() {
       try {
         const preViabPayloads = await Promise.all(items.map(async (item) => {
           const vigenciaNum = item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12;
+          const categoriaNT = getCategoriaNT(item.produto);
           const calcInput = {
             produto: "Conectividade" as const,
             subproduto: item.produto || "NT LINK DEDICADO FULL",
@@ -207,7 +221,7 @@ export function useBulkExport() {
           }
 
           const dadosPrecificacao: Record<string, any> = {
-            produto: "Conectividade",
+            produto: categoriaNT,
             subproduto: item.produto || "NT LINK DEDICADO FULL",
             banda: item.velocidade_mbps ?? 0,
             distancia: item.distance_m ?? 0,
@@ -240,7 +254,7 @@ export function useBulkExport() {
           return {
             user_id: user!.id,
             criado_por: user!.email || null,
-            produto_nt: item.produto || null,
+            produto_nt: categoriaNT,
             vigencia: vigenciaNum,
             viabilidade: item.designacao || null,
             ticket_mensal: ticketMensal,

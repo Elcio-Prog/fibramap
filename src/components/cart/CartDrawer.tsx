@@ -39,6 +39,19 @@ const PRODUTO_OPTIONS = [
 const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
 const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
+/** Map subproduto (e.g. "NT LINK DEDICADO FULL") → categoria NT (e.g. "Conectividade") */
+function getCategoriaNT(subproduto: string | null | undefined): string {
+  if (!subproduto) return "Conectividade";
+  const s = subproduto.toUpperCase();
+  if (s.startsWith("NT LINK") || s === "NT EVENTO" || s === "NT PTT" || s === "NT L2L" || s === "NT DARK FIBER") return "Conectividade";
+  if (s.includes("FIREWALL")) return "Firewall";
+  if (s.includes("SWITCH")) return "Switch";
+  if (s.includes("WIFI") || s.includes("WIRELESS") || s.includes("AP")) return "Wifi";
+  if (s.includes("VOZ") || s.includes("PABX") || s.includes("TELEFONE")) return "VOZ";
+  if (s.includes("BACKUP")) return "Backup";
+  return "Conectividade";
+}
+
 export default function CartDrawer({ open, onOpenChange }: Props) {
   const { items, removeItem, clearCart, updateItem } = useCart();
   const { user } = useAuth();
@@ -167,37 +180,40 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
     }
     setAddingPreViab(true);
     try {
-      const payloads = selectedItems.map((item) => ({
-        user_id: user.id,
-        criado_por: user.email || null,
-        produto_nt: item.produto || null,
-        vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
-        viabilidade: item.designacao || null,
-        ticket_mensal: item.valor_a_ser_vendido ?? null,
-        observacoes: item.observacoes_user || null,
-        valor_minimo: item.final_value ?? null,
-        origem: "fibramap",
-        tipo_solicitacao: item.tipo_solicitacao || null,
-        nome_cliente: item.cliente || null,
-        motivo_solicitacao: null,
-        codigo_smark: item.codigo_smark || null,
-        cnpj_cliente: item.cnpj_cliente || null,
-        endereco: item.endereco || null,
-        coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
-        status: "Aberto",
-        dados_precificacao: {
-          produto: item.produto || "Conectividade",
-          subproduto: item.produto || "NT LINK DEDICADO FULL",
-          banda: item.velocidade_mbps ?? 0,
-          distancia: item.distance_m ?? 0,
-          blocoIp: item.bloco_ip || "",
-          tecnologia: item.tecnologia || "GPON",
-          tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
-          rede: item.cidade || "",
-          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
-          taxaInstalacao: item.taxa_instalacao ?? 0,
-        },
-      }));
+      const payloads = selectedItems.map((item) => {
+        const categoriaNT = getCategoriaNT(item.produto);
+        return {
+          user_id: user.id,
+          criado_por: user.email || null,
+          produto_nt: categoriaNT,
+          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
+          viabilidade: item.designacao || null,
+          ticket_mensal: item.valor_a_ser_vendido ?? null,
+          observacoes: item.observacoes_user || null,
+          valor_minimo: item.final_value ?? null,
+          origem: "fibramap",
+          tipo_solicitacao: item.tipo_solicitacao || null,
+          nome_cliente: item.cliente || null,
+          motivo_solicitacao: null,
+          codigo_smark: item.codigo_smark || null,
+          cnpj_cliente: item.cnpj_cliente || null,
+          endereco: item.endereco || null,
+          coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
+          status: "Aberto",
+          dados_precificacao: {
+            produto: categoriaNT,
+            subproduto: item.produto || "NT LINK DEDICADO FULL",
+            banda: item.velocidade_mbps ?? 0,
+            distancia: item.distance_m ?? 0,
+            blocoIp: item.bloco_ip || "",
+            tecnologia: item.tecnologia || "GPON",
+            tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
+            rede: item.cidade || "",
+            vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
+            taxaInstalacao: item.taxa_instalacao ?? 0,
+          },
+        };
+      });
       const { error: insertErr } = await supabase.from("pre_viabilidades" as any).insert(payloads as any);
       if (insertErr) throw insertErr;
 
@@ -403,7 +419,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
                           </Tooltip>
                         </td>
                         <td className="px-2 py-1 text-right">
-                          {item.distance_m ? `${(item.distance_m / 1000).toFixed(2)} km` : "—"}
+                          {item.distance_m != null ? `${Math.round(item.distance_m).toLocaleString("pt-BR")} m` : "—"}
                         </td>
                         <td className="px-2 py-1">
                           <Badge variant={item.is_viable ? "default" : "outline"} className="text-[10px]">
