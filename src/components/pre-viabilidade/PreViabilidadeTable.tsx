@@ -292,7 +292,8 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                     </ContextMenuItem>
                     {(() => {
                       const needsApproval = row.ticket_mensal != null && row.valor_minimo != null && row.ticket_mensal < row.valor_minimo;
-                      if (!needsApproval) return null;
+                      const alreadyApproved = row.status_aprovacao === "Aprovado";
+                      if (!needsApproval || alreadyApproved) return null;
                       return (
                         <ContextMenuItem onClick={() => setAprovacaoTarget(row)} className="gap-2">
                           <ShieldCheck className="h-3.5 w-3.5" /> Solicitar Aprovação
