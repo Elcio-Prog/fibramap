@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
 import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
+import ModalEscolhaDistancia, { type DistanciaChoice } from "@/components/pre-viabilidade/ModalEscolhaDistancia";
 import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
 import { useWsSingleSearchState } from "@/contexts/WsSingleSearchStateContext";
 
