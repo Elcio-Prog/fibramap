@@ -31,9 +31,8 @@ export default function VarianciaDistanciasTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pre_viabilidades" as any)
-        .select("id, numero, endereco, nome_cliente, distancia_sistema, distancia_projetista, variancia_distancia, created_at")
-        .not("distancia_projetista", "is", null)
-        .not("distancia_sistema", "is", null)
+        .select("id, numero, endereco, nome_cliente, distancia_sistema, distancia_projetista, variancia_distancia, viabilidade, created_at")
+        .eq("viabilidade", "Aguardando Projetista")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as VarianciaRow[];
