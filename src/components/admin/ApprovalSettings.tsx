@@ -226,19 +226,51 @@ function LevelTable({
                   </TableCell>
 
                   <TableCell>
-                    <Input
-                      type="email"
-                      placeholder="email@empresa.com.br"
-                      className={`max-w-xs ${
-                        lvl.responsible_email && !isValidEmail(lvl.responsible_email)
-                          ? "border-destructive"
-                          : ""
-                      }`}
-                      value={lvl.responsible_email}
-                      onChange={(e) =>
-                        updateLevel(realIdx, { responsible_email: e.target.value })
-                      }
-                    />
+                    <div className="space-y-1.5 max-w-xs">
+                      {(lvl.responsible_email || "").split(",").map((email, emailIdx, arr) => (
+                        <div key={emailIdx} className="flex items-center gap-1">
+                          <Input
+                            type="email"
+                            placeholder="email@empresa.com.br"
+                            className={`flex-1 ${
+                              email.trim() && !isValidEmail(email.trim())
+                                ? "border-destructive"
+                                : ""
+                            }`}
+                            value={email.trim()}
+                            onChange={(e) => {
+                              const emails = (lvl.responsible_email || "").split(",").map((em) => em.trim());
+                              emails[emailIdx] = e.target.value;
+                              updateLevel(realIdx, { responsible_email: emails.join(",") });
+                            }}
+                          />
+                          {arr.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                const emails = (lvl.responsible_email || "").split(",").map((em) => em.trim()).filter((_, i) => i !== emailIdx);
+                                updateLevel(realIdx, { responsible_email: emails.join(",") });
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs text-muted-foreground gap-1 px-1"
+                        onClick={() => {
+                          const current = lvl.responsible_email || "";
+                          updateLevel(realIdx, { responsible_email: current ? current + "," : "" });
+                        }}
+                      >
+                        <Plus className="h-3 w-3" /> Adicionar e-mail
+                      </Button>
+                    </div>
                   </TableCell>
 
                   <TableCell>
@@ -319,12 +351,12 @@ export default function ApprovalSettings() {
   const handleSave = async () => {
     const allLevels = [...standard.levels, ...equipment.levels];
     const invalidEmail = allLevels.find(
-      (l) => l.level > 0 && l.responsible_email && !isValidEmail(l.responsible_email)
+      (l) => l.level > 0 && l.responsible_email && l.responsible_email.split(",").some((em) => em.trim() && !isValidEmail(em.trim()))
     );
     if (invalidEmail) {
       toast({
         title: "E-mail inválido",
-        description: `Verifique o e-mail do ${invalidEmail.label}`,
+        description: `Verifique o(s) e-mail(s) do ${invalidEmail.label}`,
         variant: "destructive",
       });
       return;
