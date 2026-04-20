@@ -68,7 +68,7 @@ export default function VarianciaDistanciasTab() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="px-2 py-1 font-mono">{r.numero}</td>
+                    <td className="px-2 py-1 font-mono">{fmId(r.numero)}</td>
                     <td className="px-2 py-1 max-w-[200px] truncate">
                       {r.endereco || r.nome_cliente || "—"}
                     </td>

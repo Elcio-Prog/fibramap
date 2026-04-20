@@ -213,7 +213,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
                       contextRowId === row.id && "bg-muted/50"
                     )} onDoubleClick={() => onEdit(row)}>
                       <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
-                        #{row.numero}
+                        {fmId(row.numero)}
                       </td>
                       <td className="px-2 py-1.5">
                         {(() => {
