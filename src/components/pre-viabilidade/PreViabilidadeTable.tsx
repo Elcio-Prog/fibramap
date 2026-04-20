@@ -258,7 +258,14 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                         const created = row.created_at ? new Date(row.created_at) : null;
                         const reav = row.data_reavaliacao ? new Date(row.data_reavaliacao) : null;
                         const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
-                        const isAtiva = (created && addDays(created, 15) > now) || (reav && addDays(reav, 15) > now);
+                        // NT Tech products (Firewall, Wifi, Switch, Backup) follow the same 15-day expiration rule
+                        const NT_TECH = ["Firewall", "Wifi", "Switch", "Backup"];
+                        const isNtTech = row.produto_nt ? NT_TECH.includes(row.produto_nt) : false;
+                        const expiryDays = 15; // same rule for Conectividade and NT Tech
+                        const baseDate = reav || created;
+                        const isAtiva = baseDate ? addDays(baseDate, expiryDays) > now : false;
+                        // Mark explicitly so future logic can branch if needed
+                        void isNtTech;
                         return isAtiva ? "Ativa" : "Expirada";
                       })()} /></td>
                       <td className="px-2 py-1.5"><TruncCell value={row.projetista} /></td>
