@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoiIndicators } from "@/hooks/usePreViabilidades";
+import { fmId } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -156,7 +157,7 @@ export default function AprovacoesTab() {
       if (!res.ok) throw new Error(json.error || "Erro");
       toast({
         title: acao === "aprovar" ? "Aprovação registrada" : "Reprovação registrada",
-        description: `Pré-Viabilidade #${pvById.get(tk.pre_viabilidade_id)?.numero ?? ""} atualizada`,
+        description: `Pré-Viabilidade ${fmId(pvById.get(tk.pre_viabilidade_id)?.numero)} atualizada`,
       });
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["aprovacao-tokens-pendentes"] }),
@@ -268,7 +269,7 @@ export default function AprovacoesTab() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm font-semibold">
-                      Pré-Viabilidade #{pv?.numero ?? "—"}
+                      Pré-Viabilidade {fmId(pv?.numero)}
                     </h3>
                     <Badge variant="secondary" className="text-[10px]">
                       {tk.nivel_label}

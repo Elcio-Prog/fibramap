@@ -22,7 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, fmId } from "@/lib/utils";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS, MEIO_FISICO_OPTIONS, TIPO_SOLICITACAO_OPTIONS } from "@/lib/field-options";
 import AttachmentsField, { Anexo } from "./AttachmentsField";
 
@@ -782,7 +782,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
         <DialogHeader>
           <DialogTitle>{readOnly ? "Detalhes" : "Editar"} Pré Viabilidade</DialogTitle>
           <DialogDescription>
-            #{item.numero || item.id.slice(0, 4).toUpperCase()} — {item.nome_cliente || item.viabilidade || "Registro"}
+            {fmId(item.numero)} — {item.nome_cliente || item.viabilidade || "Registro"}
           </DialogDescription>
         </DialogHeader>
 
@@ -865,7 +865,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir registro #{item?.numero}?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir registro {fmId(item?.numero)}?</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
