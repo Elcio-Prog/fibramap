@@ -351,12 +351,12 @@ export default function ApprovalSettings() {
   const handleSave = async () => {
     const allLevels = [...standard.levels, ...equipment.levels];
     const invalidEmail = allLevels.find(
-      (l) => l.level > 0 && l.responsible_email && !isValidEmail(l.responsible_email)
+      (l) => l.level > 0 && l.responsible_email && l.responsible_email.split(",").some((em) => em.trim() && !isValidEmail(em.trim()))
     );
     if (invalidEmail) {
       toast({
         title: "E-mail inválido",
-        description: `Verifique o e-mail do ${invalidEmail.label}`,
+        description: `Verifique o(s) e-mail(s) do ${invalidEmail.label}`,
         variant: "destructive",
       });
       return;
