@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ArrowUpDown, Pencil, Link2, Trash2, History, ShieldCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, fmId } from "@/lib/utils";
 import StatusBadge from "./StatusBadge";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { format } from "date-fns";
@@ -213,7 +213,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
                       contextRowId === row.id && "bg-muted/50"
                     )} onDoubleClick={() => onEdit(row)}>
                       <td className={cn("px-2 py-1.5 font-mono text-[10px] sticky left-0 z-10 font-semibold", contextRowId === row.id ? "bg-muted/50" : "bg-background")}>
-                        #{row.numero}
+                        {fmId(row.numero)}
                       </td>
                       <td className="px-2 py-1.5">
                         {(() => {

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { fmId } from "@/lib/utils";
 
 interface VarianciaRow {
   id: string;
@@ -68,7 +69,7 @@ export default function VarianciaDistanciasTab() {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t hover:bg-muted/30">
-                    <td className="px-2 py-1 font-mono">{r.numero}</td>
+                    <td className="px-2 py-1 font-mono">{fmId(r.numero)}</td>
                     <td className="px-2 py-1 max-w-[200px] truncate">
                       {r.endereco || r.nome_cliente || "—"}
                     </td>

@@ -8,6 +8,7 @@ import { Loader2, User, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getRoiIndicators } from "@/hooks/usePreViabilidades";
+import { fmId } from "@/lib/utils";
 
 const MOTIVO_OPTIONS = [
   "Concorrência direta",
@@ -175,7 +176,7 @@ export default function SolicitarAprovacaoDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Solicitar Aprovação {numero != null ? `#${numero}` : ""}</DialogTitle>
+          <DialogTitle>Solicitar Aprovação {fmId(numero)}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

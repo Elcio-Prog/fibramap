@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { fmId } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -193,7 +194,7 @@ export default function MinhasSolicitacoesTab() {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-semibold">
-                              Pré-Viabilidade #{pv?.numero ?? "—"}
+                              Pré-Viabilidade {fmId(pv?.numero)}
                             </h3>
                             <Badge variant="secondary" className="text-[10px]">
                               {tk.nivel_label}
