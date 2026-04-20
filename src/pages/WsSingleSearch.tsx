@@ -473,6 +473,18 @@ export default function WsSingleSearch() {
         result = await executeSearch(geo);
       }
 
+      // Persiste resultados diretamente no snapshot global ANTES dos setState — assim,
+      // mesmo se o usuário tiver navegado para outra seção (componente desmontado),
+      // ao retornar à página os resultados serão restaurados a partir do snapshot.
+      mergeSnapshot({
+        geoResult: geo,
+        options: result.options,
+        radiusResults: result.radiusResults,
+        selectedOptionIdx: null,
+        rowPricing: {},
+        rowValorMinimo: {},
+      });
+
       setGeoResult(geo);
       setOptions(result.options);
       setRadiusResults(result.radiusResults);
