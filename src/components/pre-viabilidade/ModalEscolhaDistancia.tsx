@@ -29,7 +29,7 @@ export default function ModalEscolhaDistancia({ open, onOpenChange, distanciaSis
         <div className="grid grid-cols-1 gap-3 py-2">
           <Button
             variant="outline"
-            className="h-auto py-4 flex items-center gap-3 justify-start border-2 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+            className="h-auto py-4 flex items-center gap-3 justify-start border-2 hover:border-emerald-500 hover:bg-emerald-50 hover:text-foreground dark:hover:bg-emerald-950/20"
             onClick={() => onChoose("sistema")}
           >
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -42,7 +42,7 @@ export default function ModalEscolhaDistancia({ open, onOpenChange, distanciaSis
           </Button>
           <Button
             variant="outline"
-            className="h-auto py-4 flex items-center gap-3 justify-start border-2 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/20"
+            className="h-auto py-4 flex items-center gap-3 justify-start border-2 hover:border-violet-500 hover:bg-violet-50 hover:text-foreground dark:hover:bg-violet-950/20"
             onClick={() => onChoose("projetista")}
           >
             <Clock className="h-5 w-5 text-violet-500 shrink-0" />
