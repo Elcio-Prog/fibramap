@@ -176,26 +176,38 @@ export function useBulkExport() {
 
       // === INSERT into pre_viabilidades (independent of webhook result) ===
       try {
-        const preViabPayloads = items.map((item) => ({
-          user_id: user!.id,
-          criado_por: user!.email || null,
-          produto_nt: item.produto || null,
-          vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
-          viabilidade: item.designacao || null,
-          ticket_mensal: item.valor_a_ser_vendido ?? null,
-          observacoes: item.observacoes_user || null,
-          valor_minimo: item.final_value ?? null,
-          origem: "fibramap",
-          tipo_solicitacao: item.tipo_solicitacao || null,
-          nome_cliente: item.cliente || null,
-          motivo_solicitacao: null,
-          codigo_smark: item.codigo_smark || null,
-          cnpj_cliente: (item as any).cnpj_cliente || null,
-          endereco: item.endereco || null,
-          coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
-          status: "Aberto",
-          dados_precificacao: {
-            produto: item.produto || "Conectividade",
+        const preViabPayloads = await Promise.all(items.map(async (item) => {
+          const vigenciaNum = item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12;
+          const calcInput = {
+            produto: "Conectividade" as const,
+            subproduto: item.produto || "NT LINK DEDICADO FULL",
+            rede: item.cidade || "",
+            banda: item.velocidade_mbps ?? 0,
+            distancia: item.distance_m ?? 0,
+            blocoIp: item.bloco_ip || "",
+            tecnologia: item.tecnologia || "GPON",
+            vigencia: vigenciaNum,
+            taxaInstalacao: item.taxa_instalacao ?? 0,
+            togDistancia: true,
+            projetoAvaliado: false,
+            custoLastMile: 0,
+            valorLastMile: 0,
+            custosMateriaisAdicionais: 0,
+            valorOpex: 0,
+            ticketMensal: item.valor_a_ser_vendido ?? 0,
+          };
+
+          // Call edge function to get full pricing (memoriaCalculo, ROI, valorMinimo, valorCapex)
+          let calcResult: any = null;
+          try {
+            const { data } = await supabase.functions.invoke("calcular-precificacao", { body: calcInput });
+            calcResult = data;
+          } catch (e) {
+            console.error("Erro ao calcular precificação para item do carrinho:", e);
+          }
+
+          const dadosPrecificacao: Record<string, any> = {
+            produto: "Conectividade",
             subproduto: item.produto || "NT LINK DEDICADO FULL",
             banda: item.velocidade_mbps ?? 0,
             distancia: item.distance_m ?? 0,
@@ -203,11 +215,60 @@ export function useBulkExport() {
             tecnologia: item.tecnologia || "GPON",
             tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
             rede: item.cidade || "",
-            vigencia: item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12,
+            vigencia: vigenciaNum,
             taxaInstalacao: item.taxa_instalacao ?? 0,
-          },
+            custosMateriaisAdicionais: 0,
+            valorOpex: 0,
+            custoLastMile: 0,
+            valorLastMile: 0,
+            valorCapex: calcResult?.valorCapex ?? 0,
+            media_mensalidade_lm: 0,
+            taxa_instalacao_lm: 0,
+            custo_radio: 0,
+            valor_total_reais: 0,
+            usou_finder2: 0,
+            campanha_comercial_meses: 0,
+            memoriaCalculo: calcResult?.memoriaCalculo ?? [],
+          };
+
+          const valorMinimoCalc = calcResult?.valorMinimo ?? item.final_value ?? null;
+          const ticketMensal = item.valor_a_ser_vendido ?? null;
+          const previsaoRoi = ticketMensal != null
+            ? calculateIndividualROI(ticketMensal, dadosPrecificacao)
+            : null;
+
+          return {
+            user_id: user!.id,
+            criado_por: user!.email || null,
+            produto_nt: item.produto || null,
+            vigencia: vigenciaNum,
+            viabilidade: item.designacao || null,
+            ticket_mensal: ticketMensal,
+            previsao_roi: previsaoRoi,
+            observacoes: item.observacoes_user || null,
+            valor_minimo: valorMinimoCalc,
+            origem: "fibramap",
+            tipo_solicitacao: item.tipo_solicitacao || null,
+            nome_cliente: item.cliente || null,
+            motivo_solicitacao: null,
+            codigo_smark: item.codigo_smark || null,
+            cnpj_cliente: (item as any).cnpj_cliente || null,
+            endereco: item.endereco || null,
+            coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
+            status: "Aberto",
+            dados_precificacao: dadosPrecificacao,
+          };
         }));
+
         await supabase.from("pre_viabilidades" as any).insert(preViabPayloads as any);
+
+        // Recalculate ROI Global for any umbrella groups touched (none expected from cart, but safe)
+        const guardas = new Set<string>(
+          (preViabPayloads as any[]).map((p) => p.id_guardachuva).filter(Boolean)
+        );
+        for (const g of guardas) {
+          await recalcRoiGlobal(g);
+        }
       } catch (preViabErr) {
         console.error("Erro ao inserir pré-viabilidades:", preViabErr);
         // Non-blocking: don't affect webhook result
