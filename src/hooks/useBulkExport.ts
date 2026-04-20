@@ -191,6 +191,7 @@ export function useBulkExport() {
       try {
         const preViabPayloads = await Promise.all(items.map(async (item) => {
           const vigenciaNum = item.vigencia ? parseInt(item.vigencia, 10) || 12 : 12;
+          const categoriaNT = getCategoriaNT(item.produto);
           const calcInput = {
             produto: "Conectividade" as const,
             subproduto: item.produto || "NT LINK DEDICADO FULL",
@@ -220,7 +221,7 @@ export function useBulkExport() {
           }
 
           const dadosPrecificacao: Record<string, any> = {
-            produto: "Conectividade",
+            produto: categoriaNT,
             subproduto: item.produto || "NT LINK DEDICADO FULL",
             banda: item.velocidade_mbps ?? 0,
             distancia: item.distance_m ?? 0,
@@ -253,7 +254,7 @@ export function useBulkExport() {
           return {
             user_id: user!.id,
             criado_por: user!.email || null,
-            produto_nt: item.produto || null,
+            produto_nt: categoriaNT,
             vigencia: vigenciaNum,
             viabilidade: item.designacao || null,
             ticket_mensal: ticketMensal,
