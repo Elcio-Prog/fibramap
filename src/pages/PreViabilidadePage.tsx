@@ -130,15 +130,27 @@ export default function PreViabilidadePage() {
             <FileCheck className="h-4 w-4" />
             Registros
           </TabsTrigger>
-          <TabsTrigger value="aprovacoes" className="gap-2">
-            <Inbox className="h-4 w-4" />
-            Aprovações
-            {pendingCount && pendingCount > 0 ? (
-              <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
-                {pendingCount}
-              </Badge>
-            ) : null}
-          </TabsTrigger>
+          {showAprovacoesTab ? (
+            <TabsTrigger value="aprovacoes" className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Aprovações
+              {pendingCount && pendingCount > 0 ? (
+                <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
+                  {pendingCount}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          ) : (
+            <TabsTrigger value="minhas-solicitacoes" className="gap-2">
+              <Send className="h-4 w-4" />
+              Minhas Solicitações
+              {minhasAbertasCount && minhasAbertasCount > 0 ? (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
+                  {minhasAbertasCount}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="registros" className="space-y-4 mt-4">
