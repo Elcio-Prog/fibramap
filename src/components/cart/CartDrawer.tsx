@@ -71,6 +71,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [addingPreViab, setAddingPreViab] = useState(false);
   const [recalcIds, setRecalcIds] = useState<Set<string>>(new Set());
   const recalcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [distChoiceOpen, setDistChoiceOpen] = useState(false);
 
   // Recalculate final_value via edge function
   const recalcItem = useCallback(async (item: CartItem, updates: Partial<CartItem>) => {
