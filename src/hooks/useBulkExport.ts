@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { useConfig, FieldMappingEntry } from "@/hooks/useConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateIndividualROI, recalcRoiGlobal } from "@/hooks/usePreViabilidades";
 
 async function callWebhookProxy(webhookUrl: string, items: any[], solicitante: string): Promise<{ status: number; body: string }> {
   const { data: { session } } = await supabase.auth.getSession();
