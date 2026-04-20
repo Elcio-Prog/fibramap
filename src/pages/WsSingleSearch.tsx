@@ -1078,24 +1078,8 @@ export default function WsSingleSearch() {
                   <Button size="sm" variant="outline" className="gap-2" onClick={() => {
                     if (!geoResult || selectedOptionIdx === null) return;
                     const o = options[selectedOptionIdx];
-                    const rp = getRowPricing(selectedOptionIdx);
-                    setPreViabInitialData({
-                      subproduto: rp.produto || "NT LINK DEDICADO FULL",
-                      distancia: o.distance_m,
-                      banda: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : 0),
-                      vigencia: rp.vigencia ? Number(rp.vigencia) : undefined,
-                      taxaInstalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : 0,
-                      tecnologia: rp.tecnologia || "GPON",
-                      blocoIp: rp.blocoIp || undefined,
-                      rede: rp.cidadePontaA || undefined,
-                      redePontaB: rp.cidadePontaB || undefined,
-                      qtdFibrasDarkFiber: rp.qtdFibrasDarkFiber ? Number(rp.qtdFibrasDarkFiber) : undefined,
-                      nome_cliente: cliente || "",
-                      endereco: geoResult.display,
-                      coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
-                      observacoes: o.notes || "",
-                    });
-                    setPreViabOpen(true);
+                    setPendingDistOption({ distance_m: o.distance_m, optionIdx: selectedOptionIdx });
+                    setDistChoiceOpen(true);
                   }}>
                     <ClipboardPlus className="h-4 w-4" /> Adicionar na Pré Viabilidade
                   </Button>
