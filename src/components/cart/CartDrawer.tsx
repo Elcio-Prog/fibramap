@@ -39,6 +39,19 @@ const PRODUTO_OPTIONS = [
 const TECNOLOGIA_OPTIONS = ["GPON", "PTP", "LAST MILE"];
 const MEIO_FISICO_OPTIONS = ["Fibra", "Rádio"];
 
+/** Map subproduto (e.g. "NT LINK DEDICADO FULL") → categoria NT (e.g. "Conectividade") */
+function getCategoriaNT(subproduto: string | null | undefined): string {
+  if (!subproduto) return "Conectividade";
+  const s = subproduto.toUpperCase();
+  if (s.startsWith("NT LINK") || s === "NT EVENTO" || s === "NT PTT" || s === "NT L2L" || s === "NT DARK FIBER") return "Conectividade";
+  if (s.includes("FIREWALL")) return "Firewall";
+  if (s.includes("SWITCH")) return "Switch";
+  if (s.includes("WIFI") || s.includes("WIRELESS") || s.includes("AP")) return "Wifi";
+  if (s.includes("VOZ") || s.includes("PABX") || s.includes("TELEFONE")) return "VOZ";
+  if (s.includes("BACKUP")) return "Backup";
+  return "Conectividade";
+}
+
 export default function CartDrawer({ open, onOpenChange }: Props) {
   const { items, removeItem, clearCart, updateItem } = useCart();
   const { user } = useAuth();
