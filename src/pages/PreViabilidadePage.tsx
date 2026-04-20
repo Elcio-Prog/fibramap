@@ -34,7 +34,25 @@ export default function PreViabilidadePage() {
     qc.invalidateQueries({ queryKey: ["aprovacoes-pendentes-count"] });
   };
 
-  // Pending approvals count badge
+  // Check if current user is approver (has any token assigned to them)
+  const { data: isApprover } = useQuery({
+    queryKey: ["is-approver", user?.email],
+    queryFn: async () => {
+      if (!user?.email) return false;
+      const { count, error } = await supabase
+        .from("aprovacao_tokens")
+        .select("id", { count: "exact", head: true })
+        .eq("responsavel_email", user.email);
+      if (error) return false;
+      return (count || 0) > 0;
+    },
+    enabled: !!user?.email && !isAdmin,
+  });
+
+  // Show "Aprovações" tab for admins or users who are approvers; otherwise "Minhas Solicitações"
+  const showAprovacoesTab = isAdmin || !!isApprover;
+
+  // Pending approvals count badge (only when showing aprovacoes tab)
   const { data: pendingCount } = useQuery({
     queryKey: ["aprovacoes-pendentes-count", user?.email, isAdmin],
     queryFn: async () => {
@@ -47,7 +65,25 @@ export default function PreViabilidadePage() {
       if (error) return 0;
       return count || 0;
     },
-    enabled: !!user,
+    enabled: !!user && showAprovacoesTab,
+    refetchInterval: 30000,
+  });
+
+  // Pending count for "Minhas Solicitações" tab (open requests sent by current user)
+  const { data: minhasAbertasCount } = useQuery({
+    queryKey: ["minhas-solicitacoes-abertas-count", user?.email],
+    queryFn: async () => {
+      if (!user?.email) return 0;
+      const { count, error } = await supabase
+        .from("aprovacao_tokens")
+        .select("id", { count: "exact", head: true })
+        .eq("solicitante_email", user.email)
+        .is("acao_realizada", null)
+        .gte("expires_at", new Date().toISOString());
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!user && !showAprovacoesTab,
     refetchInterval: 30000,
   });
 
