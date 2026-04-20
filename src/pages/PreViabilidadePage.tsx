@@ -10,7 +10,8 @@ import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidad
 import PreViabilidadeCreateDialog from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 import RoiGlobalReportDialog from "@/components/pre-viabilidade/RoiGlobalReportDialog";
 import AprovacoesTab from "@/components/pre-viabilidade/AprovacoesTab";
-import { Loader2, FileCheck, X, Plus, BarChart, Inbox, RefreshCw } from "lucide-react";
+import MinhasSolicitacoesTab from "@/components/pre-viabilidade/MinhasSolicitacoesTab";
+import { Loader2, FileCheck, X, Plus, BarChart, Inbox, RefreshCw, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -33,7 +34,25 @@ export default function PreViabilidadePage() {
     qc.invalidateQueries({ queryKey: ["aprovacoes-pendentes-count"] });
   };
 
-  // Pending approvals count badge
+  // Check if current user is approver (has any token assigned to them)
+  const { data: isApprover } = useQuery({
+    queryKey: ["is-approver", user?.email],
+    queryFn: async () => {
+      if (!user?.email) return false;
+      const { count, error } = await supabase
+        .from("aprovacao_tokens")
+        .select("id", { count: "exact", head: true })
+        .eq("responsavel_email", user.email);
+      if (error) return false;
+      return (count || 0) > 0;
+    },
+    enabled: !!user?.email && !isAdmin,
+  });
+
+  // Show "Aprovações" tab for admins or users who are approvers; otherwise "Minhas Solicitações"
+  const showAprovacoesTab = isAdmin || !!isApprover;
+
+  // Pending approvals count badge (only when showing aprovacoes tab)
   const { data: pendingCount } = useQuery({
     queryKey: ["aprovacoes-pendentes-count", user?.email, isAdmin],
     queryFn: async () => {
@@ -46,7 +65,25 @@ export default function PreViabilidadePage() {
       if (error) return 0;
       return count || 0;
     },
-    enabled: !!user,
+    enabled: !!user && showAprovacoesTab,
+    refetchInterval: 30000,
+  });
+
+  // Pending count for "Minhas Solicitações" tab (open requests sent by current user)
+  const { data: minhasAbertasCount } = useQuery({
+    queryKey: ["minhas-solicitacoes-abertas-count", user?.email],
+    queryFn: async () => {
+      if (!user?.email) return 0;
+      const { count, error } = await supabase
+        .from("aprovacao_tokens")
+        .select("id", { count: "exact", head: true })
+        .eq("solicitante_email", user.email)
+        .is("acao_realizada", null)
+        .gte("expires_at", new Date().toISOString());
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!user && !showAprovacoesTab,
     refetchInterval: 30000,
   });
 
@@ -93,15 +130,27 @@ export default function PreViabilidadePage() {
             <FileCheck className="h-4 w-4" />
             Registros
           </TabsTrigger>
-          <TabsTrigger value="aprovacoes" className="gap-2">
-            <Inbox className="h-4 w-4" />
-            Aprovações
-            {pendingCount && pendingCount > 0 ? (
-              <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
-                {pendingCount}
-              </Badge>
-            ) : null}
-          </TabsTrigger>
+          {showAprovacoesTab ? (
+            <TabsTrigger value="aprovacoes" className="gap-2">
+              <Inbox className="h-4 w-4" />
+              Aprovações
+              {pendingCount && pendingCount > 0 ? (
+                <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
+                  {pendingCount}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          ) : (
+            <TabsTrigger value="minhas-solicitacoes" className="gap-2">
+              <Send className="h-4 w-4" />
+              Minhas Solicitações
+              {minhasAbertasCount && minhasAbertasCount > 0 ? (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
+                  {minhasAbertasCount}
+                </Badge>
+              ) : null}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="registros" className="space-y-4 mt-4">
@@ -139,9 +188,15 @@ export default function PreViabilidadePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="aprovacoes" className="mt-4">
-          <AprovacoesTab />
-        </TabsContent>
+        {showAprovacoesTab ? (
+          <TabsContent value="aprovacoes" className="mt-4">
+            <AprovacoesTab />
+          </TabsContent>
+        ) : (
+          <TabsContent value="minhas-solicitacoes" className="mt-4">
+            <MinhasSolicitacoesTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       <PreViabilidadeEditDrawer
