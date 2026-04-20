@@ -195,6 +195,10 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="variancia" forceMount className="data-[state=inactive]:hidden">
+          <VarianciaDistanciasTab />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={restoreOpen} onOpenChange={setRestoreOpen}>
