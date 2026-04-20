@@ -14,6 +14,7 @@ import ApiLogsTab from "@/components/admin/ApiLogsTab";
 import GeoGridTab from "@/components/admin/GeoGridTab";
 import ApprovalSettings from "@/components/admin/ApprovalSettings";
 import SetupTab from "@/components/admin/SetupTab";
+import VarianciaDistanciasTab from "@/components/admin/VarianciaDistanciasTab";
 
 const DEFAULT_MAPPING: FieldMappingEntry[] = [
   { colunaApp: "Designação", campoJson: "protocolo", tipo: "string" },
@@ -137,6 +138,7 @@ export default function SettingsPage() {
           <TabsTrigger value="setup">Setup Precificação</TabsTrigger>
           <TabsTrigger value="aprovacoes">Aprovações</TabsTrigger>
           <TabsTrigger value="mapping">Mapeamento de Campos</TabsTrigger>
+          <TabsTrigger value="variancia">Variância Distâncias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="integracoes" forceMount className="data-[state=inactive]:hidden">
