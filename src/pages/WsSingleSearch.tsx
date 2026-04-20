@@ -1426,6 +1426,42 @@ export default function WsSingleSearch() {
           </CardContent>
         </Card>
       )}
+      <ModalEscolhaDistancia
+        open={distChoiceOpen}
+        onOpenChange={setDistChoiceOpen}
+        distanciaSistema={pendingDistOption?.distance_m ?? null}
+        onChoose={(choice: DistanciaChoice) => {
+          setDistChoiceOpen(false);
+          if (!geoResult || !pendingDistOption) return;
+          const o = options[pendingDistOption.optionIdx];
+          const rp = getRowPricing(pendingDistOption.optionIdx);
+          const isViavel = o.viable;
+
+          const initData: PreViabilidadeInitialData = {
+            subproduto: rp.produto || "NT LINK DEDICADO FULL",
+            distancia: choice === "sistema" ? o.distance_m : undefined,
+            banda: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : 0),
+            vigencia: rp.vigencia ? Number(rp.vigencia) : undefined,
+            taxaInstalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : 0,
+            tecnologia: rp.tecnologia || "GPON",
+            blocoIp: rp.blocoIp || undefined,
+            rede: rp.cidadePontaA || undefined,
+            redePontaB: rp.cidadePontaB || undefined,
+            qtdFibrasDarkFiber: rp.qtdFibrasDarkFiber ? Number(rp.qtdFibrasDarkFiber) : undefined,
+            nome_cliente: cliente || "",
+            endereco: geoResult.display,
+            coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+            observacoes: o.notes || "",
+            // New fields for distance choice
+            distancia_sistema: o.distance_m,
+            distancia_projetista: choice === "sistema" ? o.distance_m : undefined,
+            viabilidade_override: choice === "sistema" && isViavel ? "Viabilizado pelo Sistema" : choice === "projetista" ? "Aguardando Projetista" : undefined,
+          };
+          setPreViabInitialData(initData);
+          setPreViabOpen(true);
+          setPendingDistOption(null);
+        }}
+      />
       <PreViabilidadeCreateDialog
         open={preViabOpen}
         onOpenChange={setPreViabOpen}
