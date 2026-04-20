@@ -107,7 +107,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // ── Product-specific field sections ──
 
-function ConectividadeFields({ form, setField, options }: any) {
+function ConectividadeFields({ form, setField, options, distanciaSistemaHint }: any) {
   const isDarkFiber = form.subproduto === "NT DARK FIBER";
   const isL2L = form.subproduto === "NT L2L";
   const isEvento = form.subproduto === "NT EVENTO";
@@ -118,7 +118,14 @@ function ConectividadeFields({ form, setField, options }: any) {
       {isMudanca && <Badge variant="secondary" className="gap-1"><Info className="h-3 w-3" /> Custo de banda zerado automaticamente</Badge>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField label="Produto Link IP" value={form.subproduto} onChange={(v: string) => setField("subproduto", v)} options={PRODUTO_LINK_OPTIONS} />
-        <NumField label="Distância (m)" value={form.distancia} onChange={(v: number) => setField("distancia", v)} />
+        <div>
+          <NumField label="Distância (m)" value={form.distancia} onChange={(v: number) => setField("distancia", v)} />
+          {distanciaSistemaHint != null && (
+            <p className="text-xs text-violet-600 mt-1 italic">
+              Distância estimada pelo sistema: {Math.round(distanciaSistemaHint).toLocaleString("pt-BR")} metros
+            </p>
+          )}
+        </div>
         {!isDarkFiber && <NumField label="Velocidade do Link (MB)" value={form.banda} onChange={(v: number) => setField("banda", v)} />}
         {!isL2L && !isDarkFiber && (
           <SelectField label="Bloco IP" value={form.blocoIp} onChange={(v: string) => setField("blocoIp", v)} options={BLOCO_IP_OPTIONS} placeholder="Selecione..." />
@@ -523,7 +530,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const renderProductFields = () => {
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
-      case "Conectividade": return <ConectividadeFields {...props} />;
+      case "Conectividade": return <ConectividadeFields {...props} distanciaSistemaHint={item?.viabilidade === "Aguardando Projetista" ? item.distancia_sistema : null} />;
       case "Firewall": return <FirewallFields {...props} />;
       case "Switch": return <SwitchFields {...props} />;
       case "Wifi": return <WifiFields {...props} />;
@@ -563,12 +570,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Campos — {calcForm.produto}</p>
             {renderProductFields()}
-            {/* Hint: distância estimada pelo sistema quando modo projetista */}
-            {item.viabilidade === "Aguardando Projetista" && item.distancia_sistema != null && (
-              <p className="text-xs text-violet-600 mt-2 italic">
-                Distância estimada pelo sistema: {Math.round(item.distancia_sistema).toLocaleString("pt-BR")} metros
-              </p>
-            )}
           </div>
 
           {isAdmin && memoriaCalculo && memoriaCalculo.length > 0 && (
