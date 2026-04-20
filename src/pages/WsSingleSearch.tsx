@@ -148,6 +148,8 @@ export default function WsSingleSearch() {
   // Pré Viabilidade dialog
   const [preViabOpen, setPreViabOpen] = useState(false);
   const [preViabInitialData, setPreViabInitialData] = useState<PreViabilidadeInitialData | undefined>(undefined);
+  const [distChoiceOpen, setDistChoiceOpen] = useState(false);
+  const [pendingDistOption, setPendingDistOption] = useState<{ distance_m: number; optionIdx: number } | null>(null);
 
   // Pricing parameters per row
   const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
