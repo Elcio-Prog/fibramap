@@ -488,6 +488,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           dados_precificacao: buildDadosPrecificacao(),
           data_reavaliacao: meta.data_reavaliacao || null,
           anexos: anexos as any,
+          // Save projetista distance when applicable
+          ...(item.distancia_sistema != null ? {
+            distancia_projetista: calcForm.distancia || null,
+          } : {}),
         } as any,
       });
       // Recalculate ROI Global for the umbrella group
