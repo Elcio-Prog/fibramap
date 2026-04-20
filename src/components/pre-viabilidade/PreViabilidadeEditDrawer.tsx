@@ -530,7 +530,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const renderProductFields = () => {
     const props = { form: calcForm, setField, options };
     switch (calcForm.produto) {
-      case "Conectividade": return <ConectividadeFields {...props} />;
+      case "Conectividade": return <ConectividadeFields {...props} distanciaSistemaHint={item?.viabilidade === "Aguardando Projetista" ? item.distancia_sistema : null} />;
       case "Firewall": return <FirewallFields {...props} />;
       case "Switch": return <SwitchFields {...props} />;
       case "Wifi": return <WifiFields {...props} />;
@@ -570,12 +570,6 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Campos — {calcForm.produto}</p>
             {renderProductFields()}
-            {/* Hint: distância estimada pelo sistema quando modo projetista */}
-            {item.viabilidade === "Aguardando Projetista" && item.distancia_sistema != null && (
-              <p className="text-xs text-violet-600 mt-2 italic">
-                Distância estimada pelo sistema: {Math.round(item.distancia_sistema).toLocaleString("pt-BR")} metros
-              </p>
-            )}
           </div>
 
           {isAdmin && memoriaCalculo && memoriaCalculo.length > 0 && (
