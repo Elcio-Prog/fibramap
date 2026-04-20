@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { VIGENCIA_OPTIONS, BLOCO_IP_OPTIONS, PRODUTO_LINK_OPTIONS, TECNOLOGIA_OPTIONS } from "@/lib/field-options";
 import PreViabilidadeCreateDialog, { type PreViabilidadeInitialData } from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
+import ModalEscolhaDistancia, { type DistanciaChoice } from "@/components/pre-viabilidade/ModalEscolhaDistancia";
 import { useBackgroundTasks } from "@/contexts/BackgroundTasksContext";
 import { useWsSingleSearchState } from "@/contexts/WsSingleSearchStateContext";
 
@@ -147,6 +148,8 @@ export default function WsSingleSearch() {
   // Pré Viabilidade dialog
   const [preViabOpen, setPreViabOpen] = useState(false);
   const [preViabInitialData, setPreViabInitialData] = useState<PreViabilidadeInitialData | undefined>(undefined);
+  const [distChoiceOpen, setDistChoiceOpen] = useState(false);
+  const [pendingDistOption, setPendingDistOption] = useState<{ distance_m: number; optionIdx: number } | null>(null);
 
   // Pricing parameters per row
   const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
@@ -1075,24 +1078,8 @@ export default function WsSingleSearch() {
                   <Button size="sm" variant="outline" className="gap-2" onClick={() => {
                     if (!geoResult || selectedOptionIdx === null) return;
                     const o = options[selectedOptionIdx];
-                    const rp = getRowPricing(selectedOptionIdx);
-                    setPreViabInitialData({
-                      subproduto: rp.produto || "NT LINK DEDICADO FULL",
-                      distancia: o.distance_m,
-                      banda: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : 0),
-                      vigencia: rp.vigencia ? Number(rp.vigencia) : undefined,
-                      taxaInstalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : 0,
-                      tecnologia: rp.tecnologia || "GPON",
-                      blocoIp: rp.blocoIp || undefined,
-                      rede: rp.cidadePontaA || undefined,
-                      redePontaB: rp.cidadePontaB || undefined,
-                      qtdFibrasDarkFiber: rp.qtdFibrasDarkFiber ? Number(rp.qtdFibrasDarkFiber) : undefined,
-                      nome_cliente: cliente || "",
-                      endereco: geoResult.display,
-                      coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
-                      observacoes: o.notes || "",
-                    });
-                    setPreViabOpen(true);
+                    setPendingDistOption({ distance_m: o.distance_m, optionIdx: selectedOptionIdx });
+                    setDistChoiceOpen(true);
                   }}>
                     <ClipboardPlus className="h-4 w-4" /> Adicionar na Pré Viabilidade
                   </Button>
@@ -1439,6 +1426,42 @@ export default function WsSingleSearch() {
           </CardContent>
         </Card>
       )}
+      <ModalEscolhaDistancia
+        open={distChoiceOpen}
+        onOpenChange={setDistChoiceOpen}
+        distanciaSistema={pendingDistOption?.distance_m ?? null}
+        onChoose={(choice: DistanciaChoice) => {
+          setDistChoiceOpen(false);
+          if (!geoResult || !pendingDistOption) return;
+          const o = options[pendingDistOption.optionIdx];
+          const rp = getRowPricing(pendingDistOption.optionIdx);
+          const isViavel = !o.is_blocked && !o.is_check_om;
+
+          const initData: PreViabilidadeInitialData = {
+            subproduto: rp.produto || "NT LINK DEDICADO FULL",
+            distancia: choice === "sistema" ? o.distance_m : undefined,
+            banda: rp.velocidade ? Number(rp.velocidade) : (velocidade ? Number(velocidade) : 0),
+            vigencia: rp.vigencia ? Number(rp.vigencia) : undefined,
+            taxaInstalacao: rp.taxaInstalacao ? Number(rp.taxaInstalacao) : 0,
+            tecnologia: rp.tecnologia || "GPON",
+            blocoIp: rp.blocoIp || undefined,
+            rede: rp.cidadePontaA || undefined,
+            redePontaB: rp.cidadePontaB || undefined,
+            qtdFibrasDarkFiber: rp.qtdFibrasDarkFiber ? Number(rp.qtdFibrasDarkFiber) : undefined,
+            nome_cliente: cliente || "",
+            endereco: geoResult.display,
+            coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
+            observacoes: o.notes || "",
+            // New fields for distance choice
+            distancia_sistema: o.distance_m,
+            distancia_projetista: choice === "sistema" ? o.distance_m : undefined,
+            viabilidade_override: choice === "sistema" && isViavel ? "Viabilizado pelo Sistema" : choice === "projetista" ? "Aguardando Projetista" : undefined,
+          };
+          setPreViabInitialData(initData);
+          setPreViabOpen(true);
+          setPendingDistOption(null);
+        }}
+      />
       <PreViabilidadeCreateDialog
         open={preViabOpen}
         onOpenChange={setPreViabOpen}

@@ -16,6 +16,8 @@ const STATUS_STYLES: Record<string, string> = {
   "Aprovado": "bg-emerald-100 text-emerald-800 border-emerald-200",
   "Reprovado": "bg-red-100 text-red-800 border-red-200",
   "Viável": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "Viabilizado pelo Sistema": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "Aguardando Projetista": "bg-violet-100 text-violet-800 border-violet-200",
   "Abaixo do Valor": "bg-red-100 text-red-800 border-red-200",
   "Inviabilidade Técnica": "bg-red-100 text-red-800 border-red-200",
   "Expirada": "bg-red-100 text-red-800 border-red-200",

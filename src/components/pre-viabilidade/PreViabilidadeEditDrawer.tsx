@@ -488,6 +488,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           dados_precificacao: buildDadosPrecificacao(),
           data_reavaliacao: meta.data_reavaliacao || null,
           anexos: anexos as any,
+          // Save projetista distance when applicable
+          ...(item.distancia_sistema != null ? {
+            distancia_projetista: calcForm.distancia || null,
+          } : {}),
         } as any,
       });
       // Recalculate ROI Global for the umbrella group
@@ -559,6 +563,12 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           <div className="rounded-lg border bg-muted/20 p-4 space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Campos — {calcForm.produto}</p>
             {renderProductFields()}
+            {/* Hint: distância estimada pelo sistema quando modo projetista */}
+            {item.viabilidade === "Aguardando Projetista" && item.distancia_sistema != null && (
+              <p className="text-xs text-violet-600 mt-2 italic">
+                Distância estimada pelo sistema: {Math.round(item.distancia_sistema).toLocaleString("pt-BR")} metros
+              </p>
+            )}
           </div>
 
           {isAdmin && memoriaCalculo && memoriaCalculo.length > 0 && (

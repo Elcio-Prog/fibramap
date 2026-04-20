@@ -24,6 +24,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
 import BulkFillModal from "./BulkFillModal";
+import ModalEscolhaDistancia, { type DistanciaChoice } from "@/components/pre-viabilidade/ModalEscolhaDistancia";
 
 interface Props {
   open: boolean;
@@ -70,6 +71,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
   const [addingPreViab, setAddingPreViab] = useState(false);
   const [recalcIds, setRecalcIds] = useState<Set<string>>(new Set());
   const recalcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [distChoiceOpen, setDistChoiceOpen] = useState(false);
 
   // Recalculate final_value via edge function
   const recalcItem = useCallback(async (item: CartItem, updates: Partial<CartItem>) => {
@@ -178,16 +180,35 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
       toast({ title: "Nenhum item selecionado", description: "Selecione ao menos um item para enviar.", variant: "destructive" });
       return;
     }
+    // Open distance choice modal
+    setDistChoiceOpen(true);
+  };
+
+  const executeAddPreViab = async (choice: DistanciaChoice) => {
+    setDistChoiceOpen(false);
+    if (!user) return;
+    const selectedItems = items.filter(i => selectedIds.has(i.id));
+    if (selectedItems.length === 0) return;
     setAddingPreViab(true);
     try {
       const payloads = selectedItems.map((item) => {
         const categoriaNT = getCategoriaNT(item.produto);
+        const distSistema = item.distance_m ?? null;
+        const isViavel = item.is_viable === true;
+
+        let viabilidade: string | null = item.designacao || null;
+        if (choice === "sistema" && isViavel) {
+          viabilidade = "Viabilizado pelo Sistema";
+        } else if (choice === "projetista") {
+          viabilidade = "Aguardando Projetista";
+        }
+
         return {
           user_id: user.id,
           criado_por: user.email || null,
           produto_nt: categoriaNT,
           vigencia: item.vigencia ? parseInt(item.vigencia, 10) || null : null,
-          viabilidade: item.designacao || null,
+          viabilidade,
           ticket_mensal: item.valor_a_ser_vendido ?? null,
           observacoes: item.observacoes_user || null,
           valor_minimo: item.final_value ?? null,
@@ -200,11 +221,13 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           endereco: item.endereco || null,
           coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
           status: "Aberto",
+          distancia_sistema: distSistema,
+          distancia_projetista: choice === "sistema" ? distSistema : null,
           dados_precificacao: {
             produto: categoriaNT,
             subproduto: item.produto || "NT LINK DEDICADO FULL",
             banda: item.velocidade_mbps ?? 0,
-            distancia: item.distance_m ?? 0,
+            distancia: choice === "sistema" ? (item.distance_m ?? 0) : 0,
             blocoIp: item.bloco_ip || "",
             tecnologia: item.tecnologia || "GPON",
             tecnologiaMeioFisico: item.tecnologia_meio_fisico || "Fibra",
@@ -705,6 +728,18 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Distance Choice Modal */}
+      <ModalEscolhaDistancia
+        open={distChoiceOpen}
+        onOpenChange={setDistChoiceOpen}
+        distanciaSistema={(() => {
+          const sel = items.filter(i => selectedIds.has(i.id));
+          if (sel.length === 1) return sel[0].distance_m ?? null;
+          return null;
+        })()}
+        onChoose={executeAddPreViab}
+      />
     </>
   );
 }

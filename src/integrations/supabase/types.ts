@@ -794,6 +794,8 @@ export type Database = {
           criado_por: string | null
           dados_precificacao: Json | null
           data_reavaliacao: string | null
+          distancia_projetista: number | null
+          distancia_sistema: number | null
           endereco: string | null
           id: string
           id_guardachuva: string | null
@@ -818,6 +820,7 @@ export type Database = {
           updated_at: string | null
           user_id: string
           valor_minimo: number | null
+          variancia_distancia: number | null
           viabilidade: string | null
           vigencia: number | null
         }
@@ -832,6 +835,8 @@ export type Database = {
           criado_por?: string | null
           dados_precificacao?: Json | null
           data_reavaliacao?: string | null
+          distancia_projetista?: number | null
+          distancia_sistema?: number | null
           endereco?: string | null
           id?: string
           id_guardachuva?: string | null
@@ -856,6 +861,7 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           valor_minimo?: number | null
+          variancia_distancia?: number | null
           viabilidade?: string | null
           vigencia?: number | null
         }
@@ -870,6 +876,8 @@ export type Database = {
           criado_por?: string | null
           dados_precificacao?: Json | null
           data_reavaliacao?: string | null
+          distancia_projetista?: number | null
+          distancia_sistema?: number | null
           endereco?: string | null
           id?: string
           id_guardachuva?: string | null
@@ -894,6 +902,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           valor_minimo?: number | null
+          variancia_distancia?: number | null
           viabilidade?: string | null
           vigencia?: number | null
         }

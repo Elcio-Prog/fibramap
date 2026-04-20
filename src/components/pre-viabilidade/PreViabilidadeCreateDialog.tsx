@@ -49,6 +49,9 @@ export interface PreViabilidadeInitialData {
   endereco?: string;
   coordenadas?: string;
   observacoes?: string;
+  distancia_sistema?: number;
+  distancia_projetista?: number;
+  viabilidade_override?: string;
 }
 
 interface Props {
@@ -414,13 +417,15 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         protocolo: meta.protocolo || null,
         dados_precificacao: buildDadosPrecificacao(),
         data_reavaliacao: meta.data_reavaliacao || null,
-        viabilidade: null,
+        viabilidade: initialData?.viabilidade_override || null,
         status_viabilidade: null,
         previsao_roi: calculateIndividualROI(meta.ticket_mensal, buildDadosPrecificacao()),
         roi_global: null,
         comentarios_aprovador: null,
         origem: "manual",
         anexos: anexos as any,
+        distancia_sistema: initialData?.distancia_sistema ?? null,
+        distancia_projetista: initialData?.distancia_projetista ?? null,
       } as any]);
 
       if (meta.id_guardachuva) {

@@ -37,6 +37,9 @@ export interface PreViabilidade {
   endereco: string | null;
   protocolo: string | null;
   data_reavaliacao: string | null;
+  distancia_sistema: number | null;
+  distancia_projetista: number | null;
+  variancia_distancia: number | null;
   anexos: Array<{ path: string; name: string; size: number; type: string; uploaded_at: string }> | null;
   created_at: string;
   updated_at?: string | null;
