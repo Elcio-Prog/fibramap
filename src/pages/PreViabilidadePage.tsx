@@ -10,7 +10,8 @@ import PreViabilidadeEditDrawer from "@/components/pre-viabilidade/PreViabilidad
 import PreViabilidadeCreateDialog from "@/components/pre-viabilidade/PreViabilidadeCreateDialog";
 import RoiGlobalReportDialog from "@/components/pre-viabilidade/RoiGlobalReportDialog";
 import AprovacoesTab from "@/components/pre-viabilidade/AprovacoesTab";
-import { Loader2, FileCheck, X, Plus, BarChart, Inbox, RefreshCw } from "lucide-react";
+import MinhasSolicitacoesTab from "@/components/pre-viabilidade/MinhasSolicitacoesTab";
+import { Loader2, FileCheck, X, Plus, BarChart, Inbox, RefreshCw, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
