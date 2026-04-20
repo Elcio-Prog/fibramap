@@ -25,6 +25,7 @@ export default function PreViabilidadePage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [editItem, setEditItem] = useState<PreViabilidade | null>(null);
   const [guardaChuvaFilter, setGuardaChuvaFilter] = useState<string | null>(null);
+  const [viabilidadeFilter, setViabilidadeFilter] = useState("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [tab, setTab] = useState("registros");
@@ -159,6 +160,8 @@ export default function PreViabilidadePage() {
             onSearchChange={setSearch}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            viabilidadeFilter={viabilidadeFilter}
+            onViabilidadeFilterChange={setViabilidadeFilter}
           />
 
           {guardaChuvaFilter && (
@@ -181,6 +184,7 @@ export default function PreViabilidadePage() {
               data={data || []}
               search={search}
               statusFilter={statusFilter}
+              viabilidadeFilter={viabilidadeFilter}
               guardaChuvaFilter={guardaChuvaFilter}
               onGuardaChuvaClick={setGuardaChuvaFilter}
               onEdit={setEditItem}

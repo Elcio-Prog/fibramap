@@ -7,9 +7,11 @@ interface Props {
   onSearchChange: (v: string) => void;
   statusFilter: string;
   onStatusFilterChange: (v: string) => void;
+  viabilidadeFilter: string;
+  onViabilidadeFilterChange: (v: string) => void;
 }
 
-export default function PreViabilidadeFilters({ search, onSearchChange, statusFilter, onStatusFilterChange }: Props) {
+export default function PreViabilidadeFilters({ search, onSearchChange, statusFilter, onStatusFilterChange, viabilidadeFilter, onViabilidadeFilterChange }: Props) {
   return (
     <div className="flex flex-wrap gap-3">
       <div className="relative flex-1 min-w-[200px] max-w-md">
@@ -31,6 +33,19 @@ export default function PreViabilidadeFilters({ search, onSearchChange, statusFi
           <SelectItem value="Aberto/Reavaliar">Aberto/Reavaliar</SelectItem>
           <SelectItem value="Fechado">Fechado</SelectItem>
           <SelectItem value="Fechado - Auto Avaliação">Fechado - Auto Avaliação</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={viabilidadeFilter} onValueChange={onViabilidadeFilterChange}>
+        <SelectTrigger className="h-9 w-[200px]">
+          <SelectValue placeholder="Filtrar viabilidade" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas Viabilidades</SelectItem>
+          <SelectItem value="Aguardando Projetista">Aguardando Projetista</SelectItem>
+          <SelectItem value="Viável">Viável</SelectItem>
+          <SelectItem value="Viabilizado pelo Sistema">Viabilizado pelo Sistema</SelectItem>
+          <SelectItem value="Abaixo do Valor">Abaixo do Valor</SelectItem>
+          <SelectItem value="Inviabilidade Técnica">Inviabilidade Técnica</SelectItem>
         </SelectContent>
       </Select>
     </div>
