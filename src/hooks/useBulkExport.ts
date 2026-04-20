@@ -87,6 +87,19 @@ function buildPayloadItem(item: CartItem, mapping: FieldMappingEntry[]): Record<
   return obj;
 }
 
+/** Map subproduto (e.g. "NT LINK DEDICADO FULL") → categoria NT (e.g. "Conectividade") */
+function getCategoriaNT(subproduto: string | null | undefined): string {
+  if (!subproduto) return "Conectividade";
+  const s = subproduto.toUpperCase();
+  if (s.startsWith("NT LINK") || s === "NT EVENTO" || s === "NT PTT" || s === "NT L2L" || s === "NT DARK FIBER") return "Conectividade";
+  if (s.includes("FIREWALL")) return "Firewall";
+  if (s.includes("SWITCH")) return "Switch";
+  if (s.includes("WIFI") || s.includes("WIRELESS") || s.includes("AP")) return "Wifi";
+  if (s.includes("VOZ") || s.includes("PABX") || s.includes("TELEFONE")) return "VOZ";
+  if (s.includes("BACKUP")) return "Backup";
+  return "Conectividade";
+}
+
 /** Required fields that must be filled before sending */
 export const REQUIRED_CART_FIELDS: { key: keyof CartItem; label: string }[] = [
   { key: "produto", label: "Produto" },
