@@ -88,7 +88,7 @@ export default function WsSingleSearch() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { start: startBgTask, complete: completeBgTask, fail: failBgTask, update: updateBgTask } = useBackgroundTasks();
-  const { getSnapshot, setSnapshot } = useWsSingleSearchState();
+  const { getSnapshot, setSnapshot, mergeSnapshot } = useWsSingleSearchState();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
