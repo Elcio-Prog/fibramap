@@ -47,7 +47,17 @@ export default function VarianciaDistanciasTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Análise de Variância de Distâncias</CardTitle>
+        <CardTitle className="text-base flex items-center gap-3">
+          Análise de Variância de Distâncias
+          {rows && rows.length > 0 && (() => {
+            const valid = rows.filter(r => r.distancia_sistema != null && r.distancia_projetista != null && r.distancia_sistema !== 0);
+            if (valid.length === 0) return null;
+            const avg = valid.reduce((sum, r) => sum + ((r.distancia_projetista! - r.distancia_sistema!) / r.distancia_sistema!) * 100, 0) / valid.length;
+            const abs = Math.abs(avg);
+            const color = abs <= 10 ? "bg-emerald-100 text-emerald-800 border-emerald-200" : abs <= 30 ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-red-100 text-red-800 border-red-200";
+            return <Badge variant="outline" className={`${color} text-[11px] ml-1`}>Média: {avg >= 0 ? "+" : ""}{avg.toFixed(1)}% ({valid.length} itens)</Badge>;
+          })()}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {!rows || rows.length === 0 ? (
