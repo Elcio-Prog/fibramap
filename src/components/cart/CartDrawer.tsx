@@ -24,6 +24,7 @@ import ScrollableTable from "@/components/ui/scrollable-table";
 import * as XLSX from "xlsx";
 import CartEditableCell from "./CartEditableCell";
 import BulkFillModal from "./BulkFillModal";
+import ModalEscolhaDistancia, { type DistanciaChoice } from "@/components/pre-viabilidade/ModalEscolhaDistancia";
 
 interface Props {
   open: boolean;
