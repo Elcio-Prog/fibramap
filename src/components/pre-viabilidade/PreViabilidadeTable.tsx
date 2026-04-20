@@ -231,7 +231,7 @@ export default function PreViabilidadeTable({ data, search, statusFilter, guarda
                           value={
                             row.inviabilidade_tecnica 
                               ? "Inviabilidade Técnica"
-                              : row.viabilidade === "Aguardando Projetista"
+                              : (row.viabilidade === "Aguardando Projetista" && !row.distancia_projetista)
                                   ? "Aguardando Projetista"
                                   : (row.ticket_mensal != null && row.valor_minimo != null)
                                       ? (row.ticket_mensal >= row.valor_minimo
