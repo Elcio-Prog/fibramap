@@ -1435,7 +1435,7 @@ export default function WsSingleSearch() {
           if (!geoResult || !pendingDistOption) return;
           const o = options[pendingDistOption.optionIdx];
           const rp = getRowPricing(pendingDistOption.optionIdx);
-          const isViavel = o.viable;
+          const isViavel = !o.is_blocked && !o.is_check_om;
 
           const initData: PreViabilidadeInitialData = {
             subproduto: rp.produto || "NT LINK DEDICADO FULL",

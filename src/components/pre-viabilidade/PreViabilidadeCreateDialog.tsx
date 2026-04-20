@@ -49,6 +49,9 @@ export interface PreViabilidadeInitialData {
   endereco?: string;
   coordenadas?: string;
   observacoes?: string;
+  distancia_sistema?: number;
+  distancia_projetista?: number;
+  viabilidade_override?: string;
 }
 
 interface Props {
