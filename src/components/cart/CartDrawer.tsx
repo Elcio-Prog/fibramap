@@ -728,6 +728,18 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Distance Choice Modal */}
+      <ModalEscolhaDistancia
+        open={distChoiceOpen}
+        onOpenChange={setDistChoiceOpen}
+        distanciaSistema={(() => {
+          const sel = items.filter(i => selectedIds.has(i.id));
+          if (sel.length === 1) return sel[0].distance_m ?? null;
+          return null;
+        })()}
+        onChoose={executeAddPreViab}
+      />
     </>
   );
 }
