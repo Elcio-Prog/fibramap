@@ -69,8 +69,8 @@ export default function VarianciaDistanciasTab() {
                 <tr>
                   <th className="px-2 py-1.5 text-left">#</th>
                   <th className="px-2 py-1.5 text-left">Endereço / Cliente</th>
-                  <th className="px-2 py-1.5 text-right">Dist. Sistema (m)</th>
                   <th className="px-2 py-1.5 text-right">Dist. Projetista (m)</th>
+                  <th className="px-2 py-1.5 text-right">Dist. Sistema (m)</th>
                   <th className="px-2 py-1.5 text-right">Variância (m)</th>
                   <th className="px-2 py-1.5 text-center">Variância %</th>
                   <th className="px-2 py-1.5 text-left">Data</th>
@@ -84,10 +84,10 @@ export default function VarianciaDistanciasTab() {
                       {r.endereco || r.nome_cliente || "—"}
                     </td>
                     <td className="px-2 py-1 text-right tabular-nums">
-                      {r.distancia_sistema != null ? Math.round(r.distancia_sistema).toLocaleString("pt-BR") : "—"}
+                      {r.distancia_projetista != null ? Math.round(r.distancia_projetista).toLocaleString("pt-BR") : "—"}
                     </td>
                     <td className="px-2 py-1 text-right tabular-nums">
-                      {r.distancia_projetista != null ? Math.round(r.distancia_projetista).toLocaleString("pt-BR") : "—"}
+                      {r.distancia_sistema != null ? Math.round(r.distancia_sistema).toLocaleString("pt-BR") : "—"}
                     </td>
                     <td className="px-2 py-1 text-right tabular-nums">
                       {r.variancia_distancia != null ? Math.round(r.variancia_distancia).toLocaleString("pt-BR") : "—"}
