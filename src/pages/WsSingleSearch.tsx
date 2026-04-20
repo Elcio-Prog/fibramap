@@ -88,7 +88,7 @@ export default function WsSingleSearch() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { start: startBgTask, complete: completeBgTask, fail: failBgTask, update: updateBgTask } = useBackgroundTasks();
-  const { getSnapshot, setSnapshot } = useWsSingleSearchState();
+  const { getSnapshot, setSnapshot, mergeSnapshot } = useWsSingleSearchState();
   const { data: providers, isLoading: loadingProviders } = useProviders();
   const { data: allGeoElements, isLoading: loadingGeo } = useGeoElements();
   const { data: allLpuItems, isLoading: loadingLpu } = useLpuItems();
@@ -472,6 +472,18 @@ export default function WsSingleSearch() {
         await new Promise(r => setTimeout(r, 800));
         result = await executeSearch(geo);
       }
+
+      // Persiste resultados diretamente no snapshot global ANTES dos setState — assim,
+      // mesmo se o usuário tiver navegado para outra seção (componente desmontado),
+      // ao retornar à página os resultados serão restaurados a partir do snapshot.
+      mergeSnapshot({
+        geoResult: geo,
+        options: result.options,
+        radiusResults: result.radiusResults,
+        selectedOptionIdx: null,
+        rowPricing: {},
+        rowValorMinimo: {},
+      });
 
       setGeoResult(geo);
       setOptions(result.options);
