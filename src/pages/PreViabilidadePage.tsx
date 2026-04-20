@@ -188,9 +188,15 @@ export default function PreViabilidadePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="aprovacoes" className="mt-4">
-          <AprovacoesTab />
-        </TabsContent>
+        {showAprovacoesTab ? (
+          <TabsContent value="aprovacoes" className="mt-4">
+            <AprovacoesTab />
+          </TabsContent>
+        ) : (
+          <TabsContent value="minhas-solicitacoes" className="mt-4">
+            <MinhasSolicitacoesTab />
+          </TabsContent>
+        )}
       </Tabs>
 
       <PreViabilidadeEditDrawer
