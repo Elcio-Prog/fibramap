@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { processWsBatch, type WsResult, type WsItemInput, type ProcessingProgress, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
 import { geoGridToElements } from "@/lib/geo-utils";
-import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil } from "lucide-react";
+import { Play, Download, Loader2, CheckCircle2, XCircle, MapPin, RotateCcw, Save, Filter, Pencil, X } from "lucide-react";
 import ScrollableTable from "@/components/ui/scrollable-table";
 import { useCart, CartItem } from "@/contexts/CartContext";
 import { SelectionCheckbox, FloatingActionBar } from "@/components/cart/SelectionUI";
@@ -110,6 +110,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [activeStages, setActiveStages] = useState<Set<string> | null>(null); // null = all active
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [showColumnFilters, setShowColumnFilters] = useState(false);
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
@@ -721,6 +723,31 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   };
 
   // Filtered results
+  // Helper to get column value for filtering
+  const getColumnValue = useCallback((r: WsResult, col: string): string => {
+    const dbRow = dbRows[r.item.id];
+    switch (col) {
+      case "designacao": return r.item.designacao || "";
+      case "cliente": return r.item.cliente || "";
+      case "cnpj": return dbRow?.cnpj_cliente || "";
+      case "velocidade": return r.item.velocidade_mbps != null ? String(r.item.velocidade_mbps) : "";
+      case "endereco": return r.item.endereco_a || "";
+      case "viavel": return r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M" : "NÃO";
+      case "etapa": return r.stage || "";
+      case "provedor": return r.provider_name || "";
+      case "produto": return dbRow?.produto || "";
+      case "tecnologia": return dbRow?.tecnologia || "";
+      case "meio_fisico": return dbRow?.tecnologia_meio_fisico || "";
+      case "vigencia": return dbRow?.vigencia || "";
+      case "bloco_ip": return dbRow?.bloco_ip || "";
+      case "tipo_sol": return dbRow?.tipo_solicitacao || "";
+      case "cod_smark": return dbRow?.codigo_smark || "";
+      case "obs_sistema": return dbRow?.observacoes_system || r.notes || "";
+      case "obs_usuario": return editingObs[r.item.id] || "";
+      default: return "";
+    }
+  }, [dbRows, editingObs]);
+
   const filteredResults = results?.filter(r => {
     // Status filter
     if (filter === "viable" && !r.is_viable) return false;
@@ -731,6 +758,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (activeStages !== null) {
       const stage = r.stage || "Sem viabilidade";
       if (!activeStages.has(stage)) return false;
+    }
+    // Column filters
+    for (const [col, term] of Object.entries(columnFilters)) {
+      if (!term) continue;
+      const val = getColumnValue(r, col).toLowerCase();
+      if (!val.includes(term.toLowerCase())) return false;
     }
     return true;
   });
@@ -969,6 +1002,30 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     
                   </SelectContent>
                 </Select>
+                <Button
+                  variant={showColumnFilters ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setShowColumnFilters(prev => !prev)}
+                >
+                  <Filter className="h-3 w-3" />
+                  Filtros por coluna
+                  {Object.values(columnFilters).some(v => v) && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
+                      {Object.values(columnFilters).filter(v => v).length}
+                    </Badge>
+                  )}
+                </Button>
+                {Object.values(columnFilters).some(v => v) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1 text-muted-foreground"
+                    onClick={() => setColumnFilters({})}
+                  >
+                    <X className="h-3 w-3" /> Limpar filtros
+                  </Button>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {filteredResults.length} de {results?.length}
                 </span>
@@ -1023,6 +1080,47 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     ))}
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
+                  {showColumnFilters && (() => {
+                    const FilterInput = ({ col, placeholder, w = "w-[80px]" }: { col: string; placeholder?: string; w?: string }) => (
+                      <Input
+                        className={`h-5 text-[9px] px-1 ${w} bg-background`}
+                        placeholder={placeholder || "Filtrar..."}
+                        value={columnFilters[col] || ""}
+                        onChange={e => setColumnFilters(prev => ({ ...prev, [col]: e.target.value }))}
+                      />
+                    );
+                    return (
+                      <tr className="bg-muted/60">
+                        {!processing && isComplete && <th className="px-1 py-0.5 sticky left-0 z-20 bg-muted/60" />}
+                        <th className={`px-1 py-0.5 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-20 bg-muted/60`} />
+                        <th className="px-1 py-0.5"><FilterInput col="designacao" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="cliente" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="cnpj" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="velocidade" w="w-[50px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="endereco" w="w-[120px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Coordenadas */}
+                        <th className="px-1 py-0.5" /> {/* Geo */}
+                        <th className="px-1 py-0.5"><FilterInput col="viavel" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="etapa" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="provedor" w="w-[80px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="produto" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="tecnologia" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="meio_fisico" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="obs_usuario" w="w-[120px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Distância */}
+                        <th className="px-1 py-0.5" /> {/* Valor */}
+                        <th className="px-1 py-0.5"><FilterInput col="vigencia" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Taxa Inst */}
+                        <th className="px-1 py-0.5"><FilterInput col="bloco_ip" w="w-[80px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="tipo_sol" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Vlr Venda */}
+                        <th className="px-1 py-0.5"><FilterInput col="cod_smark" w="w-[70px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Vlr Mín Previsto */}
+                        {metaVigencias.map(v => <th key={`flt_vig_${v}`} className="px-1 py-0.5" />)}
+                        <th className="px-1 py-0.5"><FilterInput col="obs_sistema" w="w-[120px]" /></th>
+                      </tr>
+                    );
+                  })()}
                 </thead>
                 <tbody>
                   {filteredResults.map((r, i) => {
