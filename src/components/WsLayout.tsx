@@ -62,7 +62,7 @@ export default function WsLayout({ children }: { children: ReactNode }) {
           <ProfileDropdown />
         </div>
       </header>
-      <main className="flex-1 overflow-auto px-3 py-4">{children}</main>
+      <main className="flex-1 overflow-auto px-1 py-3">{children}</main>
     </div>
   );
 }
