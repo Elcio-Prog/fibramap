@@ -163,6 +163,8 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const [saving, setSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [profileName, setProfileName] = useState("");
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editingProfileName, setEditingProfileName] = useState("");
   const [coordFormat, setCoordFormat] = useState<CoordFormat>("latlong");
   const fileRef = useRef<HTMLInputElement>(null);
 
