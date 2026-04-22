@@ -986,7 +986,6 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 </div>
               );
             })()}
-            </div>
 
             {parsedItems.length > 50 && (
               <p className="text-xs text-muted-foreground text-center">
