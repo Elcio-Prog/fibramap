@@ -451,6 +451,7 @@ export default function WsUsersPage() {
           <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
           <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Validação ({implantacaoCount})</TabsTrigger>
           <TabsTrigger value="lm" className="gap-2"><Database className="h-3.5 w-3.5" /> Last Mile ({lmCount})</TabsTrigger>
+          <TabsTrigger value="bko" className="gap-2"><Wrench className="h-3.5 w-3.5" /> BKO ({bkoCount})</TabsTrigger>
           <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
@@ -465,6 +466,9 @@ export default function WsUsersPage() {
         </TabsContent>
         <TabsContent value="lm" className="mt-4">
           <UserList role="lm" label="Last Mile" icon={Database} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="bko" className="mt-4">
+          <UserList role="bko" label="BKO" icon={Wrench} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
