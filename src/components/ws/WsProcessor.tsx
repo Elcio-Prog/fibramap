@@ -1080,6 +1080,47 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     ))}
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
+                  {showColumnFilters && (() => {
+                    const FilterInput = ({ col, placeholder, w = "w-[80px]" }: { col: string; placeholder?: string; w?: string }) => (
+                      <Input
+                        className={`h-5 text-[9px] px-1 ${w} bg-background`}
+                        placeholder={placeholder || "Filtrar..."}
+                        value={columnFilters[col] || ""}
+                        onChange={e => setColumnFilters(prev => ({ ...prev, [col]: e.target.value }))}
+                      />
+                    );
+                    return (
+                      <tr className="bg-muted/60">
+                        {!processing && isComplete && <th className="px-1 py-0.5 sticky left-0 z-20 bg-muted/60" />}
+                        <th className={`px-1 py-0.5 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-20 bg-muted/60`} />
+                        <th className="px-1 py-0.5"><FilterInput col="designacao" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="cliente" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="cnpj" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="velocidade" w="w-[50px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="endereco" w="w-[120px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Coordenadas */}
+                        <th className="px-1 py-0.5" /> {/* Geo */}
+                        <th className="px-1 py-0.5"><FilterInput col="viavel" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="etapa" w="w-[90px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="provedor" w="w-[80px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="produto" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="tecnologia" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="meio_fisico" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="obs_usuario" w="w-[120px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Distância */}
+                        <th className="px-1 py-0.5" /> {/* Valor */}
+                        <th className="px-1 py-0.5"><FilterInput col="vigencia" w="w-[60px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Taxa Inst */}
+                        <th className="px-1 py-0.5"><FilterInput col="bloco_ip" w="w-[80px]" /></th>
+                        <th className="px-1 py-0.5"><FilterInput col="tipo_sol" w="w-[100px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Vlr Venda */}
+                        <th className="px-1 py-0.5"><FilterInput col="cod_smark" w="w-[70px]" /></th>
+                        <th className="px-1 py-0.5" /> {/* Vlr Mín Previsto */}
+                        {metaVigencias.map(v => <th key={`flt_vig_${v}`} className="px-1 py-0.5" />)}
+                        <th className="px-1 py-0.5"><FilterInput col="obs_sistema" w="w-[120px]" /></th>
+                      </tr>
+                    );
+                  })()}
                 </thead>
                 <tbody>
                   {filteredResults.map((r, i) => {
