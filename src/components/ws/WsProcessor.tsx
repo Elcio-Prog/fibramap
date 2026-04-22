@@ -979,7 +979,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
             {filteredResults && filteredResults.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">Nenhum item encontrado para o filtro selecionado.</p>
             )}
-            {filteredResults && filteredResults.length > 0 && <ScrollableTable totalScrollableColumns={22}>
+            {filteredResults && filteredResults.length > 0 && (() => {
+              const metaVigencias: string[] = batchMetadata?.vigencias || [];
+              return <ScrollableTable totalScrollableColumns={22 + metaVigencias.length}>
               <table className="text-xs w-max min-w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
