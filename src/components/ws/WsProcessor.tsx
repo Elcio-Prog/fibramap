@@ -254,13 +254,14 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     try {
       const { data: batch } = await supabase
         .from("ws_batches")
-        .select("status, total_items")
+        .select("status, total_items, metadata")
         .eq("id", batchId)
         .single();
 
       if (batch) {
         setBatchStatus(batch.status);
         setTotalItems(batch.total_items);
+        if ((batch as any).metadata) setBatchMetadata((batch as any).metadata as Record<string, any>);
       }
 
       const { count: doneCount } = await supabase
