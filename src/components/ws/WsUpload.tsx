@@ -235,7 +235,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
 
   const applyProfile = (profileId: string) => {
     const p = profiles?.find((pr) => pr.id === profileId);
-    if (p) setMapping(p.column_mapping as Record<TargetKey, string>);
+    if (p) {
+      const m = p.column_mapping as Record<string, string>;
+      // Extract vigências metadata
+      const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
+      setSelectedVigencias(vigencias);
+      // Apply mapping without metadata key
+      const { __vigencias__, ...rest } = m;
+      setMapping(rest);
+    }
   };
 
   // ---- Step 1: File upload ----
