@@ -14,7 +14,7 @@ export default function WsBatchDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="px-2 py-4 space-y-4">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate("/ws/searches")}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Minhas Buscas
