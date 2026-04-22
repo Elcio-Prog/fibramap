@@ -136,8 +136,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
   // Pricing calculation state per item
   const [rowValorMinimo, setRowValorMinimo] = useState<Record<string, number | null>>({});
+  // Per-vigência valor minimo: { itemId: { "36": number, "48": number, ... } }
+  const [rowValorMinVig, setRowValorMinVig] = useState<Record<string, Record<string, number | null>>>({});
   const [rowCalcLoading, setRowCalcLoading] = useState<Record<string, boolean>>({});
   const calcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Batch metadata (vigências, mapping)
+  const [batchMetadata, setBatchMetadata] = useState<Record<string, any>>({});
 
   const calcularRowPricing = useCallback(async (itemId: string, dbRow: any, distanceM: number | null) => {
     const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
