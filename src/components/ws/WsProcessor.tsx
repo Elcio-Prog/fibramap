@@ -1183,6 +1183,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                               : "—";
                           })()}
                         </td>
+                        {/* Dynamic per-vigência valor mínimo columns */}
+                        {metaVigencias.map(v => {
+                          const val = rowValorMinVig[r.item.id]?.[v];
+                          return (
+                            <td key={`vig_${v}_${r.item.id}`} className="px-2 py-1 whitespace-nowrap text-[11px] font-medium text-right">
+                              {val != null
+                                ? `R$${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : "—"}
+                            </td>
+                          );
+                        })}
                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
                           {dbRow?.observacoes_system || r.notes || "—"}
                         </td>
