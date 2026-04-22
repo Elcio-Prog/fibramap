@@ -246,9 +246,12 @@ export default function SolicitarAprovacaoDialog({
                 });
                 if (error) throw error;
                 if ((data as any)?.success === false) throw new Error((data as any)?.error || "Erro ao enviar");
+                const emailSent = (data as any)?.emailSent;
                 toast({
                   title: "Solicitação enviada",
-                  description: `Email enviado para ${resolvedLevel.responsible_email}`,
+                  description: emailSent
+                    ? `Aprovação registrada e email enviado para ${resolvedLevel.responsible_email}`
+                    : `Aprovação registrada internamente. ${(data as any)?.emailError ? "Email não pôde ser enviado." : ""}`,
                 });
                 handleOpenChange(false);
               } catch (e: any) {
