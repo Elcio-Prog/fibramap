@@ -925,50 +925,67 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
             </div>
 
             {/* Preview table */}
-            <div className="overflow-x-auto max-h-64 border rounded-md">
-              <table className="text-xs w-full">
-                <thead>
-                  <tr className="bg-muted">
-                    <th className="px-2 py-1 text-left">#</th>
-                    <th className="px-2 py-1 text-left">Designação</th>
-                    <th className="px-2 py-1 text-left">Cliente</th>
-                    <th className="px-2 py-1 text-left">Vel. (Mbps)</th>
-                    <th className="px-2 py-1 text-left">L2L</th>
-                    <th className="px-2 py-1 text-left">Endereço A</th>
-                    <th className="px-2 py-1 text-left">Lat A</th>
-                    <th className="px-2 py-1 text-left">Lng A</th>
-                    <th className="px-2 py-1 text-left">Endereço B</th>
-                    <th className="px-2 py-1 text-left">Lat B</th>
-                    <th className="px-2 py-1 text-left">Lng B</th>
-                    <th className="px-2 py-1 text-left">Prazo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parsedItems.slice(0, 50).map((item, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-2 py-1">{item.row}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{item.designacao || "—"}</td>
-                      <td className="px-2 py-1 max-w-[100px] truncate">{item.cliente || "—"}</td>
-                      <td className="px-2 py-1">
-                        {item.velocidade_mbps !== null ? item.velocidade_mbps : (
-                          <span className="text-destructive">{item.velocidade_original || "—"}</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-1">
-                        {item.is_l2l ? <Badge variant="outline" className="text-xs px-1">{item.l2l_suffix}</Badge> : "—"}
-                      </td>
-                      <td className="px-2 py-1 max-w-[140px] truncate">{item.endereco_a || "—"}</td>
-                      <td className="px-2 py-1">{item.lat_a?.toFixed(4) ?? "—"}</td>
-                      <td className="px-2 py-1">{item.lng_a?.toFixed(4) ?? "—"}</td>
-                      <td className="px-2 py-1 max-w-[140px] truncate">{item.endereco_b || "—"}</td>
-                      <td className="px-2 py-1">{item.lat_b?.toFixed(4) ?? "—"}</td>
-                      <td className="px-2 py-1">{item.lng_b?.toFixed(4) ?? "—"}</td>
-                      <td className="px-2 py-1">{item.prazo_ativacao || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {(() => {
+              const previewCols: { key: string; label: string }[] = [
+                { key: "row", label: "#" },
+              ];
+              // Add all mapped fields dynamically
+              const allFields = [
+                ...FIELD_GROUPS.flatMap((g) => g.fields),
+                ...(coordFormat === "coords" ? COORD_FIELDS : LATLONG_FIELDS),
+              ];
+              for (const f of allFields) {
+                if (mapping[f.key as TargetKey]) {
+                  previewCols.push({ key: f.key, label: f.label });
+                }
+              }
+              // Always show L2L and velocidade_mbps
+              if (!previewCols.find((c) => c.key === "velocidade")) {
+                // velocidade is parsed into velocidade_mbps
+              }
+              previewCols.push({ key: "velocidade_mbps", label: "Vel. (Mbps)" });
+              previewCols.push({ key: "is_l2l", label: "L2L" });
+
+              const getCellValue = (item: ParsedItem, key: string) => {
+                if (key === "row") return item.row;
+                if (key === "velocidade_mbps") {
+                  return item.velocidade_mbps !== null
+                    ? item.velocidade_mbps
+                    : item.velocidade_original || "—";
+                }
+                if (key === "is_l2l") return item.is_l2l ? item.l2l_suffix : "—";
+                const val = (item as any)[key];
+                if (val === undefined || val === null || val === "") return "—";
+                if (typeof val === "number" && (key.startsWith("lat") || key.startsWith("lng")))
+                  return val.toFixed(4);
+                return String(val);
+              };
+
+              return (
+                <div className="overflow-x-auto max-h-64 border rounded-md">
+                  <table className="text-xs w-full">
+                    <thead>
+                      <tr className="bg-muted">
+                        {previewCols.map((col) => (
+                          <th key={col.key} className="px-2 py-1 text-left whitespace-nowrap">{col.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parsedItems.slice(0, 50).map((item, i) => (
+                        <tr key={i} className="border-t">
+                          {previewCols.map((col) => (
+                            <td key={col.key} className="px-2 py-1 max-w-[150px] truncate whitespace-nowrap">
+                              {getCellValue(item, col.key)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
 
             {parsedItems.length > 50 && (
               <p className="text-xs text-muted-foreground text-center">
