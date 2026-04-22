@@ -177,9 +177,12 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const saveProfile = useMutation({
     mutationFn: async () => {
       if (!profileName.trim() || !user?.id) return;
+      const trimmed = profileName.trim();
+      const isDuplicate = profiles?.some((p) => p.name.toLowerCase() === trimmed.toLowerCase());
+      if (isDuplicate) throw new Error("Já existe um perfil com esse nome.");
       const { error } = await supabase.from("ws_mapping_profiles").insert({
         user_id: user.id,
-        name: profileName.trim(),
+        name: trimmed,
         column_mapping: mapping,
       });
       if (error) throw error;
@@ -191,6 +194,27 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     },
     onError: (err: any) => {
       toast({ title: "Erro ao salvar perfil", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Rename profile mutation
+  const renameProfile = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error("Nome não pode ser vazio.");
+      const isDuplicate = profiles?.some((p) => p.id !== id && p.name.toLowerCase() === trimmed.toLowerCase());
+      if (isDuplicate) throw new Error("Já existe um perfil com esse nome.");
+      const { error } = await supabase.from("ws_mapping_profiles").update({ name: trimmed }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Perfil renomeado!" });
+      setEditingProfileId(null);
+      setEditingProfileName("");
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-profiles"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao renomear", description: err.message, variant: "destructive" });
     },
   });
 
