@@ -69,7 +69,7 @@ serve(async (req) => {
 
     if (action === "create_user") {
       const { email, password, display_name, role } = params;
-      const validRoles = ["admin", "ws_user", "vendedor", "implantacao", "lm"];
+      const validRoles = ["admin", "ws_user", "vendedor", "implantacao", "lm", "bko"];
       const userRole = validRoles.includes(role) ? role : "ws_user";
 
       if (!email || !password) {
@@ -168,7 +168,7 @@ serve(async (req) => {
 
     if (action === "assign_role") {
       const { user_id, role } = params;
-      const validRoles = ["admin", "ws_user", "vendedor", "implantacao", "lm"];
+      const validRoles = ["admin", "ws_user", "vendedor", "implantacao", "lm", "bko"];
       const targetRole = validRoles.includes(role) ? role : "ws_user";
 
       if (!user_id) {
