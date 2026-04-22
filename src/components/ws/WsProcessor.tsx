@@ -727,11 +727,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const getColumnValue = useCallback((r: WsResult, col: string): string => {
     const dbRow = dbRows[r.item.id];
     switch (col) {
-      case "designacao": return r.item.designacao || "";
       case "cliente": return r.item.cliente || "";
       case "cnpj": return dbRow?.cnpj_cliente || "";
       case "velocidade": return r.item.velocidade_mbps != null ? String(r.item.velocidade_mbps) : "";
-      case "endereco": return r.item.endereco_a || "";
       case "viavel": return r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M" : "NÃO";
       case "etapa": return r.stage || "";
       case "provedor": return r.provider_name || "";
@@ -741,12 +739,28 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       case "vigencia": return dbRow?.vigencia || "";
       case "bloco_ip": return dbRow?.bloco_ip || "";
       case "tipo_sol": return dbRow?.tipo_solicitacao || "";
-      case "cod_smark": return dbRow?.codigo_smark || "";
-      case "obs_sistema": return dbRow?.observacoes_system || r.notes || "";
-      case "obs_usuario": return editingObs[r.item.id] || "";
+      case "uf": return r.item.uf_a || "";
+      case "cidade": return r.item.cidade_a || "";
       default: return "";
     }
-  }, [dbRows, editingObs]);
+  }, [dbRows]);
+
+  // Extract unique values per column for dropdown options
+  const columnOptions = useMemo(() => {
+    if (!results) return {} as Record<string, string[]>;
+    const cols = ["cliente", "cnpj", "velocidade", "viavel", "etapa", "provedor", "produto", "tecnologia", "meio_fisico", "vigencia", "bloco_ip", "tipo_sol", "uf", "cidade"];
+    const map: Record<string, Set<string>> = {};
+    cols.forEach(c => map[c] = new Set());
+    results.forEach(r => {
+      cols.forEach(c => {
+        const v = getColumnValue(r, c);
+        if (v) map[c].add(v);
+      });
+    });
+    const out: Record<string, string[]> = {};
+    cols.forEach(c => { out[c] = [...map[c]].sort((a, b) => a.localeCompare(b, "pt-BR")); });
+    return out;
+  }, [results, getColumnValue]);
 
   const filteredResults = results?.filter(r => {
     // Status filter
@@ -762,8 +776,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     // Column filters
     for (const [col, term] of Object.entries(columnFilters)) {
       if (!term) continue;
-      const val = getColumnValue(r, col).toLowerCase();
-      if (!val.includes(term.toLowerCase())) return false;
+      const val = getColumnValue(r, col);
+      if (val !== term) return false;
     }
     return true;
   });
@@ -987,48 +1001,93 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
             {/* Filter */}
             {!processing && (
-              <div className="flex items-center gap-2">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
-                  <SelectTrigger className="h-8 w-40 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="viable">Viáveis</SelectItem>
-                    <SelectItem value="check_om">Checar O&M</SelectItem>
-                    <SelectItem value="not_viable">Inviáveis</SelectItem>
-                    <SelectItem value="pending">Geo falhou</SelectItem>
-                    
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant={showColumnFilters ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-8 text-xs gap-1"
-                  onClick={() => setShowColumnFilters(prev => !prev)}
-                >
-                  <Filter className="h-3 w-3" />
-                  Filtros por coluna
-                  {Object.values(columnFilters).some(v => v) && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
-                      {Object.values(columnFilters).filter(v => v).length}
-                    </Badge>
-                  )}
-                </Button>
-                {Object.values(columnFilters).some(v => v) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="viable">Viáveis</SelectItem>
+                      <SelectItem value="check_om">Checar O&M</SelectItem>
+                      <SelectItem value="not_viable">Inviáveis</SelectItem>
+                      <SelectItem value="pending">Geo falhou</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
-                    variant="ghost"
+                    variant={showColumnFilters ? "secondary" : "outline"}
                     size="sm"
-                    className="h-8 text-xs gap-1 text-muted-foreground"
-                    onClick={() => setColumnFilters({})}
+                    className="h-8 text-xs gap-1"
+                    onClick={() => setShowColumnFilters(prev => !prev)}
                   >
-                    <X className="h-3 w-3" /> Limpar filtros
+                    <Filter className="h-3 w-3" />
+                    Filtros por coluna
+                    {Object.values(columnFilters).some(v => v) && (
+                      <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
+                        {Object.values(columnFilters).filter(v => v).length}
+                      </Badge>
+                    )}
                   </Button>
+                  {Object.values(columnFilters).some(v => v) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs gap-1 text-muted-foreground"
+                      onClick={() => setColumnFilters({})}
+                    >
+                      <X className="h-3 w-3" /> Limpar filtros
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {filteredResults.length} de {results?.length}
+                  </span>
+                </div>
+
+                {showColumnFilters && (
+                  <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-muted/30">
+                    {([
+                      { key: "cliente", label: "Cliente" },
+                      { key: "cnpj", label: "CNPJ" },
+                      { key: "velocidade", label: "Velocidade" },
+                      { key: "uf", label: "UF" },
+                      { key: "cidade", label: "Cidade" },
+                      { key: "viavel", label: "Viável" },
+                      { key: "etapa", label: "Melhor Etapa" },
+                      { key: "provedor", label: "Provedor" },
+                      { key: "produto", label: "Produto" },
+                      { key: "tecnologia", label: "Tecnologia" },
+                      { key: "meio_fisico", label: "Meio Físico" },
+                      { key: "vigencia", label: "Vigência" },
+                      { key: "bloco_ip", label: "Bloco IP" },
+                      { key: "tipo_sol", label: "Tipo Sol." },
+                    ] as { key: string; label: string }[]).map(({ key, label }) => {
+                      const opts = columnOptions[key] || [];
+                      if (opts.length === 0) return null;
+                      return (
+                        <div key={key} className="flex flex-col gap-0.5">
+                          <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
+                          <Select value={columnFilters[key] || "__all__"} onValueChange={(v) => setColumnFilters(prev => {
+                            const next = { ...prev };
+                            if (v === "__all__") delete next[key]; else next[key] = v;
+                            return next;
+                          })}>
+                            <SelectTrigger className={`h-7 text-[10px] min-w-[100px] max-w-[180px] ${columnFilters[key] ? "border-primary/50 bg-primary/5" : "border-dashed"}`}>
+                              <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[250px]">
+                              <SelectItem value="__all__" className="text-xs">Todos ({opts.length})</SelectItem>
+                              {opts.map(o => (
+                                <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-                <span className="text-xs text-muted-foreground">
-                  {filteredResults.length} de {results?.length}
-                </span>
               </div>
             )}
 
@@ -1080,47 +1139,6 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     ))}
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
-                  {showColumnFilters && (() => {
-                    const FilterInput = ({ col, placeholder, w = "w-[80px]" }: { col: string; placeholder?: string; w?: string }) => (
-                      <Input
-                        className={`h-5 text-[9px] px-1 ${w} bg-background`}
-                        placeholder={placeholder || "Filtrar..."}
-                        value={columnFilters[col] || ""}
-                        onChange={e => setColumnFilters(prev => ({ ...prev, [col]: e.target.value }))}
-                      />
-                    );
-                    return (
-                      <tr className="bg-muted/60">
-                        {!processing && isComplete && <th className="px-1 py-0.5 sticky left-0 z-20 bg-muted/60" />}
-                        <th className={`px-1 py-0.5 sticky ${!processing && isComplete ? 'left-[32px]' : 'left-0'} z-20 bg-muted/60`} />
-                        <th className="px-1 py-0.5"><FilterInput col="designacao" w="w-[90px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="cliente" w="w-[90px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="cnpj" w="w-[100px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="velocidade" w="w-[50px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="endereco" w="w-[120px]" /></th>
-                        <th className="px-1 py-0.5" /> {/* Coordenadas */}
-                        <th className="px-1 py-0.5" /> {/* Geo */}
-                        <th className="px-1 py-0.5"><FilterInput col="viavel" w="w-[60px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="etapa" w="w-[90px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="provedor" w="w-[80px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="produto" w="w-[100px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="tecnologia" w="w-[60px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="meio_fisico" w="w-[60px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="obs_usuario" w="w-[120px]" /></th>
-                        <th className="px-1 py-0.5" /> {/* Distância */}
-                        <th className="px-1 py-0.5" /> {/* Valor */}
-                        <th className="px-1 py-0.5"><FilterInput col="vigencia" w="w-[60px]" /></th>
-                        <th className="px-1 py-0.5" /> {/* Taxa Inst */}
-                        <th className="px-1 py-0.5"><FilterInput col="bloco_ip" w="w-[80px]" /></th>
-                        <th className="px-1 py-0.5"><FilterInput col="tipo_sol" w="w-[100px]" /></th>
-                        <th className="px-1 py-0.5" /> {/* Vlr Venda */}
-                        <th className="px-1 py-0.5"><FilterInput col="cod_smark" w="w-[70px]" /></th>
-                        <th className="px-1 py-0.5" /> {/* Vlr Mín Previsto */}
-                        {metaVigencias.map(v => <th key={`flt_vig_${v}`} className="px-1 py-0.5" />)}
-                        <th className="px-1 py-0.5"><FilterInput col="obs_sistema" w="w-[120px]" /></th>
-                      </tr>
-                    );
-                  })()}
                 </thead>
                 <tbody>
                   {filteredResults.map((r, i) => {
