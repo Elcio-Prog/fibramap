@@ -639,6 +639,37 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             </div>
 
+            {/* Vigência multi-select */}
+            <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+              <p className="text-sm font-medium">Vigências para Valor Mínimo:</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione as vigências para as quais deseja mapear colunas de resultado (Valor Mínimo).
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {VIGENCIA_OPTIONS.map((v) => (
+                  <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={selectedVigencias.includes(v)}
+                      onCheckedChange={(checked) => {
+                        setSelectedVigencias((prev) =>
+                          checked ? [...prev, v] : prev.filter((x) => x !== v)
+                        );
+                        // Remove mapping for unchecked vigência
+                        if (!checked) {
+                          setMapping((prev) => {
+                            const next = { ...prev };
+                            delete next[`valor_min_${v}`];
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                    {v} meses
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {/* Column mapping - grouped */}
             <div className="space-y-4">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
@@ -698,6 +729,18 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 } else {
                   allGroups[2].fields.push(LATLONG_FIELDS[0], LATLONG_FIELDS[1]); // Lat/Lng A
                   allGroups[3].fields.push(LATLONG_FIELDS[2], LATLONG_FIELDS[3]); // Lat/Lng B
+                }
+
+                // Add dynamic vigência mapping group
+                if (selectedVigencias.length > 0) {
+                  const vigenciaFields: FieldDef[] = selectedVigencias.map((v) => ({
+                    key: `valor_min_${v}`,
+                    label: `Valor Mín. ${v} meses`,
+                  }));
+                  allGroups.push({
+                    label: "Resultado — Valor Mínimo",
+                    fields: vigenciaFields,
+                  });
                 }
 
                 return allGroups.map((group) => (
