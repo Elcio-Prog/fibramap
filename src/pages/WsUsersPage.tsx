@@ -148,7 +148,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm"; label: string; icon: any; globalSearch: string }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm" | "bko"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
