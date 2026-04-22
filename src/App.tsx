@@ -52,7 +52,7 @@ const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { session, loading } = useAuth();
-  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLm, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isWsUser, isVendedor, isImplantacao, isLm, isBko, isLoading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return (
@@ -63,7 +63,7 @@ function ProtectedRoutes() {
   }
 
   if (!session) return <Navigate to="/landing" replace />;
-  if (!isAdmin && !isImplantacao) {
+  if (!isAdmin && !isImplantacao && !isBko) {
     if (isLm) return <Navigate to="/lm" replace />;
     return <Navigate to={(isWsUser || isVendedor) ? "/ws" : "/landing"} replace />;
   }
