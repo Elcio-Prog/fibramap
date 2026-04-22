@@ -723,6 +723,31 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   };
 
   // Filtered results
+  // Helper to get column value for filtering
+  const getColumnValue = useCallback((r: WsResult, col: string): string => {
+    const dbRow = dbRows[r.item.id];
+    switch (col) {
+      case "designacao": return r.item.designacao || "";
+      case "cliente": return r.item.cliente || "";
+      case "cnpj": return dbRow?.cnpj_cliente || "";
+      case "velocidade": return r.item.velocidade_mbps != null ? String(r.item.velocidade_mbps) : "";
+      case "endereco": return r.item.endereco_a || "";
+      case "viavel": return r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M" : "NÃO";
+      case "etapa": return r.stage || "";
+      case "provedor": return r.provider_name || "";
+      case "produto": return dbRow?.produto || "";
+      case "tecnologia": return dbRow?.tecnologia || "";
+      case "meio_fisico": return dbRow?.tecnologia_meio_fisico || "";
+      case "vigencia": return dbRow?.vigencia || "";
+      case "bloco_ip": return dbRow?.bloco_ip || "";
+      case "tipo_sol": return dbRow?.tipo_solicitacao || "";
+      case "cod_smark": return dbRow?.codigo_smark || "";
+      case "obs_sistema": return dbRow?.observacoes_system || r.notes || "";
+      case "obs_usuario": return editingObs[r.item.id] || "";
+      default: return "";
+    }
+  }, [dbRows, editingObs]);
+
   const filteredResults = results?.filter(r => {
     // Status filter
     if (filter === "viable" && !r.is_viable) return false;
@@ -733,6 +758,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (activeStages !== null) {
       const stage = r.stage || "Sem viabilidade";
       if (!activeStages.has(stage)) return false;
+    }
+    // Column filters
+    for (const [col, term] of Object.entries(columnFilters)) {
+      if (!term) continue;
+      const val = getColumnValue(r, col).toLowerCase();
+      if (!val.includes(term.toLowerCase())) return false;
     }
     return true;
   });
