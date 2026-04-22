@@ -47,6 +47,7 @@ export function UserDetailModal({ user, role, open, onOpenChange }: UserDetailMo
     role === "vendedor" ? "Vendedor" :
     role === "implantacao" ? "Validação" :
     role === "lm" ? "Last Mile" :
+    role === "bko" ? "BKO" :
     "Pendente";
 
   return (
