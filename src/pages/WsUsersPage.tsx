@@ -76,7 +76,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile", bko: "BKO" };
       toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
@@ -132,6 +132,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="lm">Last Mile</SelectItem>
+                      <SelectItem value="bko">BKO</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -219,7 +220,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile", bko: "BKO" };
 
   const changeRole = useMutation({
     mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
@@ -312,6 +313,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="lm">Last Mile</SelectItem>
+                      <SelectItem value="bko">BKO</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -408,6 +410,14 @@ export default function WsUsersPage() {
       return (data as any).users as ManagedUser[];
     },
   });
+  const { data: bkoList } = useQuery({
+    queryKey: ["managed-users", "bko"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "bko" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
   const { data: pendingList } = useQuery({
     queryKey: ["managed-users", "pending"],
     queryFn: async () => {
@@ -422,8 +432,9 @@ export default function WsUsersPage() {
   const vendedorCount = vendedorList?.length ?? 0;
   const implantacaoCount = implantacaoList?.length ?? 0;
   const lmCount = lmList?.length ?? 0;
+  const bkoCount = bkoList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount;
+  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount + bkoCount;
 
   const [globalSearch, setGlobalSearch] = useState("");
 
