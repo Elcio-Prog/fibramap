@@ -290,19 +290,46 @@ async function processItem(
       let highwayVerificationPending = false;
 
       if (inside) {
+        // Net Turbo: mesmo dentro da mancha, calcular distância real até a caixa
         const cp = findBestConnectionPoint(lat, lng, elForConnectionSearch, netTurboProvider.max_lpu_distance_m, rules);
         const taNote = cp ? `${cp.tipo}: ${cp.nome} | ${cp.aptoNovoCliente ? "Apto" : "Não apto"}` : "";
+
+        let routeDistInsideCoverage = 0;
+        let routeGeomInsideCoverage: any = undefined;
+        let snapPointInsideCoverage: [number, number] | undefined;
+        let destSnapPointInsideCoverage: [number, number] | undefined;
+
+        if (cp?.point) {
+          try {
+            const routeResult = await getRouteDistancePreSnapped(
+              lat, lng, cp.point[0], cp.point[1], originSnap
+            );
+            if (routeResult) {
+              routeDistInsideCoverage = routeResult.distance;
+              routeGeomInsideCoverage = routeResult.geometry;
+              snapPointInsideCoverage = routeResult.snapPoint;
+              destSnapPointInsideCoverage = routeResult.destSnapPoint;
+            }
+          } catch {
+            // fallback: Haversine
+            routeDistInsideCoverage = cp.distance || 0;
+          }
+        }
+
         allOptions.push({
           stage: "Rede Própria",
           provider_name: netTurboProvider.name,
           provider_id: netTurboProvider.id,
           provider_color: netTurboProvider.color,
-          distance_m: 0,
+          distance_m: Math.round(routeDistInsideCoverage),
           lpu_value: null,
           final_value: null,
-          notes: `Dentro da cobertura NTT. ${taNote}`,
+          notes: `Dentro da cobertura NTT${routeDistInsideCoverage > 0 ? ` - ${Math.round(routeDistInsideCoverage)}m até a caixa` : ""}. ${taNote}`,
           ta_info: taNote,
           nearest_point: cp?.point,
+          route_geometry: routeGeomInsideCoverage,
+          snap_point: snapPointInsideCoverage,
+          dest_snap_point: destSnapPointInsideCoverage,
           is_own_network: true,
         });
       } else {
