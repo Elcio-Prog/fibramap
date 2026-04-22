@@ -621,7 +621,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isBkoOnly && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
