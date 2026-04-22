@@ -183,10 +183,14 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
       const trimmed = profileName.trim();
       const isDuplicate = profiles?.some((p) => p.name.toLowerCase() === trimmed.toLowerCase());
       if (isDuplicate) throw new Error("Já existe um perfil com esse nome.");
+      const mappingWithMeta = {
+        ...mapping,
+        ...(selectedVigencias.length > 0 ? { __vigencias__: selectedVigencias.join(",") } : {}),
+      };
       const { error } = await supabase.from("ws_mapping_profiles").insert({
         user_id: user.id,
         name: trimmed,
-        column_mapping: mapping,
+        column_mapping: mappingWithMeta,
       });
       if (error) throw error;
     },
