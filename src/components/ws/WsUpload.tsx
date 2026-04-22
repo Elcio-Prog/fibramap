@@ -255,17 +255,61 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     },
   });
 
+  // Save template mutation (admin only)
+  const saveTemplate = useMutation({
+    mutationFn: async () => {
+      if (!templateName.trim() || !user?.id) return;
+      const trimmed = templateName.trim();
+      const isDuplicate = templates?.some((t) => t.name.toLowerCase() === trimmed.toLowerCase());
+      if (isDuplicate) throw new Error("Já existe um template com esse nome.");
+      const mappingWithMeta = {
+        ...mapping,
+        ...(selectedVigencias.length > 0 ? { __vigencias__: selectedVigencias.join(",") } : {}),
+      };
+      const { error } = await (supabase as any).from("ws_mapping_templates").insert({
+        created_by: user.id,
+        name: trimmed,
+        column_mapping: mappingWithMeta,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Template salvo!" });
+      setTemplateName("");
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-templates"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar template", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Delete template mutation (admin only)
+  const deleteTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("ws_mapping_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Template removido" });
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-templates"] });
+    },
+  });
+
+  const applyMapping = (m: Record<string, string>) => {
+    const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
+    setSelectedVigencias(vigencias);
+    const { __vigencias__, ...rest } = m;
+    setMapping(rest);
+  };
+
   const applyProfile = (profileId: string) => {
     const p = profiles?.find((pr) => pr.id === profileId);
-    if (p) {
-      const m = p.column_mapping as Record<string, string>;
-      // Extract vigências metadata
-      const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
-      setSelectedVigencias(vigencias);
-      // Apply mapping without metadata key
-      const { __vigencias__, ...rest } = m;
-      setMapping(rest);
-    }
+    if (p) applyMapping(p.column_mapping as Record<string, string>);
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const t = templates?.find((tpl) => tpl.id === templateId);
+    if (t) applyMapping(t.column_mapping as Record<string, string>);
   };
 
   // ---- Step 1: File upload ----
