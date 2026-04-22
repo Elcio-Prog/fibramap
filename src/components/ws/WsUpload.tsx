@@ -521,22 +521,64 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 <div className="flex flex-wrap gap-2">
                   {profiles.map((p) => (
                     <div key={p.id} className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => applyProfile(p.id)}
-                        className="text-xs"
-                      >
-                        {p.name}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => deleteProfile.mutate(p.id)}
-                      >
-                        <Trash2 className="h-3 w-3 text-muted-foreground" />
-                      </Button>
+                      {editingProfileId === p.id ? (
+                        <>
+                          <Input
+                            value={editingProfileName}
+                            onChange={(e) => setEditingProfileName(e.target.value)}
+                            className="text-xs h-7 w-36"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") renameProfile.mutate({ id: p.id, name: editingProfileName });
+                              if (e.key === "Escape") setEditingProfileId(null);
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            disabled={!editingProfileName.trim() || renameProfile.isPending}
+                            onClick={() => renameProfile.mutate({ id: p.id, name: editingProfileName })}
+                          >
+                            <Check className="h-3 w-3 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => setEditingProfileId(null)}
+                          >
+                            <X className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => applyProfile(p.id)}
+                            className="text-xs"
+                          >
+                            {p.name}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => { setEditingProfileId(p.id); setEditingProfileName(p.name); }}
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => deleteProfile.mutate(p.id)}
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
