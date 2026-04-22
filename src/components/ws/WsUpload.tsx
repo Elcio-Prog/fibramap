@@ -662,7 +662,39 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             )}
 
-            {/* Preview table */}
+            {/* Templates (universal) */}
+            {templates && templates.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <LayoutTemplate className="h-3.5 w-3.5" /> Templates:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {templates.map((t) => (
+                    <div key={t.id} className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyTemplate(t.id)}
+                        className="text-xs border-primary/30 bg-primary/5"
+                      >
+                        {t.name}
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => deleteTemplate.mutate(t.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto max-h-36 border rounded-md">
               <table className="text-xs w-full">
                 <thead>
