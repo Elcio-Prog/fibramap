@@ -86,6 +86,87 @@ function InlineEdit({ value, type = "text", onSave, width = "w-[80px]", options 
   );
 }
 
+/** Multi-select filter dropdown with search */
+function MultiSelectFilter({ label, options, selected, onChange }: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (vals: string[]) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = search
+    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    : options;
+  const hasSelection = selected.length > 0;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={`inline-flex items-center gap-1 h-7 px-2 rounded-md border text-[10px] transition-colors ${
+            hasSelection
+              ? "border-primary/60 bg-primary/10 text-primary font-medium"
+              : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50"
+          }`}
+        >
+          {label}
+          {hasSelection && (
+            <span className="bg-primary text-primary-foreground rounded-full px-1 py-px text-[8px] font-bold leading-none">
+              {selected.length}
+            </span>
+          )}
+          <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start" style={{ zIndex: 2200 }}>
+        <div className="p-1.5 border-b">
+          <div className="relative">
+            <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-7 text-[10px] pl-6"
+            />
+          </div>
+        </div>
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {hasSelection && (
+            <button
+              className="w-full text-left text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/50"
+              onClick={() => onChange([])}
+            >
+              Limpar seleção
+            </button>
+          )}
+          {filtered.map(opt => {
+            const checked = selected.includes(opt);
+            return (
+              <label
+                key={opt}
+                className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-[10px]"
+              >
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={() => {
+                    if (checked) onChange(selected.filter(s => s !== opt));
+                    else onChange([...selected, opt]);
+                  }}
+                  className="h-3 w-3"
+                />
+                <span className="truncate">{opt}</span>
+              </label>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="text-[10px] text-muted-foreground text-center py-2">Nenhum resultado</p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface Props {
   batchId: string;
   batchTitle?: string;
