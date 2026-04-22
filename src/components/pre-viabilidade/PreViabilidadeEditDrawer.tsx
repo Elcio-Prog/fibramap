@@ -269,6 +269,12 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
 
+  // When status is "Aberto" or "Aberto/Reavaliar", all fields are editable regardless of role
+  const isStatusAberto = meta.status === "Aberto" || meta.status === "Aberto/Reavaliar";
+  const isFullAccess = isFullAccessBase || isStatusAberto;
+  const isBkoOnly = isStatusAberto ? false : isBkoBase;
+  const isLimitedEdit = isStatusAberto ? false : (!isFullAccessBase && !isBkoBase);
+
   // Load projetista options from configuracoes
   useEffect(() => {
     supabase.from("configuracoes").select("valor").eq("chave", "projetistas").single()
