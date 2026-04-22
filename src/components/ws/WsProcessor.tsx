@@ -1025,21 +1025,21 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                       <SelectItem value="pending">Geo falhou</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant={showColumnFilters ? "secondary" : "outline"}
-                    size="sm"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => setShowColumnFilters(prev => !prev)}
-                  >
-                    <Filter className="h-3 w-3" />
-                    Filtros por coluna
-                    {Object.values(columnFilters).some(v => v) && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
-                        {Object.values(columnFilters).filter(v => v).length}
-                      </Badge>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar em todas as colunas..."
+                      value={globalSearch}
+                      onChange={e => setGlobalSearch(e.target.value)}
+                      className="h-8 text-xs pl-7 w-[220px]"
+                    />
+                    {globalSearch && (
+                      <button className="absolute right-1.5 top-1/2 -translate-y-1/2" onClick={() => setGlobalSearch("")}>
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
                     )}
-                  </Button>
-                  {Object.values(columnFilters).some(v => v) && (
+                  </div>
+                  {Object.values(columnFilters).some(v => v.length > 0) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1049,54 +1049,46 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                       <X className="h-3 w-3" /> Limpar filtros
                     </Button>
                   )}
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {filteredResults.length} de {results?.length}
                   </span>
                 </div>
 
-                {showColumnFilters && (
-                  <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-muted/30">
-                    {([
-                      { key: "cliente", label: "Cliente" },
-                      { key: "cnpj", label: "CNPJ" },
-                      { key: "velocidade", label: "Velocidade" },
-                      { key: "uf", label: "UF" },
-                      { key: "cidade", label: "Cidade" },
-                      { key: "viavel", label: "Viável" },
-                      { key: "etapa", label: "Melhor Etapa" },
-                      { key: "provedor", label: "Provedor" },
-                      { key: "produto", label: "Produto" },
-                      { key: "tecnologia", label: "Tecnologia" },
-                      { key: "meio_fisico", label: "Meio Físico" },
-                      { key: "vigencia", label: "Vigência" },
-                      { key: "bloco_ip", label: "Bloco IP" },
-                      { key: "tipo_sol", label: "Tipo Sol." },
-                    ] as { key: string; label: string }[]).map(({ key, label }) => {
-                      const opts = columnOptions[key] || [];
-                      if (opts.length === 0) return null;
-                      return (
-                        <div key={key} className="flex flex-col gap-0.5">
-                          <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
-                          <Select value={columnFilters[key] || "__all__"} onValueChange={(v) => setColumnFilters(prev => {
-                            const next = { ...prev };
-                            if (v === "__all__") delete next[key]; else next[key] = v;
-                            return next;
-                          })}>
-                            <SelectTrigger className={`h-7 text-[10px] min-w-[100px] max-w-[180px] ${columnFilters[key] ? "border-primary/50 bg-primary/5" : "border-dashed"}`}>
-                              <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[250px]">
-                              <SelectItem value="__all__" className="text-xs">Todos ({opts.length})</SelectItem>
-                              {opts.map(o => (
-                                <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-muted/20">
+                  {([
+                    { key: "cliente", label: "Cliente" },
+                    { key: "cnpj", label: "CNPJ" },
+                    { key: "velocidade", label: "Velocidade" },
+                    { key: "uf", label: "UF" },
+                    { key: "cidade", label: "Cidade" },
+                    { key: "viavel", label: "Viável" },
+                    { key: "etapa", label: "Melhor Etapa" },
+                    { key: "provedor", label: "Provedor" },
+                    { key: "produto", label: "Produto" },
+                    { key: "tecnologia", label: "Tecnologia" },
+                    { key: "meio_fisico", label: "Meio Físico" },
+                    { key: "vigencia", label: "Vigência" },
+                    { key: "bloco_ip", label: "Bloco IP" },
+                    { key: "tipo_sol", label: "Tipo Sol." },
+                  ] as { key: string; label: string }[]).map(({ key, label }) => {
+                    const opts = columnOptions[key] || [];
+                    if (opts.length === 0) return null;
+                    const selected = columnFilters[key] || [];
+                    return (
+                      <MultiSelectFilter
+                        key={key}
+                        label={label}
+                        options={opts}
+                        selected={selected}
+                        onChange={(vals) => setColumnFilters(prev => {
+                          const next = { ...prev };
+                          if (vals.length === 0) delete next[key]; else next[key] = vals;
+                          return next;
+                        })}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
 
