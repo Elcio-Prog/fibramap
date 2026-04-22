@@ -160,8 +160,8 @@ function useWsMappingTemplates() {
   return useQuery({
     queryKey: ["ws-mapping-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ws_mapping_templates" as any)
+      const { data, error } = await (supabase as any)
+        .from("ws_mapping_templates")
         .select("*")
         .order("name");
       if (error) throw error;
