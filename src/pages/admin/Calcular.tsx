@@ -453,7 +453,7 @@ function ResultPanel({ resultado, calculating, error, showMemoria = true }: {
 
 export default function CalcularPage() {
   const { session, loading: authLoading } = useAuth();
-  const { isAdmin, isImplantacao, isWsUser, isVendedor, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, isImplantacao, isWsUser, isVendedor, isBko, isLoading: roleLoading } = useUserRole();
   const { form, setField, setProduto, buildPayload, loadingData, options, getRoiForVigencia } = useFormPrecificacao();
   const { data: resultado, loading: calculating, error, calcular } = useCalcularPrecificacao();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -482,7 +482,7 @@ export default function CalcularPage() {
       </div>
     );
   }
-  if (!session || (!isAdmin && !isImplantacao && !isWsUser && !isVendedor)) return <Navigate to="/" replace />;
+  if (!session || (!isAdmin && !isImplantacao && !isWsUser && !isVendedor && !isBko)) return <Navigate to="/" replace />;
 
   const showMemoria = isAdmin || isImplantacao;
 
