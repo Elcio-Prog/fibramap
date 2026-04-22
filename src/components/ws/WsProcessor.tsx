@@ -1002,6 +1002,30 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     
                   </SelectContent>
                 </Select>
+                <Button
+                  variant={showColumnFilters ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => setShowColumnFilters(prev => !prev)}
+                >
+                  <Filter className="h-3 w-3" />
+                  Filtros por coluna
+                  {Object.values(columnFilters).some(v => v) && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
+                      {Object.values(columnFilters).filter(v => v).length}
+                    </Badge>
+                  )}
+                </Button>
+                {Object.values(columnFilters).some(v => v) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs gap-1 text-muted-foreground"
+                    onClick={() => setColumnFilters({})}
+                  >
+                    <X className="h-3 w-3" /> Limpar filtros
+                  </Button>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {filteredResults.length} de {results?.length}
                 </span>
