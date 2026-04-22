@@ -77,7 +77,7 @@ function getInitials(displayName?: string | null, fullName?: string | null, emai
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
-  const { isAdmin, isImplantacao } = useUserRole();
+  const { isAdmin, isImplantacao, isBko } = useUserRole();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -104,7 +104,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   const sections = isAdmin
     ? [...baseSections, preViabilidadeSection, adminSection]
-    : isImplantacao
+    : (isImplantacao || isBko)
       ? [
           { title: "PRINCIPAL", links: [{ to: "/", label: "Mapa", icon: Map }] },
           {

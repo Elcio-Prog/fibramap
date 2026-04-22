@@ -18,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function PreViabilidadePage() {
   const { data, isLoading, isFetching } = usePreViabilidades();
-  const { isAdmin, isImplantacao } = useUserRole();
+  const { isAdmin, isImplantacao, isBko } = useUserRole();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -96,7 +96,7 @@ export default function PreViabilidadePage() {
           <div>
             <h1 className="text-xl font-bold">Pré Viabilidade</h1>
             <p className="text-sm text-muted-foreground">
-              {(isAdmin || isImplantacao) ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
+              {(isAdmin || isImplantacao || isBko) ? "Todos os registros de pré viabilidade" : "Seus registros de pré viabilidade"}
             </p>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function PreViabilidadePage() {
         item={editItem}
         open={!!editItem}
         onOpenChange={(open) => !open && setEditItem(null)}
-        readOnly={!(isAdmin || isImplantacao)}
+        readOnly={!(isAdmin || isImplantacao || isBko)}
       />
 
       <PreViabilidadeCreateDialog open={createOpen} onOpenChange={setCreateOpen} />

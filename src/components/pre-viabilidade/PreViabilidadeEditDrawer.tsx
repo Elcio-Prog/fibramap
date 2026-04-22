@@ -230,9 +230,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
-  const { isAdmin, isImplantacao } = useUserRole();
+  const { isAdmin, isImplantacao, isBko } = useUserRole();
   const isFullAccess = isAdmin || isImplantacao;
-  const isLimitedEdit = !isFullAccess;
+  const isBkoOnly = isBko && !isFullAccess;
+  const isLimitedEdit = !isFullAccess && !isBkoOnly;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
@@ -543,7 +544,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   if (!item) return null;
 
   const renderStep1 = () => (
-    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
+    <div className={cn("space-y-4", (isLimitedEdit || isBkoOnly) && "pointer-events-none opacity-80")}>
       {loadingData ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -620,7 +621,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", isBkoOnly && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
@@ -674,7 +675,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   );
 
   const renderStep3 = () => (
-    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
+    <div className={cn("space-y-4", (isLimitedEdit || isBkoOnly) && "pointer-events-none opacity-80")}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <SelectField label="Status" value={meta.status}
           onChange={v => setMeta(f => ({ ...f, status: v }))}

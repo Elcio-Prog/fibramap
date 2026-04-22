@@ -36,8 +36,9 @@ const formatCurrency = (v: number | null | undefined) => {
 const PAGE_OPTIONS = [10, 25, 50];
 
 export default function PreViabilidadeTable({ data, search, statusFilter, viabilidadeFilter, guardaChuvaFilter, onGuardaChuvaClick, onEdit }: Props) {
-  const { isAdmin, isImplantacao } = useUserRole();
-  const canEdit = isAdmin || isImplantacao;
+  const { isAdmin, isImplantacao, isBko } = useUserRole();
+  const canEdit = isAdmin || isImplantacao || isBko;
+  const canDelete = isAdmin || isImplantacao;
   const { toast } = useToast();
   const deleteMutation = useDeletePreViabilidade();
   const [sortKey, setSortKey] = useState<SortKey>("numero");
@@ -322,9 +323,11 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
                     <ContextMenuItem onClick={() => setHistoryTarget(row)} className="gap-2">
                       <History className="h-3.5 w-3.5" /> Histórico de Versão
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
-                      <Trash2 className="h-3.5 w-3.5" /> Excluir
-                    </ContextMenuItem>
+                    {canDelete && (
+                      <ContextMenuItem onClick={() => setDeleteTarget(row)} className="gap-2 text-destructive focus:text-destructive focus:bg-muted">
+                        <Trash2 className="h-3.5 w-3.5" /> Excluir
+                      </ContextMenuItem>
+                    )}
                   </ContextMenuContent>
                 </ContextMenu>
               ))

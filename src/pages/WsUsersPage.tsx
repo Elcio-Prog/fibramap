@@ -76,7 +76,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
       if ((data as any).error) throw new Error((data as any).error);
     },
     onSuccess: (_, vars) => {
-      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
+      const labels: Record<string, string> = { admin: "Admin", ws_user: "WS", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile", bko: "BKO" };
       toast({ title: `Papel ${labels[vars.role] || vars.role} atribuído!` });
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
     },
@@ -132,6 +132,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="lm">Last Mile</SelectItem>
+                      <SelectItem value="bko">BKO</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -147,7 +148,7 @@ function PendingUserList({ globalSearch }: { globalSearch: string }) {
 }
 
 /* ── Role-based User List ── */
-function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm"; label: string; icon: any; globalSearch: string }) {
+function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" | "admin" | "vendedor" | "implantacao" | "lm" | "bko"; label: string; icon: any; globalSearch: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -219,7 +220,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
     },
   });
 
-  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile" };
+  const roleLabels: Record<string, string> = { ws_user: "WS", admin: "Admin", vendedor: "Vendedor", implantacao: "Validação", lm: "Last Mile", bko: "BKO" };
 
   const changeRole = useMutation({
     mutationFn: async ({ user_id, to_role }: { user_id: string; to_role: string }) => {
@@ -312,6 +313,7 @@ function UserList({ role, label, icon: Icon, globalSearch }: { role: "ws_user" |
                       <SelectItem value="vendedor">Vendedor</SelectItem>
                       <SelectItem value="implantacao">Validação</SelectItem>
                       <SelectItem value="lm">Last Mile</SelectItem>
+                      <SelectItem value="bko">BKO</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -408,6 +410,14 @@ export default function WsUsersPage() {
       return (data as any).users as ManagedUser[];
     },
   });
+  const { data: bkoList } = useQuery({
+    queryKey: ["managed-users", "bko"],
+    queryFn: async () => {
+      const { data, error } = await invokeManageUsers("list_users", { role: "bko" });
+      if (error) throw error;
+      return (data as any).users as ManagedUser[];
+    },
+  });
   const { data: pendingList } = useQuery({
     queryKey: ["managed-users", "pending"],
     queryFn: async () => {
@@ -422,8 +432,9 @@ export default function WsUsersPage() {
   const vendedorCount = vendedorList?.length ?? 0;
   const implantacaoCount = implantacaoList?.length ?? 0;
   const lmCount = lmList?.length ?? 0;
+  const bkoCount = bkoList?.length ?? 0;
   const pendingCount = pendingList?.length ?? 0;
-  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount;
+  const total = wsCount + adminCount + vendedorCount + implantacaoCount + lmCount + bkoCount;
 
   const [globalSearch, setGlobalSearch] = useState("");
 
@@ -440,6 +451,7 @@ export default function WsUsersPage() {
           <TabsTrigger value="vendedor" className="gap-2"><ShoppingBag className="h-3.5 w-3.5" /> Vendedores ({vendedorCount})</TabsTrigger>
           <TabsTrigger value="implantacao" className="gap-2"><Wrench className="h-3.5 w-3.5" /> Validação ({implantacaoCount})</TabsTrigger>
           <TabsTrigger value="lm" className="gap-2"><Database className="h-3.5 w-3.5" /> Last Mile ({lmCount})</TabsTrigger>
+          <TabsTrigger value="bko" className="gap-2"><Wrench className="h-3.5 w-3.5" /> BKO ({bkoCount})</TabsTrigger>
           <TabsTrigger value="admin" className="gap-2"><Users className="h-3.5 w-3.5" /> Admins ({adminCount})</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2"><Clock className="h-3.5 w-3.5" /> Pendentes ({pendingCount})</TabsTrigger>
         </TabsList>
@@ -454,6 +466,9 @@ export default function WsUsersPage() {
         </TabsContent>
         <TabsContent value="lm" className="mt-4">
           <UserList role="lm" label="Last Mile" icon={Database} globalSearch={globalSearch} />
+        </TabsContent>
+        <TabsContent value="bko" className="mt-4">
+          <UserList role="bko" label="BKO" icon={Wrench} globalSearch={globalSearch} />
         </TabsContent>
         <TabsContent value="admin" className="mt-4">
           <UserList role="admin" label="Admin" icon={Users} globalSearch={globalSearch} />
