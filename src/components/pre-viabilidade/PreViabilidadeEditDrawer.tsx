@@ -466,7 +466,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
       await updateMutation.mutateAsync({
         id: item.id,
         updates: {
-          status: meta.status || null,
+          status: meta.viabilidade === "Viabilizado pelo Sistema" ? "Fechado" : (meta.status || null),
           produto_nt: calcForm.produto || null,
           valor_minimo: valorMinimo,
           vigencia: calcForm.vigencia || null,
