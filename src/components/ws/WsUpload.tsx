@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
