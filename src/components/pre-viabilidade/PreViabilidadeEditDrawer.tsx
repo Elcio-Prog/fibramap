@@ -544,7 +544,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   if (!item) return null;
 
   const renderStep1 = () => (
-    <div className={cn("space-y-4", isLimitedEdit && "pointer-events-none opacity-80")}>
+    <div className={cn("space-y-4", (isLimitedEdit || isBkoOnly) && "pointer-events-none opacity-80")}>
       {loadingData ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
