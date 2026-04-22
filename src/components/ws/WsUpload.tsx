@@ -156,6 +156,20 @@ function useWsMappingProfiles() {
   });
 }
 
+function useWsMappingTemplates() {
+  return useQuery({
+    queryKey: ["ws-mapping-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ws_mapping_templates" as any)
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string; column_mapping: Record<string, string> }[];
+    },
+  });
+}
+
 export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId: string) => void }) {
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
