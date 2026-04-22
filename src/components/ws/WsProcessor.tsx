@@ -193,6 +193,51 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     }
   }, []);
 
+  // Calculate valor_min for a specific vigência (for dynamic columns)
+  const calcularRowPricingVig = useCallback(async (itemId: string, dbRow: any, distanceM: number | null, vigMeses: number) => {
+    const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
+    const taxaInstalacao = dbRow?.taxa_instalacao ? Number(dbRow.taxa_instalacao) : 0;
+    const velocidade = dbRow?.velocidade_mbps ? Number(dbRow.velocidade_mbps) : 0;
+    const blocoIp = dbRow?.bloco_ip || undefined;
+    const tecnologia = dbRow?.tecnologia || "GPON";
+    const cidadePontaA = dbRow?.cidade_a || "";
+
+    if (!vigMeses || !velocidade) return;
+
+    try {
+      const payload = {
+        produto: "Conectividade" as const,
+        subproduto: produto,
+        vigencia: vigMeses,
+        roiVigencia: 24,
+        taxaInstalacao,
+        custosMateriaisAdicionais: 0,
+        projetoAvaliado: false,
+        valorOpex: 0,
+        rede: cidadePontaA || undefined,
+        banda: velocidade,
+        distancia: distanceM ?? 0,
+        togDistancia: true,
+        blocoIp,
+        custoLastMile: 0,
+        valorLastMile: 0,
+        tecnologia,
+      };
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "calcular-precificacao",
+        { body: payload }
+      );
+      if (!fnError && !result?.error && result?.valorMinimo != null) {
+        setRowValorMinVig(prev => ({
+          ...prev,
+          [itemId]: { ...(prev[itemId] || {}), [String(vigMeses)]: result.valorMinimo }
+        }));
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
   // Trigger recalc when inline fields change
   const triggerPricingRecalc = useCallback((itemId: string) => {
     clearTimeout(calcTimers.current[itemId]);
@@ -200,8 +245,13 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       const dbRow = dbRows[itemId];
       const r = results?.find(res => res.item.id === itemId);
       calcularRowPricing(itemId, dbRow, r?.distance_m ?? null);
+      // Also recalc per-vigência
+      const metaVigencias: string[] = batchMetadata?.vigencias || [];
+      metaVigencias.forEach(v => {
+        calcularRowPricingVig(itemId, dbRow, r?.distance_m ?? null, Number(v));
+      });
     }, 600);
-  }, [dbRows, results, calcularRowPricing]);
+  }, [dbRows, results, calcularRowPricing, calcularRowPricingVig, batchMetadata]);
 
   // Auto-calculate pricing for all rows when results are loaded
   const initialCalcDone = useRef(false);
@@ -210,22 +260,37 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (initialCalcDone.current) return;
     initialCalcDone.current = true;
 
+    const metaVigencias: string[] = batchMetadata?.vigencias || [];
+
     // Batch calculate for rows that have enough data
     const itemsToCalc = results.filter(r => {
       const db = dbRows[r.item.id];
       if (!db) return false;
-      const vig = db.vigencia ? Number(db.vigencia) : 0;
       const vel = db.velocidade_mbps ? Number(db.velocidade_mbps) : 0;
-      return vig > 0 && vel > 0;
+      return vel > 0;
     });
 
     // Stagger calls to avoid overwhelming the edge function
-    itemsToCalc.forEach((r, i) => {
-      setTimeout(() => {
-        calcularRowPricing(r.item.id, dbRows[r.item.id], r.distance_m ?? null);
-      }, i * 200);
+    let callIndex = 0;
+    itemsToCalc.forEach((r) => {
+      const db = dbRows[r.item.id];
+      const vig = db?.vigencia ? Number(db.vigencia) : 0;
+      // Main valor minimo (uses item's own vigência)
+      if (vig > 0) {
+        setTimeout(() => {
+          calcularRowPricing(r.item.id, db, r.distance_m ?? null);
+        }, callIndex * 200);
+        callIndex++;
+      }
+      // Per-vigência calculations
+      metaVigencias.forEach(v => {
+        setTimeout(() => {
+          calcularRowPricingVig(r.item.id, db, r.distance_m ?? null, Number(v));
+        }, callIndex * 200);
+        callIndex++;
+      });
     });
-  }, [results, dbRows, calcularRowPricing]);
+  }, [results, dbRows, calcularRowPricing, calcularRowPricingVig, batchMetadata]);
 
   // Reset initial calc flag when batch changes
   useEffect(() => {
