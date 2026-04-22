@@ -190,6 +190,9 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: profiles } = useWsMappingProfiles();
+  const { data: templates } = useWsMappingTemplates();
+  const { isAdmin } = useUserRole();
+  const [templateName, setTemplateName] = useState("");
 
   // Save profile mutation
   const saveProfile = useMutation({
