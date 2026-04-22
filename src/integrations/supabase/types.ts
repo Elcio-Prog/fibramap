@@ -1451,6 +1451,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ws_mapping_templates: {
+        Row: {
+          column_mapping: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          column_mapping?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          column_mapping?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ws_single_searches: {
         Row: {
           address: string | null

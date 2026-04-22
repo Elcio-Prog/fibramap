@@ -10,9 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
 import { VIGENCIA_OPTIONS } from "@/lib/field-options";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface FieldDef { key: string; label: string; }
 interface FieldGroup { label: string; fields: FieldDef[]; }
@@ -155,6 +156,20 @@ function useWsMappingProfiles() {
   });
 }
 
+function useWsMappingTemplates() {
+  return useQuery({
+    queryKey: ["ws-mapping-templates"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("ws_mapping_templates")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string; column_mapping: Record<string, string> }[];
+    },
+  });
+}
+
 export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId: string) => void }) {
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
@@ -175,6 +190,9 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: profiles } = useWsMappingProfiles();
+  const { data: templates } = useWsMappingTemplates();
+  const { isAdmin } = useUserRole();
+  const [templateName, setTemplateName] = useState("");
 
   // Save profile mutation
   const saveProfile = useMutation({
@@ -237,17 +255,61 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     },
   });
 
+  // Save template mutation (admin only)
+  const saveTemplate = useMutation({
+    mutationFn: async () => {
+      if (!templateName.trim() || !user?.id) return;
+      const trimmed = templateName.trim();
+      const isDuplicate = templates?.some((t) => t.name.toLowerCase() === trimmed.toLowerCase());
+      if (isDuplicate) throw new Error("Já existe um template com esse nome.");
+      const mappingWithMeta = {
+        ...mapping,
+        ...(selectedVigencias.length > 0 ? { __vigencias__: selectedVigencias.join(",") } : {}),
+      };
+      const { error } = await (supabase as any).from("ws_mapping_templates").insert({
+        created_by: user.id,
+        name: trimmed,
+        column_mapping: mappingWithMeta,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Template salvo!" });
+      setTemplateName("");
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-templates"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar template", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Delete template mutation (admin only)
+  const deleteTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("ws_mapping_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Template removido" });
+      queryClient.invalidateQueries({ queryKey: ["ws-mapping-templates"] });
+    },
+  });
+
+  const applyMapping = (m: Record<string, string>) => {
+    const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
+    setSelectedVigencias(vigencias);
+    const { __vigencias__, ...rest } = m;
+    setMapping(rest);
+  };
+
   const applyProfile = (profileId: string) => {
     const p = profiles?.find((pr) => pr.id === profileId);
-    if (p) {
-      const m = p.column_mapping as Record<string, string>;
-      // Extract vigências metadata
-      const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
-      setSelectedVigencias(vigencias);
-      // Apply mapping without metadata key
-      const { __vigencias__, ...rest } = m;
-      setMapping(rest);
-    }
+    if (p) applyMapping(p.column_mapping as Record<string, string>);
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const t = templates?.find((tpl) => tpl.id === templateId);
+    if (t) applyMapping(t.column_mapping as Record<string, string>);
   };
 
   // ---- Step 1: File upload ----
@@ -600,7 +662,39 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             )}
 
-            {/* Preview table */}
+            {/* Templates (universal) */}
+            {templates && templates.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <LayoutTemplate className="h-3.5 w-3.5" /> Templates:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {templates.map((t) => (
+                    <div key={t.id} className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => applyTemplate(t.id)}
+                        className="text-xs border-primary/30 bg-primary/5"
+                      >
+                        {t.name}
+                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => deleteTemplate.mutate(t.id)}
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto max-h-36 border rounded-md">
               <table className="text-xs w-full">
                 <thead>
@@ -779,6 +873,27 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 <Save className="h-3.5 w-3.5" /> Salvar perfil
               </Button>
             </div>
+
+            {/* Save template (admin only) */}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome do template"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="text-sm h-8"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 shrink-0 border-primary/30"
+                  disabled={!templateName.trim() || saveTemplate.isPending}
+                  onClick={() => saveTemplate.mutate()}
+                >
+                  <LayoutTemplate className="h-3.5 w-3.5" /> Salvar Template
+                </Button>
+              </div>
+            )}
 
             <Button className="w-full" onClick={parseData} disabled={!mapping.endereco_a}>
               Pré-visualizar dados
