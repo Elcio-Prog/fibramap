@@ -775,11 +775,18 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       const stage = r.stage || "Sem viabilidade";
       if (!activeStages.has(stage)) return false;
     }
-    // Column filters
-    for (const [col, term] of Object.entries(columnFilters)) {
-      if (!term) continue;
+    // Column filters (multi-select)
+    for (const [col, terms] of Object.entries(columnFilters)) {
+      if (!terms || terms.length === 0) continue;
       const val = getColumnValue(r, col);
-      if (val !== term) return false;
+      if (!terms.includes(val)) return false;
+    }
+    // Global search
+    if (globalSearch) {
+      const q = globalSearch.toLowerCase();
+      const allCols = ["cliente", "cnpj", "velocidade", "viavel", "etapa", "provedor", "produto", "tecnologia", "meio_fisico", "vigencia", "bloco_ip", "tipo_sol", "uf", "cidade"];
+      const found = allCols.some(c => getColumnValue(r, c).toLowerCase().includes(q));
+      if (!found) return false;
     }
     return true;
   });
