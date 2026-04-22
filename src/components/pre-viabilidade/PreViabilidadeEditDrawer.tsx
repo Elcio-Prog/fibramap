@@ -233,7 +233,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const { isAdmin, isImplantacao, isBko } = useUserRole();
   const isFullAccess = isAdmin || isImplantacao;
   const isBkoOnly = isBko && !isFullAccess;
-  const isLimitedEdit = !isFullAccess && !isBkoOnly;
+  // When status is "Aberto" or "Aberto/Reavaliar", all fields are editable regardless of role
+  const isStatusAberto = meta.status === "Aberto" || meta.status === "Aberto/Reavaliar";
+  const isLimitedEdit = isStatusAberto ? false : (!isFullAccess && !isBkoOnly);
+  const effectiveBkoOnly = isStatusAberto ? false : isBkoOnly;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
