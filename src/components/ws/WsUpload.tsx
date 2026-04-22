@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
+import { VIGENCIA_OPTIONS } from "@/lib/field-options";
 import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -166,6 +168,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileName, setEditingProfileName] = useState("");
   const [coordFormat, setCoordFormat] = useState<CoordFormat>("latlong");
+  const [selectedVigencias, setSelectedVigencias] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
@@ -180,10 +183,14 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
       const trimmed = profileName.trim();
       const isDuplicate = profiles?.some((p) => p.name.toLowerCase() === trimmed.toLowerCase());
       if (isDuplicate) throw new Error("Já existe um perfil com esse nome.");
+      const mappingWithMeta = {
+        ...mapping,
+        ...(selectedVigencias.length > 0 ? { __vigencias__: selectedVigencias.join(",") } : {}),
+      };
       const { error } = await supabase.from("ws_mapping_profiles").insert({
         user_id: user.id,
         name: trimmed,
-        column_mapping: mapping,
+        column_mapping: mappingWithMeta,
       });
       if (error) throw error;
     },
@@ -232,7 +239,15 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
 
   const applyProfile = (profileId: string) => {
     const p = profiles?.find((pr) => pr.id === profileId);
-    if (p) setMapping(p.column_mapping as Record<TargetKey, string>);
+    if (p) {
+      const m = p.column_mapping as Record<string, string>;
+      // Extract vigências metadata
+      const vigencias = m.__vigencias__ ? (m.__vigencias__ as string).split(",") : [];
+      setSelectedVigencias(vigencias);
+      // Apply mapping without metadata key
+      const { __vigencias__, ...rest } = m;
+      setMapping(rest);
+    }
   };
 
   // ---- Step 1: File upload ----
@@ -624,6 +639,37 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </div>
             </div>
 
+            {/* Vigência multi-select */}
+            <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+              <p className="text-sm font-medium">Vigências para Valor Mínimo:</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione as vigências para as quais deseja mapear colunas de resultado (Valor Mínimo).
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {VIGENCIA_OPTIONS.map((v) => (
+                  <label key={v} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={selectedVigencias.includes(v)}
+                      onCheckedChange={(checked) => {
+                        setSelectedVigencias((prev) =>
+                          checked ? [...prev, v] : prev.filter((x) => x !== v)
+                        );
+                        // Remove mapping for unchecked vigência
+                        if (!checked) {
+                          setMapping((prev) => {
+                            const next = { ...prev };
+                            delete next[`valor_min_${v}`];
+                            return next;
+                          });
+                        }
+                      }}
+                    />
+                    {v} meses
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {/* Column mapping - grouped */}
             <div className="space-y-4">
               <p className="text-sm font-medium">Mapeamento de colunas:</p>
@@ -683,6 +729,18 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                 } else {
                   allGroups[2].fields.push(LATLONG_FIELDS[0], LATLONG_FIELDS[1]); // Lat/Lng A
                   allGroups[3].fields.push(LATLONG_FIELDS[2], LATLONG_FIELDS[3]); // Lat/Lng B
+                }
+
+                // Add dynamic vigência mapping group
+                if (selectedVigencias.length > 0) {
+                  const vigenciaFields: FieldDef[] = selectedVigencias.map((v) => ({
+                    key: `valor_min_${v}`,
+                    label: `Valor Mín. ${v} meses`,
+                  }));
+                  allGroups.push({
+                    label: "Resultado — Valor Mínimo",
+                    fields: vigenciaFields,
+                  });
                 }
 
                 return allGroups.map((group) => (
