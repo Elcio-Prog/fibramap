@@ -1018,6 +1018,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">Vlr Venda</th>
                     <th className="px-2 py-1.5 text-left">Cód. Smark</th>
                     <th className="px-2 py-1.5 text-left">Vlr Mín. Previsto</th>
+                    {metaVigencias.map(v => (
+                      <th key={`hdr_vig_${v}`} className="px-2 py-1.5 text-left whitespace-nowrap">Vlr Mín. {v}m</th>
+                    ))}
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
                 </thead>
