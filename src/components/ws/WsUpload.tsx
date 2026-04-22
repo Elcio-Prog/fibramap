@@ -473,9 +473,20 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
     setSaving(true);
 
     try {
+      const batchMetadata: Record<string, any> = {};
+      if (selectedVigencias.length > 0) batchMetadata.vigencias = selectedVigencias;
+      // Store valor_min mapping keys so processor knows which columns to show
+      const valorMinMapping: Record<string, string> = {};
+      if (mapping["valor_min_calculado"]) valorMinMapping["valor_min_calculado"] = mapping["valor_min_calculado"];
+      selectedVigencias.forEach(v => {
+        const k = `valor_min_${v}`;
+        if (mapping[k]) valorMinMapping[k] = mapping[k];
+      });
+      if (Object.keys(valorMinMapping).length > 0) batchMetadata.valor_min_mapping = valorMinMapping;
+
       const { data: batch, error: batchErr } = await supabase
         .from("ws_batches")
-        .insert({ user_id: user.id, file_name: fileName, total_items: parsedItems.length })
+        .insert({ user_id: user.id, file_name: fileName, total_items: parsedItems.length, metadata: batchMetadata } as any)
         .select("id")
         .single();
 

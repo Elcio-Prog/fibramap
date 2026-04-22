@@ -136,8 +136,12 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
 
   // Pricing calculation state per item
   const [rowValorMinimo, setRowValorMinimo] = useState<Record<string, number | null>>({});
+  // Per-vigência valor minimo: { itemId: { "36": number, "48": number, ... } }
+  const [rowValorMinVig, setRowValorMinVig] = useState<Record<string, Record<string, number | null>>>({});
   const [rowCalcLoading, setRowCalcLoading] = useState<Record<string, boolean>>({});
   const calcTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Batch metadata (vigências, mapping)
+  const [batchMetadata, setBatchMetadata] = useState<Record<string, any>>({});
 
   const calcularRowPricing = useCallback(async (itemId: string, dbRow: any, distanceM: number | null) => {
     const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
@@ -189,6 +193,51 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     }
   }, []);
 
+  // Calculate valor_min for a specific vigência (for dynamic columns)
+  const calcularRowPricingVig = useCallback(async (itemId: string, dbRow: any, distanceM: number | null, vigMeses: number) => {
+    const produto = dbRow?.produto || "NT LINK DEDICADO FULL";
+    const taxaInstalacao = dbRow?.taxa_instalacao ? Number(dbRow.taxa_instalacao) : 0;
+    const velocidade = dbRow?.velocidade_mbps ? Number(dbRow.velocidade_mbps) : 0;
+    const blocoIp = dbRow?.bloco_ip || undefined;
+    const tecnologia = dbRow?.tecnologia || "GPON";
+    const cidadePontaA = dbRow?.cidade_a || "";
+
+    if (!vigMeses || !velocidade) return;
+
+    try {
+      const payload = {
+        produto: "Conectividade" as const,
+        subproduto: produto,
+        vigencia: vigMeses,
+        roiVigencia: 24,
+        taxaInstalacao,
+        custosMateriaisAdicionais: 0,
+        projetoAvaliado: false,
+        valorOpex: 0,
+        rede: cidadePontaA || undefined,
+        banda: velocidade,
+        distancia: distanceM ?? 0,
+        togDistancia: true,
+        blocoIp,
+        custoLastMile: 0,
+        valorLastMile: 0,
+        tecnologia,
+      };
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "calcular-precificacao",
+        { body: payload }
+      );
+      if (!fnError && !result?.error && result?.valorMinimo != null) {
+        setRowValorMinVig(prev => ({
+          ...prev,
+          [itemId]: { ...(prev[itemId] || {}), [String(vigMeses)]: result.valorMinimo }
+        }));
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
   // Trigger recalc when inline fields change
   const triggerPricingRecalc = useCallback((itemId: string) => {
     clearTimeout(calcTimers.current[itemId]);
@@ -196,8 +245,13 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       const dbRow = dbRows[itemId];
       const r = results?.find(res => res.item.id === itemId);
       calcularRowPricing(itemId, dbRow, r?.distance_m ?? null);
+      // Also recalc per-vigência
+      const metaVigencias: string[] = batchMetadata?.vigencias || [];
+      metaVigencias.forEach(v => {
+        calcularRowPricingVig(itemId, dbRow, r?.distance_m ?? null, Number(v));
+      });
     }, 600);
-  }, [dbRows, results, calcularRowPricing]);
+  }, [dbRows, results, calcularRowPricing, calcularRowPricingVig, batchMetadata]);
 
   // Auto-calculate pricing for all rows when results are loaded
   const initialCalcDone = useRef(false);
@@ -206,22 +260,37 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     if (initialCalcDone.current) return;
     initialCalcDone.current = true;
 
+    const metaVigencias: string[] = batchMetadata?.vigencias || [];
+
     // Batch calculate for rows that have enough data
     const itemsToCalc = results.filter(r => {
       const db = dbRows[r.item.id];
       if (!db) return false;
-      const vig = db.vigencia ? Number(db.vigencia) : 0;
       const vel = db.velocidade_mbps ? Number(db.velocidade_mbps) : 0;
-      return vig > 0 && vel > 0;
+      return vel > 0;
     });
 
     // Stagger calls to avoid overwhelming the edge function
-    itemsToCalc.forEach((r, i) => {
-      setTimeout(() => {
-        calcularRowPricing(r.item.id, dbRows[r.item.id], r.distance_m ?? null);
-      }, i * 200);
+    let callIndex = 0;
+    itemsToCalc.forEach((r) => {
+      const db = dbRows[r.item.id];
+      const vig = db?.vigencia ? Number(db.vigencia) : 0;
+      // Main valor minimo (uses item's own vigência)
+      if (vig > 0) {
+        setTimeout(() => {
+          calcularRowPricing(r.item.id, db, r.distance_m ?? null);
+        }, callIndex * 200);
+        callIndex++;
+      }
+      // Per-vigência calculations
+      metaVigencias.forEach(v => {
+        setTimeout(() => {
+          calcularRowPricingVig(r.item.id, db, r.distance_m ?? null, Number(v));
+        }, callIndex * 200);
+        callIndex++;
+      });
     });
-  }, [results, dbRows, calcularRowPricing]);
+  }, [results, dbRows, calcularRowPricing, calcularRowPricingVig, batchMetadata]);
 
   // Reset initial calc flag when batch changes
   useEffect(() => {
@@ -250,13 +319,14 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     try {
       const { data: batch } = await supabase
         .from("ws_batches")
-        .select("status, total_items")
+        .select("status, total_items, metadata")
         .eq("id", batchId)
         .single();
 
       if (batch) {
         setBatchStatus(batch.status);
         setTotalItems(batch.total_items);
+        if ((batch as any).metadata) setBatchMetadata((batch as any).metadata as Record<string, any>);
       }
 
       const { count: doneCount } = await supabase
@@ -909,7 +979,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
             {filteredResults && filteredResults.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">Nenhum item encontrado para o filtro selecionado.</p>
             )}
-            {filteredResults && filteredResults.length > 0 && <ScrollableTable totalScrollableColumns={22}>
+            {filteredResults && filteredResults.length > 0 && (() => {
+              const metaVigencias: string[] = batchMetadata?.vigencias || [];
+              return <ScrollableTable totalScrollableColumns={22 + metaVigencias.length}>
               <table className="text-xs w-max min-w-full">
                 <thead className="sticky top-0 bg-muted z-10">
                   <tr>
@@ -946,6 +1018,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                     <th className="px-2 py-1.5 text-left">Vlr Venda</th>
                     <th className="px-2 py-1.5 text-left">Cód. Smark</th>
                     <th className="px-2 py-1.5 text-left">Vlr Mín. Previsto</th>
+                    {metaVigencias.map(v => (
+                      <th key={`hdr_vig_${v}`} className="px-2 py-1.5 text-left whitespace-nowrap">Vlr Mín. {v}m</th>
+                    ))}
                     <th className="px-2 py-1.5 text-left">Observações (Sistema)</th>
                   </tr>
                 </thead>
@@ -1108,6 +1183,17 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                               : "—";
                           })()}
                         </td>
+                        {/* Dynamic per-vigência valor mínimo columns */}
+                        {metaVigencias.map(v => {
+                          const val = rowValorMinVig[r.item.id]?.[v];
+                          return (
+                            <td key={`vig_${v}_${r.item.id}`} className="px-2 py-1 whitespace-nowrap text-[11px] font-medium text-right">
+                              {val != null
+                                ? `R$${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : "—"}
+                            </td>
+                          );
+                        })}
                         <td className="px-2 py-1 max-w-[200px] truncate text-muted-foreground">
                           {dbRow?.observacoes_system || r.notes || "—"}
                         </td>
@@ -1116,7 +1202,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                   })}
                 </tbody>
               </table>
-            </ScrollableTable>}
+            </ScrollableTable>;
+            })()}
 
             {/* Actions */}
             <div className="flex gap-2">
