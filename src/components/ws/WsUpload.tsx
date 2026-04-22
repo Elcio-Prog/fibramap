@@ -874,6 +874,27 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
               </Button>
             </div>
 
+            {/* Save template (admin only) */}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome do template"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="text-sm h-8"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 shrink-0 border-primary/30"
+                  disabled={!templateName.trim() || saveTemplate.isPending}
+                  onClick={() => saveTemplate.mutate()}
+                >
+                  <LayoutTemplate className="h-3.5 w-3.5" /> Salvar Template
+                </Button>
+              </div>
+            )}
+
             <Button className="w-full" onClick={parseData} disabled={!mapping.endereco_a}>
               Pré-visualizar dados
             </Button>
