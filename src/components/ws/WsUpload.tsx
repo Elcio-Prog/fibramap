@@ -731,15 +731,22 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
                   allGroups[3].fields.push(LATLONG_FIELDS[2], LATLONG_FIELDS[3]); // Lat/Lng B
                 }
 
-                // Add dynamic vigência mapping group
-                if (selectedVigencias.length > 0) {
-                  const vigenciaFields: FieldDef[] = selectedVigencias.map((v) => ({
-                    key: `valor_min_${v}`,
-                    label: `Valor Mín. ${v} meses`,
-                  }));
+                // Add result mapping group (calculated value + dynamic vigências)
+                {
+                  const resultFields: FieldDef[] = [
+                    { key: "valor_min_calculado", label: "Valor Mín. Calculado (sistema)" },
+                  ];
+                  if (selectedVigencias.length > 0) {
+                    selectedVigencias.forEach((v) => {
+                      resultFields.push({
+                        key: `valor_min_${v}`,
+                        label: `Valor Mín. ${v} meses`,
+                      });
+                    });
+                  }
                   allGroups.push({
                     label: "Resultado — Valor Mínimo",
-                    fields: vigenciaFields,
+                    fields: resultFields,
                   });
                 }
 
