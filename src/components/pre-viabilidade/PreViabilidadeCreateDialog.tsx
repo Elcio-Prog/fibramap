@@ -393,7 +393,7 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
     try {
       await insertMutation.mutateAsync([{
         user_id: user.id,
-        status: meta.status || "Aberto",
+        status: initialData?.viabilidade_override === "Viabilizado pelo Sistema" ? "Fechado" : (meta.status || "Aberto"),
         produto_nt: calcForm.produto || null,
         valor_minimo: valorMinimo,
         vigencia: calcForm.vigencia || null,
