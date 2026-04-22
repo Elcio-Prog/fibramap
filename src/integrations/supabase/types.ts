@@ -1204,6 +1204,7 @@ export type Database = {
           failed_items: number
           file_name: string
           id: string
+          metadata: Json | null
           parent_batch_id: string | null
           processed_at: string | null
           processed_items: number
@@ -1218,6 +1219,7 @@ export type Database = {
           failed_items?: number
           file_name: string
           id?: string
+          metadata?: Json | null
           parent_batch_id?: string | null
           processed_at?: string | null
           processed_items?: number
@@ -1232,6 +1234,7 @@ export type Database = {
           failed_items?: number
           file_name?: string
           id?: string
+          metadata?: Json | null
           parent_batch_id?: string | null
           processed_at?: string | null
           processed_items?: number

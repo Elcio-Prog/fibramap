@@ -1,0 +1,1 @@
+ALTER TABLE public.ws_batches ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
