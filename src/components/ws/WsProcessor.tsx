@@ -727,11 +727,9 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const getColumnValue = useCallback((r: WsResult, col: string): string => {
     const dbRow = dbRows[r.item.id];
     switch (col) {
-      case "designacao": return r.item.designacao || "";
       case "cliente": return r.item.cliente || "";
       case "cnpj": return dbRow?.cnpj_cliente || "";
       case "velocidade": return r.item.velocidade_mbps != null ? String(r.item.velocidade_mbps) : "";
-      case "endereco": return r.item.endereco_a || "";
       case "viavel": return r.is_viable ? "SIM" : r.is_check_om ? "Checar O&M" : "NÃO";
       case "etapa": return r.stage || "";
       case "provedor": return r.provider_name || "";
@@ -741,12 +739,28 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       case "vigencia": return dbRow?.vigencia || "";
       case "bloco_ip": return dbRow?.bloco_ip || "";
       case "tipo_sol": return dbRow?.tipo_solicitacao || "";
-      case "cod_smark": return dbRow?.codigo_smark || "";
-      case "obs_sistema": return dbRow?.observacoes_system || r.notes || "";
-      case "obs_usuario": return editingObs[r.item.id] || "";
+      case "uf": return r.item.uf_a || "";
+      case "cidade": return r.item.cidade_a || "";
       default: return "";
     }
-  }, [dbRows, editingObs]);
+  }, [dbRows]);
+
+  // Extract unique values per column for dropdown options
+  const columnOptions = useMemo(() => {
+    if (!results) return {} as Record<string, string[]>;
+    const cols = ["cliente", "cnpj", "velocidade", "viavel", "etapa", "provedor", "produto", "tecnologia", "meio_fisico", "vigencia", "bloco_ip", "tipo_sol", "uf", "cidade"];
+    const map: Record<string, Set<string>> = {};
+    cols.forEach(c => map[c] = new Set());
+    results.forEach(r => {
+      cols.forEach(c => {
+        const v = getColumnValue(r, c);
+        if (v) map[c].add(v);
+      });
+    });
+    const out: Record<string, string[]> = {};
+    cols.forEach(c => { out[c] = [...map[c]].sort((a, b) => a.localeCompare(b, "pt-BR")); });
+    return out;
+  }, [results, getColumnValue]);
 
   const filteredResults = results?.filter(r => {
     // Status filter
@@ -762,8 +776,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
     // Column filters
     for (const [col, term] of Object.entries(columnFilters)) {
       if (!term) continue;
-      const val = getColumnValue(r, col).toLowerCase();
-      if (!val.includes(term.toLowerCase())) return false;
+      const val = getColumnValue(r, col);
+      if (val !== term) return false;
     }
     return true;
   });
