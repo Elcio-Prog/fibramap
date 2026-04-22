@@ -231,9 +231,8 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
   const { isAdmin, isImplantacao, isBko } = useUserRole();
-  const isFullAccess = isAdmin || isImplantacao;
-  const isBkoOnly = isBko && !isFullAccess;
-  const isLimitedEdit = !isFullAccess && !isBkoOnly;
+  const isFullAccessBase = isAdmin || isImplantacao;
+  const isBkoBase = isBko && !isFullAccessBase;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
@@ -269,6 +268,12 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   });
   const [projetistaOptions, setProjetistaOptions] = useState<string[]>([]);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
+
+  // When status is "Aberto" or "Aberto/Reavaliar", all fields are editable regardless of role
+  const isStatusAberto = meta.status === "Aberto" || meta.status === "Aberto/Reavaliar";
+  const isFullAccess = isFullAccessBase || isStatusAberto;
+  const isBkoOnly = isStatusAberto ? false : isBkoBase;
+  const isLimitedEdit = isStatusAberto ? false : (!isFullAccessBase && !isBkoBase);
 
   // Load projetista options from configuracoes
   useEffect(() => {
@@ -839,7 +844,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
                 <ChevronLeft className="h-4 w-4" />
                 {step === 1 ? "Cancelar" : "Voltar"}
               </Button>
-              {isFullAccess && (
+              {isFullAccessBase && (
                 <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
                   <Trash2 className="h-4 w-4" />
                   Excluir
