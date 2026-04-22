@@ -1191,7 +1191,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                   })}
                 </tbody>
               </table>
-            </ScrollableTable>}
+            </ScrollableTable>;
+            })()}
 
             {/* Actions */}
             <div className="flex gap-2">
