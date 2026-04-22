@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, ChevronDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useProviders } from "@/hooks/useProviders";
@@ -84,6 +86,87 @@ function InlineEdit({ value, type = "text", onSave, width = "w-[80px]", options 
   );
 }
 
+/** Multi-select filter dropdown with search */
+function MultiSelectFilter({ label, options, selected, onChange }: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (vals: string[]) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const filtered = search
+    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    : options;
+  const hasSelection = selected.length > 0;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={`inline-flex items-center gap-1 h-7 px-2 rounded-md border text-[10px] transition-colors ${
+            hasSelection
+              ? "border-primary/60 bg-primary/10 text-primary font-medium"
+              : "border-dashed border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50"
+          }`}
+        >
+          {label}
+          {hasSelection && (
+            <span className="bg-primary text-primary-foreground rounded-full px-1 py-px text-[8px] font-bold leading-none">
+              {selected.length}
+            </span>
+          )}
+          <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start" style={{ zIndex: 2200 }}>
+        <div className="p-1.5 border-b">
+          <div className="relative">
+            <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-7 text-[10px] pl-6"
+            />
+          </div>
+        </div>
+        <div className="max-h-[200px] overflow-y-auto p-1">
+          {hasSelection && (
+            <button
+              className="w-full text-left text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted/50"
+              onClick={() => onChange([])}
+            >
+              Limpar seleção
+            </button>
+          )}
+          {filtered.map(opt => {
+            const checked = selected.includes(opt);
+            return (
+              <label
+                key={opt}
+                className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-[10px]"
+              >
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={() => {
+                    if (checked) onChange(selected.filter(s => s !== opt));
+                    else onChange([...selected, opt]);
+                  }}
+                  className="h-3 w-3"
+                />
+                <span className="truncate">{opt}</span>
+              </label>
+            );
+          })}
+          {filtered.length === 0 && (
+            <p className="text-[10px] text-muted-foreground text-center py-2">Nenhum resultado</p>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface Props {
   batchId: string;
   batchTitle?: string;
@@ -110,8 +193,8 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
   const [filter, setFilter] = useState<"all" | "viable" | "check_om" | "not_viable" | "pending">("all");
   const [editingObs, setEditingObs] = useState<Record<string, string>>({});
   const [activeStages, setActiveStages] = useState<Set<string> | null>(null); // null = all active
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  const [showColumnFilters, setShowColumnFilters] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+  const [globalSearch, setGlobalSearch] = useState("");
   const [savingObs, setSavingObs] = useState<Record<string, boolean>>({});
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, any>>>({});
   const cancelRef = useRef(false);
@@ -773,11 +856,18 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
       const stage = r.stage || "Sem viabilidade";
       if (!activeStages.has(stage)) return false;
     }
-    // Column filters
-    for (const [col, term] of Object.entries(columnFilters)) {
-      if (!term) continue;
+    // Column filters (multi-select)
+    for (const [col, terms] of Object.entries(columnFilters)) {
+      if (!terms || terms.length === 0) continue;
       const val = getColumnValue(r, col);
-      if (val !== term) return false;
+      if (!terms.includes(val)) return false;
+    }
+    // Global search
+    if (globalSearch) {
+      const q = globalSearch.toLowerCase();
+      const allCols = ["cliente", "cnpj", "velocidade", "viavel", "etapa", "provedor", "produto", "tecnologia", "meio_fisico", "vigencia", "bloco_ip", "tipo_sol", "uf", "cidade"];
+      const found = allCols.some(c => getColumnValue(r, c).toLowerCase().includes(q));
+      if (!found) return false;
     }
     return true;
   });
@@ -1016,21 +1106,21 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                       <SelectItem value="pending">Geo falhou</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
-                    variant={showColumnFilters ? "secondary" : "outline"}
-                    size="sm"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => setShowColumnFilters(prev => !prev)}
-                  >
-                    <Filter className="h-3 w-3" />
-                    Filtros por coluna
-                    {Object.values(columnFilters).some(v => v) && (
-                      <Badge variant="secondary" className="h-4 px-1 text-[9px] ml-1">
-                        {Object.values(columnFilters).filter(v => v).length}
-                      </Badge>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar em todas as colunas..."
+                      value={globalSearch}
+                      onChange={e => setGlobalSearch(e.target.value)}
+                      className="h-8 text-xs pl-7 w-[220px]"
+                    />
+                    {globalSearch && (
+                      <button className="absolute right-1.5 top-1/2 -translate-y-1/2" onClick={() => setGlobalSearch("")}>
+                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
                     )}
-                  </Button>
-                  {Object.values(columnFilters).some(v => v) && (
+                  </div>
+                  {Object.values(columnFilters).some(v => v.length > 0) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1040,54 +1130,46 @@ export default function WsProcessor({ batchId, batchTitle, onReset }: Props) {
                       <X className="h-3 w-3" /> Limpar filtros
                     </Button>
                   )}
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {filteredResults.length} de {results?.length}
                   </span>
                 </div>
 
-                {showColumnFilters && (
-                  <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-muted/30">
-                    {([
-                      { key: "cliente", label: "Cliente" },
-                      { key: "cnpj", label: "CNPJ" },
-                      { key: "velocidade", label: "Velocidade" },
-                      { key: "uf", label: "UF" },
-                      { key: "cidade", label: "Cidade" },
-                      { key: "viavel", label: "Viável" },
-                      { key: "etapa", label: "Melhor Etapa" },
-                      { key: "provedor", label: "Provedor" },
-                      { key: "produto", label: "Produto" },
-                      { key: "tecnologia", label: "Tecnologia" },
-                      { key: "meio_fisico", label: "Meio Físico" },
-                      { key: "vigencia", label: "Vigência" },
-                      { key: "bloco_ip", label: "Bloco IP" },
-                      { key: "tipo_sol", label: "Tipo Sol." },
-                    ] as { key: string; label: string }[]).map(({ key, label }) => {
-                      const opts = columnOptions[key] || [];
-                      if (opts.length === 0) return null;
-                      return (
-                        <div key={key} className="flex flex-col gap-0.5">
-                          <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
-                          <Select value={columnFilters[key] || "__all__"} onValueChange={(v) => setColumnFilters(prev => {
-                            const next = { ...prev };
-                            if (v === "__all__") delete next[key]; else next[key] = v;
-                            return next;
-                          })}>
-                            <SelectTrigger className={`h-7 text-[10px] min-w-[100px] max-w-[180px] ${columnFilters[key] ? "border-primary/50 bg-primary/5" : "border-dashed"}`}>
-                              <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[250px]">
-                              <SelectItem value="__all__" className="text-xs">Todos ({opts.length})</SelectItem>
-                              {opts.map(o => (
-                                <SelectItem key={o} value={o} className="text-xs">{o}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-muted/20">
+                  {([
+                    { key: "cliente", label: "Cliente" },
+                    { key: "cnpj", label: "CNPJ" },
+                    { key: "velocidade", label: "Velocidade" },
+                    { key: "uf", label: "UF" },
+                    { key: "cidade", label: "Cidade" },
+                    { key: "viavel", label: "Viável" },
+                    { key: "etapa", label: "Melhor Etapa" },
+                    { key: "provedor", label: "Provedor" },
+                    { key: "produto", label: "Produto" },
+                    { key: "tecnologia", label: "Tecnologia" },
+                    { key: "meio_fisico", label: "Meio Físico" },
+                    { key: "vigencia", label: "Vigência" },
+                    { key: "bloco_ip", label: "Bloco IP" },
+                    { key: "tipo_sol", label: "Tipo Sol." },
+                  ] as { key: string; label: string }[]).map(({ key, label }) => {
+                    const opts = columnOptions[key] || [];
+                    if (opts.length === 0) return null;
+                    const selected = columnFilters[key] || [];
+                    return (
+                      <MultiSelectFilter
+                        key={key}
+                        label={label}
+                        options={opts}
+                        selected={selected}
+                        onChange={(vals) => setColumnFilters(prev => {
+                          const next = { ...prev };
+                          if (vals.length === 0) delete next[key]; else next[key] = vals;
+                          return next;
+                        })}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
 
