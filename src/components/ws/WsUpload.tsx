@@ -253,7 +253,7 @@ export default function WsUpload({ onBatchCreated }: { onBatchCreated?: (batchId
       const h = json[0].map((c: any, i: number) =>
         String(c).trim() || (i < WS_COLUMN_LETTERS.length ? `Col ${WS_COLUMN_LETTERS[i]}` : `Col ${i + 1}`)
       );
-      setHeaders(h.slice(0, 23));
+      setHeaders(h);
       setRows(json.slice(1));
       // Reset parsed data from previous upload
       setParsedItems([]);
