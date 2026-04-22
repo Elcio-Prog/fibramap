@@ -839,7 +839,7 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
                 <ChevronLeft className="h-4 w-4" />
                 {step === 1 ? "Cancelar" : "Voltar"}
               </Button>
-              {isFullAccess && !isBkoOnly && (
+              {isFullAccess && (
                 <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={deleteMutation.isPending} className="gap-2">
                   <Trash2 className="h-4 w-4" />
                   Excluir
