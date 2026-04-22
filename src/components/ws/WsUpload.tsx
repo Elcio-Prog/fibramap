@@ -10,9 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeSpeedToMbps, parseL2L, WS_COLUMN_LETTERS } from "@/lib/ws-utils";
 import { VIGENCIA_OPTIONS } from "@/lib/field-options";
-import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, Loader2, AlertTriangle, Save, Trash2, Pencil, Check, X, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface FieldDef { key: string; label: string; }
 interface FieldGroup { label: string; fields: FieldDef[]; }
