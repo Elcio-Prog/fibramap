@@ -622,50 +622,50 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className={cn("sm:col-span-2", isLimitedEdit && "pointer-events-none opacity-80")}>
+        <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
-          <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} disabled={isLimitedEdit} />
+          <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
         </div>
-        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
+        <div>
           <SelectField label="Tipo de Solicitação" value={meta.tipo_solicitacao}
-            onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} disabled={isLimitedEdit} />
+            onChange={v => setMeta(f => ({ ...f, tipo_solicitacao: v }))} options={TIPO_SOLICITACAO_OPTIONS} />
         </div>
         <NumField label="Valor Vendido (Ticket Mensal)" value={meta.ticket_mensal}
           onChange={setMetaNum("ticket_mensal")} />
-        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
+        <div>
           <Label className="text-xs text-muted-foreground">CNPJ Cliente</Label>
-          <Input className="h-9 mt-1" value={meta.cnpj_cliente} maxLength={18} placeholder="00.000.000/0000-00" disabled={isLimitedEdit}
+          <Input className="h-9 mt-1" value={meta.cnpj_cliente} maxLength={18} placeholder="00.000.000/0000-00"
             onChange={(e) => {
               const raw = e.target.value.replace(/\D/g, "").slice(0, 14);
-              const masked = raw.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3})(\d)/, "$1.$2").replace(/^(\d{2}\.\d{3}\.\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
-              setMeta(f => ({ ...f, cnpj_cliente: masked }));
+              const formatted = raw.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, (_, a, b, c, d, e2) => e2 ? `${a}.${b}.${c}/${d}-${e2}` : raw.length > 12 ? `${a}.${b}.${c}/${d}` : raw.length > 8 ? `${a}.${b}.${c}` : raw.length > 5 ? `${a}.${b}` : raw.length > 2 ? `${a}.${raw.slice(2)}` : raw);
+              setMeta(f => ({ ...f, cnpj_cliente: formatted }));
             }} />
         </div>
-        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
+        <div>
           <Label className="text-xs text-muted-foreground">Código Oportunidade SMARK</Label>
-          <Input className="h-9 mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} disabled={isLimitedEdit} />
+          <Input className="h-9 mt-1" value={meta.codigo_smark} onChange={setMetaField("codigo_smark")} />
         </div>
         <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
           <Label className="text-xs text-muted-foreground">Coordenadas</Label>
           <Input className="h-9 mt-1" value={meta.coordenadas} onChange={setMetaField("coordenadas")} placeholder="Ex: -23.5505, -46.6333" disabled={isLimitedEdit} />
         </div>
-        <div className={isLimitedEdit ? "pointer-events-none opacity-80" : ""}>
+        <div>
           <Label className="text-xs text-muted-foreground">ID GuardaChuva</Label>
-          <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} disabled={isLimitedEdit} />
+          <Input className="h-9 mt-1" value={meta.id_guardachuva} onChange={setMetaField("id_guardachuva")} />
         </div>
         <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
           <Label className="text-xs text-muted-foreground">Endereço</Label>
           <Input className="h-9 mt-1" value={meta.endereco} onChange={setMetaField("endereco")} disabled={isLimitedEdit} />
         </div>
-        <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
+        <div className="sm:col-span-2 lg:col-span-3">
           <Label className="text-xs text-muted-foreground">Observações</Label>
-          <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} disabled={isLimitedEdit} />
+          <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} />
         </div>
-        <div className={cn("sm:col-span-2 lg:col-span-3", isLimitedEdit && "pointer-events-none opacity-80")}>
+        <div className="sm:col-span-2 lg:col-span-3">
           <AttachmentsField
             value={anexos}
             onChange={setAnexos}
-            disabled={isLimitedEdit}
+            disabled={false}
             folderPrefix={item?.id}
           />
         </div>
