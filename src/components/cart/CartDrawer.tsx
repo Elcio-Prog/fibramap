@@ -220,7 +220,7 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           cnpj_cliente: item.cnpj_cliente || null,
           endereco: item.endereco || null,
           coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
-          status: "Aberto",
+          status: viabilidade === "Viabilizado pelo Sistema" ? "Fechado" : "Aberto",
           distancia_sistema: distSistema,
           distancia_projetista: choice === "sistema" ? distSistema : null,
           dados_precificacao: {
