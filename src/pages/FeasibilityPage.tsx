@@ -313,8 +313,24 @@ export default function FeasibilityPage() {
 
           if (insideNT) {
             const cp = findBestConnectionPoint(geo.lat, geo.lng, elForConnectionSearch, maxDist, providerRules);
-            if (cp) { taResult = cp; nearestPt = cp.point; }
-            distance = 0;
+            if (cp) {
+              taResult = cp;
+              nearestPt = cp.point;
+              // Net Turbo: mesmo dentro da mancha, calcular distância real até a caixa
+              if (cp.point) {
+                try {
+                  const routeResult = await getRouteDistance(geo.lat, geo.lng, cp.point[0], cp.point[1]);
+                  if (routeResult) {
+                    distance = routeResult.distance;
+                    routeGeometry = routeResult.geometry;
+                    snapPoint = routeResult.snapPoint;
+                    destSnapPoint = routeResult.destSnapPoint;
+                  }
+                } catch {
+                  distance = cp.distance || 0;
+                }
+              }
+            }
             isViableNT = true;
           } else {
             let lastBlocked: { type: "cpfl" | "highway"; message?: string } | null = null;
