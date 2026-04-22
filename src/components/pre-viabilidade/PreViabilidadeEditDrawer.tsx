@@ -230,9 +230,10 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
   const [valorMinimo, setValorMinimo] = useState<number | null>(null);
   const [valorCapex, setValorCapex] = useState<number>(0);
   const [memoriaCalculo, setMemoriaCalculo] = useState<{ label: string; valor: number }[] | null>(null);
-  const { isAdmin, isImplantacao } = useUserRole();
+  const { isAdmin, isImplantacao, isBko } = useUserRole();
   const isFullAccess = isAdmin || isImplantacao;
-  const isLimitedEdit = !isFullAccess;
+  const isBkoOnly = isBko && !isFullAccess;
+  const isLimitedEdit = !isFullAccess && !isBkoOnly;
   const [step, setStep] = useState(1);
   const initialLoadDone = useRef(false);
   const [initialCalcTrigger, setInitialCalcTrigger] = useState(0);
