@@ -614,7 +614,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
               className="hidden"
               onChange={handleExcelImport}
             />
-            <span className="text-xs text-muted-foreground">Colunas: Cidade, UF (opcional)</span>
+            <span className="text-xs text-muted-foreground">Colunas obrigatórias: Cidade, UF</span>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             <Table>
