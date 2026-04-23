@@ -263,7 +263,7 @@ export default function PreProvidersPage() {
       )}
 
       {/* Edit Dialog */}
-      {editProvider && <EditPreProviderDialog provider={editProvider} onClose={() => setEditProvider(null)} />}
+      {editProvider && <EditPreProviderDialog provider={editProvider} allProviders={preProviders || []} onClose={() => setEditProvider(null)} />}
 
       {/* Cities Dialog */}
       {citiesProviderId && (
