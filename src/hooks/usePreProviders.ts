@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface PreProvider {
   id: string;
+  cnpj: string | null;
   razao_social: string | null;
   nome_fantasia: string;
   cidade_sede: string | null;
