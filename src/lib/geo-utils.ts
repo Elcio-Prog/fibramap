@@ -490,6 +490,17 @@ export async function findBestConnectionPointByRoute(
     route: { distance: number; geometry: any }
   ) => boolean | Promise<boolean>
 ): Promise<{ taResult: TAResult; routeDistance: number; routeGeometry: any; verificationPending?: boolean; routeFailed?: boolean; snapPoint?: [number, number]; destSnapPoint?: [number, number] } | null> {
+  const hasValidRouteGeometry = (geometry: any): boolean => {
+    if (!geometry) return false;
+    const candidateGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
+    const coordinates = candidateGeometry?.type === "LineString"
+      ? candidateGeometry.coordinates
+      : candidateGeometry?.type === "MultiLineString"
+        ? candidateGeometry.coordinates?.flat?.() ?? []
+        : [];
+    // ANY route returned by OSRM is valid — even 2-point routes follow the road network
+    return Array.isArray(coordinates) && coordinates.length >= 2;
+  };
 
   // === ETAPA 1: BUSCA — todas as caixas dentro do raio ===
   const candidates = buildConnectionCandidates(lat, lng, elements, rules);
@@ -520,28 +531,49 @@ export async function findBestConnectionPointByRoute(
   const originSnap = await snapToRoadCached(lat, lng);
   const destSnap = await snapToRoadCached(selectedBox.lat, selectedBox.lng);
 
-  console.log(`[SNAP] Origem: lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}${originSnap ? ` → snapped offset=${Math.round(originSnap.offsetMeters)}m` : ' (snap falhou)'}`);
-  console.log(`[SNAP] Destino: lat=${selectedBox.lat.toFixed(6)}, lng=${selectedBox.lng.toFixed(6)}${destSnap ? ` → snapped offset=${Math.round(destSnap.offsetMeters)}m` : ' (snap falhou)'}`);
+  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
+  console.log(`[SNAP] Origem original:  lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}`);
+  if (originSnap) {
+    console.log(`[SNAP] Origem snapped:   lat=${originSnap.lat.toFixed(6)}, lng=${originSnap.lng.toFixed(6)} (offset ${Math.round(originSnap.offsetMeters)}m)`);
+    if (originSnap.offsetMeters > 50) {
+      console.warn(`[SNAP] ⚠ ALERTA: Origem está a ${Math.round(originSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento.`);
+    }
+  } else {
+    console.warn(`[SNAP] ⚠ Snap de origem FALHOU — usando coordenada original (pode causar falha no OSRM)`);
+  }
+  console.log(`[SNAP] Destino original: lat=${selectedBox.lat.toFixed(6)}, lng=${selectedBox.lng.toFixed(6)}`);
+  if (destSnap) {
+    console.log(`[SNAP] Destino snapped:  lat=${destSnap.lat.toFixed(6)}, lng=${destSnap.lng.toFixed(6)} (offset ${Math.round(destSnap.offsetMeters)}m)`);
+    if (destSnap.offsetMeters > 50) {
+      console.warn(`[SNAP] ⚠ ALERTA: Destino está a ${Math.round(destSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento da caixa.`);
+    }
+  } else {
+    console.warn(`[SNAP] ⚠ Snap de destino FALHOU — usando coordenada original da caixa`);
+  }
+
+  const usedOriginLat = originSnap?.lat ?? lat;
+  const usedOriginLng = originSnap?.lng ?? lng;
+  const usedDestLat = destSnap?.lat ?? selectedBox.lat;
+  const usedDestLng = destSnap?.lng ?? selectedBox.lng;
+  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+  console.log(`[SNAP] URL que será usada: ${routeUrl}`);
+  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
   const t0 = performance.now();
   let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
   const elapsed = Math.round(performance.now() - t0);
 
-  const hasValidRouteGeometry = (geometry: any): boolean => {
-    if (!geometry) return false;
-    const candidateGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
-    const coordinates = candidateGeometry?.type === "LineString"
-      ? candidateGeometry.coordinates
-      : candidateGeometry?.type === "MultiLineString"
-        ? candidateGeometry.coordinates?.flat?.() ?? []
-        : [];
-    return Array.isArray(coordinates) && coordinates.length >= 2;
-  };
-
   if (route) {
-    console.log(`[GEO] ✓ Rota OSRM OK: distance=${Math.round(route.distance)}m (${elapsed}ms)`);
+    const geometryType = route.geometry?.type ?? route.geometry?.geometry?.type ?? "desconhecida";
+    const pointCount = route.geometry?.type === "Feature"
+      ? route.geometry?.geometry?.coordinates?.length ?? 0
+      : route.geometry?.coordinates?.length ?? 0;
+    console.log(`[GEO] ✓ Rota OSRM OK: distance=${Math.round(route.distance)}m, geometry=${geometryType}, pontos=${pointCount} (${elapsed}ms)`);
+    console.log(`[GEO] ✓ URL usada: ${routeUrl}`);
+    console.log(`[GEO] ✓ Geometria retornada:`, JSON.stringify(route.geometry).substring(0, 500));
+
     if (!hasValidRouteGeometry(route.geometry)) {
-      console.warn(`[GEO] ✗ Geometria inválida — não será desenhada.`);
+      console.warn(`[GEO] ✗ Geometria inválida: rota sem coordenadas válidas — não será desenhada.`);
       route = null;
     }
   }
@@ -581,7 +613,7 @@ export async function findBestConnectionPointByRoute(
     };
   }
 
-  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms).`);
+  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). Nenhuma rota real disponível; nada será desenhado.`);
 
   const isApto = selectedBox.aptoNovoCliente;
   return {
@@ -608,7 +640,6 @@ export async function findBestConnectionPointByRoute(
     verificationPending: true,
     routeFailed: true,
   };
-
 }
 
 /** Find the best TA (Terminal de Atendimento) for connection.
@@ -1146,7 +1177,7 @@ export async function getRouteDistanceFast(
   const doFetch = async (): Promise<{ distance: number; geometry: any } | null | 'rate_limited'> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
