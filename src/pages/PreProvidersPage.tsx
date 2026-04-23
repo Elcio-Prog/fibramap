@@ -75,6 +75,20 @@ export default function PreProvidersPage() {
 
   const handleCreate = async () => {
     if (!form.nome_fantasia.trim()) return;
+    const cnpjDigits = (form.cnpj || "").replace(/\D/g, "");
+    if (cnpjDigits) {
+      const dup = (preProviders || []).find(
+        p => ((p as any).cnpj || "").replace(/\D/g, "") === cnpjDigits
+      );
+      if (dup) {
+        toast({
+          title: "CNPJ já cadastrado",
+          description: `Já existe um pré-cadastro para "${dup.nome_fantasia}" com este CNPJ.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       await createPreProvider.mutateAsync({
         cnpj: form.cnpj.trim() || null,
@@ -249,7 +263,7 @@ export default function PreProvidersPage() {
       )}
 
       {/* Edit Dialog */}
-      {editProvider && <EditPreProviderDialog provider={editProvider} onClose={() => setEditProvider(null)} />}
+      {editProvider && <EditPreProviderDialog provider={editProvider} allProviders={preProviders || []} onClose={() => setEditProvider(null)} />}
 
       {/* Cities Dialog */}
       {citiesProviderId && (
@@ -405,7 +419,7 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
   );
 }
 
-function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; onClose: () => void }) {
+function EditPreProviderDialog({ provider, allProviders, onClose }: { provider: PreProvider; allProviders: PreProvider[]; onClose: () => void }) {
   const updatePreProvider = useUpdatePreProvider();
   const { toast } = useToast();
   const [form, setForm] = useState({
@@ -426,6 +440,20 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
   });
 
   const handleSave = async () => {
+    const cnpjDigits = (form.cnpj || "").replace(/\D/g, "");
+    if (cnpjDigits) {
+      const dup = allProviders.find(
+        p => p.id !== provider.id && ((p as any).cnpj || "").replace(/\D/g, "") === cnpjDigits
+      );
+      if (dup) {
+        toast({
+          title: "CNPJ já cadastrado",
+          description: `Já existe um pré-cadastro para "${dup.nome_fantasia}" com este CNPJ.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       await updatePreProvider.mutateAsync({
         id: provider.id,
