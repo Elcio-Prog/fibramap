@@ -138,6 +138,11 @@ export default function PreProvidersPage() {
         return;
       }
     }
+    const contactErr = validateContatos(form.contatos);
+    if (contactErr) {
+      toast({ title: "Contato incompleto", description: contactErr, variant: "destructive" });
+      return;
+    }
     try {
       const cleanContatos = form.contatos
         .map(c => ({ ...c, titulo: (c.titulo || "").trim(), nome: c.nome.trim(), telefone_fixo: c.telefone_fixo.trim(), telefone_movel: c.telefone_movel.trim(), email: c.email.trim() }))
