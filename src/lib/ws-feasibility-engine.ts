@@ -296,17 +296,24 @@ async function processItem(
 
         let routeDistInsideCoverage = 0;
         let routeGeomInsideCoverage: any = undefined;
+        let snapPointInsideCoverage: [number, number] | undefined;
+        let destSnapPointInsideCoverage: [number, number] | undefined;
 
         if (cp?.point) {
-          // Linha reta: fibra do cliente até a caixa não segue fluxo da rua
-          routeDistInsideCoverage = cp.distance || 0;
-          routeGeomInsideCoverage = {
-            type: "LineString",
-            coordinates: [
-              [lng, lat],
-              [cp.point[1], cp.point[0]],
-            ],
-          };
+          try {
+            const routeResult = await getRouteDistancePreSnapped(
+              lat, lng, cp.point[0], cp.point[1], originSnap
+            );
+            if (routeResult) {
+              routeDistInsideCoverage = routeResult.distance;
+              routeGeomInsideCoverage = routeResult.geometry;
+              snapPointInsideCoverage = routeResult.snapPoint;
+              destSnapPointInsideCoverage = routeResult.destSnapPoint;
+            }
+          } catch {
+            // fallback: Haversine
+            routeDistInsideCoverage = cp.distance || 0;
+          }
         }
 
         allOptions.push({
@@ -321,8 +328,8 @@ async function processItem(
           ta_info: taNote,
           nearest_point: cp?.point,
           route_geometry: routeGeomInsideCoverage,
-          snap_point: undefined,
-          dest_snap_point: undefined,
+          snap_point: snapPointInsideCoverage,
+          dest_snap_point: destSnapPointInsideCoverage,
           is_own_network: true,
         });
       } else {
