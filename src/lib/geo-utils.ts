@@ -528,90 +528,50 @@ export async function findBestConnectionPointByRoute(
   console.log(`[GEO]   Apta: ${selectedBox.aptoNovoCliente}${selectedBox.motivoBloqueio ? ` [${selectedBox.motivoBloqueio}]` : ''}`);
   console.log(`[GEO] ═══════════════════════════════════════════════════`);
 
-  const originSnap = await snapToRoadCached(lat, lng);
-  const destSnap = await snapToRoadCached(selectedBox.lat, selectedBox.lng);
+  // === LINHA RETA: distância Haversine e geometria direta (sem OSRM) ===
+  // Na vida real, a fibra do cliente até a caixa não segue o fluxo da rua.
+  const straightLineDistance = selectedBox.distance; // already Haversine
+  const straightLineGeometry = {
+    type: "LineString" as const,
+    coordinates: [
+      [lng, lat],
+      [selectedBox.lng, selectedBox.lat],
+    ],
+  };
 
-  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
-  console.log(`[SNAP] Origem original:  lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}`);
-  if (originSnap) {
-    console.log(`[SNAP] Origem snapped:   lat=${originSnap.lat.toFixed(6)}, lng=${originSnap.lng.toFixed(6)} (offset ${Math.round(originSnap.offsetMeters)}m)`);
-    if (originSnap.offsetMeters > 50) {
-      console.warn(`[SNAP] ⚠ ALERTA: Origem está a ${Math.round(originSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento.`);
-    }
-  } else {
-    console.warn(`[SNAP] ⚠ Snap de origem FALHOU — usando coordenada original (pode causar falha no OSRM)`);
-  }
-  console.log(`[SNAP] Destino original: lat=${selectedBox.lat.toFixed(6)}, lng=${selectedBox.lng.toFixed(6)}`);
-  if (destSnap) {
-    console.log(`[SNAP] Destino snapped:  lat=${destSnap.lat.toFixed(6)}, lng=${destSnap.lng.toFixed(6)} (offset ${Math.round(destSnap.offsetMeters)}m)`);
-    if (destSnap.offsetMeters > 50) {
-      console.warn(`[SNAP] ⚠ ALERTA: Destino está a ${Math.round(destSnap.offsetMeters)}m da rua mais próxima! Possível erro de posicionamento da caixa.`);
-    }
-  } else {
-    console.warn(`[SNAP] ⚠ Snap de destino FALHOU — usando coordenada original da caixa`);
-  }
+  console.log(`[GEO] Linha reta: ${Math.round(straightLineDistance)}m de [${lat.toFixed(6)}, ${lng.toFixed(6)}] até [${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}]`);
 
-  const usedOriginLat = originSnap?.lat ?? lat;
-  const usedOriginLng = originSnap?.lng ?? lng;
-  const usedDestLat = destSnap?.lat ?? selectedBox.lat;
-  const usedDestLng = destSnap?.lng ?? selectedBox.lng;
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
-  console.log(`[SNAP] URL que será usada: ${routeUrl}`);
-  console.log(`[SNAP] ═══════════════════════════════════════════════════`);
-
-  const t0 = performance.now();
-  let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
-  const elapsed = Math.round(performance.now() - t0);
-
-  if (route) {
-    const geometryType = route.geometry?.type ?? route.geometry?.geometry?.type ?? "desconhecida";
-    const pointCount = route.geometry?.type === "Feature"
-      ? route.geometry?.geometry?.coordinates?.length ?? 0
-      : route.geometry?.coordinates?.length ?? 0;
-    console.log(`[GEO] ✓ Rota OSRM OK: distance=${Math.round(route.distance)}m, geometry=${geometryType}, pontos=${pointCount} (${elapsed}ms)`);
-    console.log(`[GEO] ✓ URL usada: ${routeUrl}`);
-    console.log(`[GEO] ✓ Geometria retornada:`, JSON.stringify(route.geometry).substring(0, 500));
-
-    if (!hasValidRouteGeometry(route.geometry)) {
-      console.warn(`[GEO] ✗ Geometria inválida: rota sem coordenadas válidas — não será desenhada.`);
-      route = null;
+  // Apply route filter (CPFL / highway checks) using the straight line geometry
+  if (routeFilter) {
+    const accepted = await routeFilter(selectedBox, { distance: straightLineDistance, geometry: straightLineGeometry });
+    if (!accepted) {
+      console.log(`[GEO] ✗ Linha reta rejeitada pelo filtro de regras técnicas`);
+      return null;
     }
   }
 
-  if (route) {
-    if (routeFilter) {
-      const accepted = await routeFilter(selectedBox, route);
-      if (!accepted) {
-        console.log(`[GEO] ✗ Rota rejeitada pelo filtro de regras técnicas`);
-        return null;
-      }
-    }
-
-    const isApto = selectedBox.aptoNovoCliente;
-    return {
-      taResult: {
-        distance: selectedBox.distance,
-        point: [selectedBox.lat, selectedBox.lng],
-        nome: selectedBox.nome,
-        tipo: selectedBox.tipo,
-        portaDisponivel: selectedBox.portaDisponivel,
-        aptoNovoCliente: isApto,
-        motivoBloqueio: selectedBox.motivoBloqueio,
-        motivo: isApto ? "mais_proximo" : "sem_apto",
-        sigla: selectedBox.sigla,
-        recipiente_sigla: selectedBox.recipiente_sigla,
-        portas_livres: selectedBox.portas_livres,
-        portas_ocupadas: selectedBox.portas_ocupadas,
-        tipo_splitter: selectedBox.tipo_splitter,
-        mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
-      },
-      routeDistance: route.distance,
-      routeGeometry: route.geometry,
-      snapPoint: route.snapPoint,
-      destSnapPoint: route.destSnapPoint,
-      verificationPending: false,
-    };
-  }
+  const isApto = selectedBox.aptoNovoCliente;
+  return {
+    taResult: {
+      distance: selectedBox.distance,
+      point: [selectedBox.lat, selectedBox.lng],
+      nome: selectedBox.nome,
+      tipo: selectedBox.tipo,
+      portaDisponivel: selectedBox.portaDisponivel,
+      aptoNovoCliente: isApto,
+      motivoBloqueio: selectedBox.motivoBloqueio,
+      motivo: isApto ? "mais_proximo" : "sem_apto",
+      sigla: selectedBox.sigla,
+      recipiente_sigla: selectedBox.recipiente_sigla,
+      portas_livres: selectedBox.portas_livres,
+      portas_ocupadas: selectedBox.portas_ocupadas,
+      tipo_splitter: selectedBox.tipo_splitter,
+      mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+    },
+    routeDistance: straightLineDistance,
+    routeGeometry: straightLineGeometry,
+    verificationPending: false,
+  };
 
   console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). Nenhuma rota real disponível; nada será desenhado.`);
 
