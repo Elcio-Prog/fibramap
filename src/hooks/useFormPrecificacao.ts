@@ -154,7 +154,7 @@ export function useFormPrecificacao() {
       supabase.from("custos_voz_pais").select("pais"),
       supabase.from("vigencia_vs_roi").select("meses, roi").order("meses"),
     ]).then(([redesRes, blocosRes, eqRes, paisRes, vigRes]) => {
-      setRedes(redesRes.data ?? []);
+      setRedes((redesRes.data ?? []).sort((a, b) => a.identificacao.localeCompare(b.identificacao, "pt-BR")));
       setBlocosIp(blocosRes.data ?? []);
       setEquipamentos((eqRes.data ?? []) as EquipamentoOption[]);
       setPaises(paisRes.data ?? []);
