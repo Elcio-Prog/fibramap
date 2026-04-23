@@ -425,37 +425,65 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         </div>
       </div>
 
-      <p className="text-xs font-semibold text-muted-foreground mt-4">Contato Comercial</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Nome</Label>
-          <Input value={form.contato_comercial_nome} onChange={e => update("contato_comercial_nome", e.target.value)} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input value={form.contato_comercial_fone} onChange={e => update("contato_comercial_fone", e.target.value)} />
-        </div>
-        <div>
-          <Label>E-mail</Label>
-          <Input value={form.contato_comercial_email} onChange={e => update("contato_comercial_email", e.target.value)} />
-        </div>
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs font-semibold text-muted-foreground">Contatos</p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => update("contatos", [
+            ...(form.contatos || []),
+            { id: crypto.randomUUID(), titulo: "Novo Contato", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+          ])}
+        >
+          <UserPlus className="h-4 w-4" /> Adicionar Contato
+        </Button>
       </div>
 
-      <p className="text-xs font-semibold text-muted-foreground mt-4">Contato NOC</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Nome</Label>
-          <Input value={form.contato_noc_nome} onChange={e => update("contato_noc_nome", e.target.value)} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input value={form.contato_noc_fone} onChange={e => update("contato_noc_fone", e.target.value)} />
-        </div>
-        <div>
-          <Label>E-mail</Label>
-          <Input value={form.contato_noc_email} onChange={e => update("contato_noc_email", e.target.value)} />
-        </div>
-      </div>
+      {(form.contatos as PreProviderContact[] || []).map((c, idx) => {
+        const updateContact = (field: keyof PreProviderContact, value: string) => {
+          const next = [...form.contatos];
+          next[idx] = { ...next[idx], [field]: value };
+          update("contatos", next);
+        };
+        const removeContact = () => {
+          update("contatos", form.contatos.filter((_: any, i: number) => i !== idx));
+        };
+        return (
+          <div key={c.id} className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Input
+                value={c.titulo}
+                onChange={e => updateContact("titulo", e.target.value)}
+                placeholder="Ex: Contato Comercial"
+                className="font-medium flex-1"
+              />
+              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <Label>Nome</Label>
+                <Input value={c.nome} onChange={e => updateContact("nome", e.target.value)} />
+              </div>
+              <div>
+                <Label>Telefone Fixo</Label>
+                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", e.target.value)} placeholder="(00) 0000-0000" />
+              </div>
+              <div>
+                <Label>Telefone Móvel</Label>
+                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", e.target.value)} placeholder="(00) 00000-0000" />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input value={c.email} onChange={e => updateContact("email", e.target.value)} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
       <div>
         <Label>Observações</Label>
