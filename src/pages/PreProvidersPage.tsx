@@ -480,7 +480,7 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
               <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-2">
+          <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-2">
             <div className="space-y-1">
               {CONTATO_TIPOS.map((tipo) => {
                 const list = (form.contatos as PreProviderContact[]) || [];
