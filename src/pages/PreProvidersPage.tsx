@@ -464,11 +464,11 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4 gap-3">
+      <div className="mt-4 space-y-1.5">
         <p className="text-xs font-semibold text-muted-foreground">Contatos</p>
         <Popover>
           <PopoverTrigger asChild>
-            <Button type="button" size="sm" variant="outline" className="gap-2 min-w-[220px] justify-between">
+            <Button type="button" size="sm" variant="outline" className="gap-2 w-full justify-between">
               <span className="truncate">
                 {(() => {
                   const tipos = (form.contatos as PreProviderContact[] || []).map(c => c.titulo);
