@@ -148,6 +148,7 @@ interface CompraLM {
   lng: number | null;
   banda_mbps: number | null;
   parceiro: string;
+  nome_pn: string | null;
   valor_mensal: number;
   status: string;
 }
