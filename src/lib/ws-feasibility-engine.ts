@@ -666,15 +666,16 @@ async function processItem(
     }
 
     if (bestLM) {
+      const lmDisplayName = bestLM.nome_pn || bestLM.parceiro;
       allOptions.push({
         stage: "LM Histórico",
-        provider_name: bestLM.parceiro,
+        provider_name: lmDisplayName,
         provider_id: "lm",
         provider_color: "#f59e0b",
         distance_m: Math.round(bestDist * 1000),
         lpu_value: bestLM.valor_mensal,
         final_value: bestLM.valor_mensal,
-        notes: `LM Histórico - ${bestLM.parceiro} - ${bestDist.toFixed(1)}km - R$${bestLM.valor_mensal}`,
+        notes: `LM Histórico - ${lmDisplayName} - ${bestDist.toFixed(1)}km - R$${bestLM.valor_mensal}`,
       });
     }
   }
