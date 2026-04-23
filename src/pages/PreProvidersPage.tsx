@@ -52,7 +52,7 @@ function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
   if (provider?.contato_comercial_nome || provider?.contato_comercial_fone || provider?.contato_comercial_email) {
     legacy.push({
       id: crypto.randomUUID(),
-      titulo: "Contato Comercial",
+      titulo: "Comercial",
       nome: provider.contato_comercial_nome || "",
       telefone_fixo: "",
       telefone_movel: provider.contato_comercial_fone || "",
@@ -62,7 +62,7 @@ function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
   if (provider?.contato_noc_nome || provider?.contato_noc_fone || provider?.contato_noc_email) {
     legacy.push({
       id: crypto.randomUUID(),
-      titulo: "Contato NOC",
+      titulo: "NOC",
       nome: provider.contato_noc_nome || "",
       telefone_fixo: "",
       telefone_movel: provider.contato_noc_fone || "",
@@ -72,8 +72,8 @@ function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
   if (legacy.length > 0) return legacy;
   // Default for new providers
   return [
-    { id: crypto.randomUUID(), titulo: "Contato Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
-    { id: crypto.randomUUID(), titulo: "Contato NOC", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+    { id: crypto.randomUUID(), titulo: "Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+    { id: crypto.randomUUID(), titulo: "NOC", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
   ];
 }
 
