@@ -555,7 +555,7 @@ export async function findBestConnectionPointByRoute(
   const usedOriginLng = originSnap?.lng ?? lng;
   const usedDestLat = destSnap?.lat ?? selectedBox.lat;
   const usedDestLng = destSnap?.lng ?? selectedBox.lng;
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+  const routeUrl = `https://router.project-osrm.org/route/v1/foot/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
   console.log(`[SNAP] URL que será usada: ${routeUrl}`);
   console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
