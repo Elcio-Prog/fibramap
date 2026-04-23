@@ -20,7 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2, UserPlus } from "lucide-react";
+
+const CONTATO_TIPOS = ["Comercial", "NOC", "Pré Vendas"] as const;
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 
