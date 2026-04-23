@@ -501,10 +501,19 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           dados_precificacao: buildDadosPrecificacao(),
           data_reavaliacao: meta.data_reavaliacao || null,
           anexos: anexos as any,
-          // Save projetista distance when applicable
-          ...(item.distancia_sistema != null ? {
-            distancia_projetista: calcForm.distancia || null,
-          } : {}),
+          // Variância: só registra distancia_projetista quando o valor for de fato
+          // diferente do que o sistema calculou (tolerância de 1m). Se a distância
+          // não foi alterada — mesmo que o nome do projetista tenha sido preenchido —
+          // mantemos null para não gerar variância indevida.
+          ...(item.distancia_sistema != null
+            ? {
+                distancia_projetista:
+                  calcForm.distancia &&
+                  Math.abs(calcForm.distancia - item.distancia_sistema) > 1
+                    ? calcForm.distancia
+                    : null,
+              }
+            : {}),
         } as any,
       });
       // Recalculate ROI Global for the umbrella group
