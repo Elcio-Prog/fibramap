@@ -486,11 +486,11 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
               </div>
               <div>
                 <Label>Telefone Fixo</Label>
-                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", e.target.value)} placeholder="(00) 0000-0000" />
+                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", maskPhoneFixo(e.target.value))} placeholder="(00) 0000-0000" inputMode="numeric" />
               </div>
               <div>
                 <Label>Telefone Móvel</Label>
-                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", e.target.value)} placeholder="(00) 00000-0000" />
+                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", maskPhoneMovel(e.target.value))} placeholder="(00) 00000-0000" inputMode="numeric" />
               </div>
               <div>
                 <Label>E-mail</Label>
