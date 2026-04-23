@@ -409,6 +409,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
   const updatePreProvider = useUpdatePreProvider();
   const { toast } = useToast();
   const [form, setForm] = useState({
+    cnpj: (provider as any).cnpj || "",
     nome_fantasia: provider.nome_fantasia,
     razao_social: provider.razao_social || "",
     cidade_sede: provider.cidade_sede || "",
@@ -428,6 +429,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
     try {
       await updatePreProvider.mutateAsync({
         id: provider.id,
+        cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
         razao_social: form.razao_social.trim() || null,
         cidade_sede: form.cidade_sede.trim() || null,
@@ -441,7 +443,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
         contato_noc_fone: form.contato_noc_fone.trim() || null,
         contato_noc_email: form.contato_noc_email.trim() || null,
         observacoes: form.observacoes.trim() || null,
-      });
+      } as any);
       toast({ title: "Pré-cadastro atualizado!" });
       onClose();
     } catch (err: any) {
