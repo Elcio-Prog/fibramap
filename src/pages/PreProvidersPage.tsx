@@ -75,6 +75,20 @@ export default function PreProvidersPage() {
 
   const handleCreate = async () => {
     if (!form.nome_fantasia.trim()) return;
+    const cnpjDigits = (form.cnpj || "").replace(/\D/g, "");
+    if (cnpjDigits) {
+      const dup = (preProviders || []).find(
+        p => ((p as any).cnpj || "").replace(/\D/g, "") === cnpjDigits
+      );
+      if (dup) {
+        toast({
+          title: "CNPJ já cadastrado",
+          description: `Já existe um pré-cadastro para "${dup.nome_fantasia}" com este CNPJ.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       await createPreProvider.mutateAsync({
         cnpj: form.cnpj.trim() || null,
