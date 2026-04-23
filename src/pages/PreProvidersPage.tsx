@@ -48,6 +48,7 @@ export default function PreProvidersPage() {
 
   // Form state
   const [form, setForm] = useState({
+    cnpj: "",
     nome_fantasia: "",
     razao_social: "",
     cidade_sede: "",
@@ -65,7 +66,7 @@ export default function PreProvidersPage() {
 
   const resetForm = () => {
     setForm({
-      nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
+      cnpj: "", nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
       has_cross_ntt: false, oferece_mancha: "NÃO",
       contato_comercial_nome: "", contato_comercial_fone: "", contato_comercial_email: "",
       contato_noc_nome: "", contato_noc_fone: "", contato_noc_email: "", observacoes: "",
@@ -76,6 +77,7 @@ export default function PreProvidersPage() {
     if (!form.nome_fantasia.trim()) return;
     try {
       await createPreProvider.mutateAsync({
+        cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
         razao_social: form.razao_social.trim() || null,
         cidade_sede: form.cidade_sede.trim() || null,
@@ -89,7 +91,7 @@ export default function PreProvidersPage() {
         contato_noc_fone: form.contato_noc_fone.trim() || null,
         contato_noc_email: form.contato_noc_email.trim() || null,
         observacoes: form.observacoes.trim() || null,
-      });
+      } as any);
       resetForm();
       setShowForm(false);
       toast({ title: "Pré-cadastro criado!" });
