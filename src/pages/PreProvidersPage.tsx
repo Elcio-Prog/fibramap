@@ -402,7 +402,7 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
               <span className="ml-1">Buscar</span>
             </Button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">Preenche automaticamente os campos via BrasilAPI</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Preenche automaticamente os campos</p>
         </div>
       </div>
 
