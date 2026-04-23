@@ -50,7 +50,7 @@ export function usePreProviders() {
         .select("*")
         .order("nome_fantasia");
       if (error) throw error;
-      return data as PreProvider[];
+      return data as unknown as PreProvider[];
     },
   });
 }
