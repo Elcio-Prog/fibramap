@@ -266,8 +266,68 @@ export default function PreProvidersPage() {
 
 function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
   const update = (field: string, value: any) => setForm({ ...form, [field]: value });
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const { toast } = useToast();
+
+  const lookupCnpj = async () => {
+    const digits = (form.cnpj || "").replace(/\D/g, "");
+    if (digits.length !== 14) {
+      toast({ title: "CNPJ inválido", description: "Digite os 14 dígitos do CNPJ", variant: "destructive" });
+      return;
+    }
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "CNPJ não encontrado");
+      }
+      const data = await res.json();
+      // Map BrasilAPI fields → form
+      setForm({
+        ...form,
+        cnpj: formatCnpj(digits),
+        razao_social: data.razao_social || form.razao_social,
+        nome_fantasia: data.nome_fantasia || data.razao_social || form.nome_fantasia,
+        cidade_sede: data.municipio || form.cidade_sede,
+        estado_sede: data.uf || form.estado_sede,
+        contato_comercial_fone:
+          form.contato_comercial_fone ||
+          (data.ddd_telefone_1 ? data.ddd_telefone_1 : "") ||
+          "",
+        contato_comercial_email: form.contato_comercial_email || data.email || "",
+      });
+      toast({ title: "Dados carregados", description: data.razao_social });
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar CNPJ", description: err.message, variant: "destructive" });
+    } finally {
+      setCnpjLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <p className="text-xs font-semibold text-muted-foreground">Identificação</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="col-span-2">
+          <Label>CNPJ</Label>
+          <div className="flex gap-2">
+            <Input
+              value={form.cnpj || ""}
+              onChange={e => update("cnpj", formatCnpj(e.target.value))}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupCnpj(); } }}
+            />
+            <Button type="button" variant="outline" onClick={lookupCnpj} disabled={cnpjLoading} className="shrink-0">
+              {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-1">Buscar</span>
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Preenche automaticamente os campos via BrasilAPI</p>
+        </div>
+      </div>
+
       <p className="text-xs font-semibold text-muted-foreground">Dados da Empresa</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="col-span-2">
