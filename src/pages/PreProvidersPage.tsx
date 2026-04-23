@@ -743,14 +743,34 @@ function DetailDialog({ provider, onClose }: { provider: PreProvider; onClose: (
             <div><span className="font-medium">Cross NTT:</span> {provider.has_cross_ntt ? "Sim" : "Não"}</div>
             <div><span className="font-medium">Mancha:</span> {provider.oferece_mancha || "NÃO"}</div>
           </div>
-          <div className="border-t pt-2">
-            <p className="font-medium">Contato Comercial</p>
-            <p>{provider.contato_comercial_nome || "—"} | {provider.contato_comercial_fone || "—"} | {provider.contato_comercial_email || "—"}</p>
-          </div>
-          <div className="border-t pt-2">
-            <p className="font-medium">Contato NOC</p>
-            <p>{provider.contato_noc_nome || "—"} | {provider.contato_noc_fone || "—"} | {provider.contato_noc_email || "—"}</p>
-          </div>
+          {(() => {
+            const list = (provider.contatos as PreProviderContact[] | null) || [];
+            if (list.length === 0) {
+              return (
+                <>
+                  <div className="border-t pt-2">
+                    <p className="font-medium">Contato Comercial</p>
+                    <p>{provider.contato_comercial_nome || "—"} | {provider.contato_comercial_fone || "—"} | {provider.contato_comercial_email || "—"}</p>
+                  </div>
+                  <div className="border-t pt-2">
+                    <p className="font-medium">Contato NOC</p>
+                    <p>{provider.contato_noc_nome || "—"} | {provider.contato_noc_fone || "—"} | {provider.contato_noc_email || "—"}</p>
+                  </div>
+                </>
+              );
+            }
+            return list.map(c => (
+              <div key={c.id} className="border-t pt-2">
+                <p className="font-medium">{c.titulo || "Contato"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.nome || "—"}
+                  {c.telefone_fixo && <> | Fixo: {c.telefone_fixo}</>}
+                  {c.telefone_movel && <> | Móvel: {c.telefone_movel}</>}
+                  {c.email && <> | {c.email}</>}
+                </p>
+              </div>
+            ));
+          })()}
           {provider.observacoes && (
             <div className="border-t pt-2">
               <p className="font-medium">Observações</p>
