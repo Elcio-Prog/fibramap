@@ -87,6 +87,19 @@ function formatCnpj(v: string) {
     .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
+// Validate contacts: every contact must have nome, telefone_movel and email
+function validateContatos(contatos: PreProviderContact[]): string | null {
+  const filled = (contatos || []).filter(c => c.nome?.trim() || c.telefone_movel?.trim() || c.email?.trim() || c.telefone_fixo?.trim());
+  for (let i = 0; i < filled.length; i++) {
+    const c = filled[i];
+    const label = c.titulo || `Contato ${i + 1}`;
+    if (!c.nome?.trim()) return `${label}: Nome é obrigatório.`;
+    if (!c.telefone_movel?.trim()) return `${label}: Telefone Móvel é obrigatório.`;
+    if (!c.email?.trim()) return `${label}: E-mail é obrigatório.`;
+  }
+  return null;
+}
+
 export default function PreProvidersPage() {
   const { data: preProviders, isLoading } = usePreProviders();
   const { isAdmin } = useUserRole();
