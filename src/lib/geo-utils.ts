@@ -555,7 +555,7 @@ export async function findBestConnectionPointByRoute(
   const usedOriginLng = originSnap?.lng ?? lng;
   const usedDestLat = destSnap?.lat ?? selectedBox.lat;
   const usedDestLng = destSnap?.lng ?? selectedBox.lng;
-  const routeUrl = `https://router.project-osrm.org/route/v1/driving/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+  const routeUrl = `https://router.project-osrm.org/route/v1/foot/${usedOriginLng},${usedOriginLat};${usedDestLng},${usedDestLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
   console.log(`[SNAP] URL que será usada: ${routeUrl}`);
   console.log(`[SNAP] ═══════════════════════════════════════════════════`);
 
@@ -1177,7 +1177,7 @@ export async function getRouteDistanceFast(
   const doFetch = async (): Promise<{ distance: number; geometry: any } | null | 'rate_limited'> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
