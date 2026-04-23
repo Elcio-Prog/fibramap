@@ -1177,7 +1177,7 @@ export async function getRouteDistanceFast(
   const doFetch = async (): Promise<{ distance: number; geometry: any } | null | 'rate_limited'> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
