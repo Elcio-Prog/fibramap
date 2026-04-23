@@ -592,8 +592,8 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <Input placeholder="Cidade" value={cidade} onChange={e => setCidade(e.target.value)} className="flex-1" />
-            <Input placeholder="UF" value={estado} onChange={e => setEstado(e.target.value)} className="w-16" maxLength={2} />
+            <Input placeholder="Cidade *" value={cidade} onChange={e => setCidade(e.target.value)} className="flex-1" />
+            <Input placeholder="UF *" value={estado} onChange={e => setEstado(e.target.value)} className="w-16" maxLength={2} />
             <Button onClick={handleAdd} size="sm"><Plus className="h-4 w-4" /></Button>
           </div>
           <div className="flex items-center gap-2">
