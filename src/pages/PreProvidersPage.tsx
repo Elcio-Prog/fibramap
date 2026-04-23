@@ -502,8 +502,11 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
   const { toast } = useToast();
 
   const handleAdd = async () => {
-    if (!cidade.trim()) return;
-    await addCity.mutateAsync({ pre_provider_id: preProviderId, cidade: cidade.trim(), estado: estado.trim() || undefined });
+    if (!cidade.trim() || !estado.trim()) {
+      toast({ title: "Cidade e UF são obrigatórios", variant: "destructive" });
+      return;
+    }
+    await addCity.mutateAsync({ pre_provider_id: preProviderId, cidade: cidade.trim(), estado: estado.trim() });
     setCidade("");
     setEstado("");
     toast({ title: "Cidade adicionada" });
