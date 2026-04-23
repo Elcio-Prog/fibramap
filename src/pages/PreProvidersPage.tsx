@@ -225,8 +225,18 @@ export default function PreProvidersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {pp.contato_comercial_nome && <span>{pp.contato_comercial_nome} {pp.contato_comercial_fone && `- ${pp.contato_comercial_fone}`}</span>}
-                      {!pp.contato_comercial_nome && "—"}
+                      {(() => {
+                        const list = (pp.contatos as any[] | null) || [];
+                        const primary = list[0];
+                        if (primary) {
+                          const fone = primary.telefone_movel || primary.telefone_fixo;
+                          return <span>{primary.nome || primary.titulo} {fone && `- ${fone}`}</span>;
+                        }
+                        if (pp.contato_comercial_nome) {
+                          return <span>{pp.contato_comercial_nome} {pp.contato_comercial_fone && `- ${pp.contato_comercial_fone}`}</span>;
+                        }
+                        return "—";
+                      })()}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => setDetailProvider(pp)} title="Detalhes">
