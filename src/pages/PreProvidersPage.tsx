@@ -19,9 +19,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+
+// Format CNPJ as 00.000.000/0000-00
+function formatCnpj(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
 
 export default function PreProvidersPage() {
   const { data: preProviders, isLoading } = usePreProviders();
