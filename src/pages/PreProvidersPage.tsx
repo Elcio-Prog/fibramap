@@ -453,7 +453,7 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
           className="gap-1"
           onClick={() => update("contatos", [
             ...(form.contatos || []),
-            { id: crypto.randomUUID(), titulo: "Novo Contato", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+            { id: crypto.randomUUID(), titulo: "Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
           ])}
         >
           <UserPlus className="h-4 w-4" /> Adicionar Contato
@@ -469,35 +469,43 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         const removeContact = () => {
           update("contatos", form.contatos.filter((_: any, i: number) => i !== idx));
         };
+        const tipoValue = CONTATO_TIPOS.includes(c.titulo as any) ? c.titulo : "Comercial";
         return (
           <div key={c.id} className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
             <div className="flex items-center gap-2">
-              <Input
-                value={c.titulo}
-                onChange={e => updateContact("titulo", e.target.value)}
-                placeholder="Ex: Contato Comercial"
-                className="font-medium flex-1"
-              />
-              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato">
+              <div className="flex-1 max-w-xs">
+                <Label className="text-xs">Tipo de Contato</Label>
+                <Select value={tipoValue} onValueChange={(v) => updateContact("titulo", v)}>
+                  <SelectTrigger className="font-medium">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTATO_TIPOS.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato" className="mt-5">
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <Label>Nome</Label>
-                <Input value={c.nome} onChange={e => updateContact("nome", e.target.value)} />
+                <Label>Nome *</Label>
+                <Input value={c.nome} onChange={e => updateContact("nome", e.target.value)} required />
               </div>
               <div>
                 <Label>Telefone Fixo</Label>
                 <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", maskPhoneFixo(e.target.value))} placeholder="(00) 0000-0000" inputMode="numeric" />
               </div>
               <div>
-                <Label>Telefone Móvel</Label>
-                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", maskPhoneMovel(e.target.value))} placeholder="(00) 00000-0000" inputMode="numeric" />
+                <Label>Telefone Móvel *</Label>
+                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", maskPhoneMovel(e.target.value))} placeholder="(00) 00000-0000" inputMode="numeric" required />
               </div>
               <div>
-                <Label>E-mail</Label>
-                <Input value={c.email} onChange={e => updateContact("email", e.target.value)} />
+                <Label>E-mail *</Label>
+                <Input type="email" value={c.email} onChange={e => updateContact("email", e.target.value)} required />
               </div>
             </div>
           </div>
