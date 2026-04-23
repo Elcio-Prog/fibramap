@@ -10,6 +10,7 @@ import {
   useDeletePreProviderCity,
   usePromotePreProvider,
   PreProvider,
+  PreProviderContact,
 } from "@/hooks/usePreProviders";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2, UserPlus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+
+// Build initial contacts list, preserving legacy fields if present
+function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
+  const list: PreProviderContact[] = Array.isArray(provider?.contatos) ? [...(provider!.contatos as PreProviderContact[])] : [];
+  if (list.length > 0) return list;
+  // Legacy migration on the fly
+  const legacy: PreProviderContact[] = [];
+  if (provider?.contato_comercial_nome || provider?.contato_comercial_fone || provider?.contato_comercial_email) {
+    legacy.push({
+      id: crypto.randomUUID(),
+      titulo: "Contato Comercial",
+      nome: provider.contato_comercial_nome || "",
+      telefone_fixo: "",
+      telefone_movel: provider.contato_comercial_fone || "",
+      email: provider.contato_comercial_email || "",
+    });
+  }
+  if (provider?.contato_noc_nome || provider?.contato_noc_fone || provider?.contato_noc_email) {
+    legacy.push({
+      id: crypto.randomUUID(),
+      titulo: "Contato NOC",
+      nome: provider.contato_noc_nome || "",
+      telefone_fixo: "",
+      telefone_movel: provider.contato_noc_fone || "",
+      email: provider.contato_noc_email || "",
+    });
+  }
+  if (legacy.length > 0) return legacy;
+  // Default for new providers
+  return [
+    { id: crypto.randomUUID(), titulo: "Contato Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+    { id: crypto.randomUUID(), titulo: "Contato NOC", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+  ];
+}
 
 // Format CNPJ as 00.000.000/0000-00
 function formatCnpj(v: string) {
@@ -55,12 +90,7 @@ export default function PreProvidersPage() {
     estado_sede: "",
     has_cross_ntt: false,
     oferece_mancha: "NÃO",
-    contato_comercial_nome: "",
-    contato_comercial_fone: "",
-    contato_comercial_email: "",
-    contato_noc_nome: "",
-    contato_noc_fone: "",
-    contato_noc_email: "",
+    contatos: initialContacts(null),
     observacoes: "",
   });
 
@@ -68,8 +98,8 @@ export default function PreProvidersPage() {
     setForm({
       cnpj: "", nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
       has_cross_ntt: false, oferece_mancha: "NÃO",
-      contato_comercial_nome: "", contato_comercial_fone: "", contato_comercial_email: "",
-      contato_noc_nome: "", contato_noc_fone: "", contato_noc_email: "", observacoes: "",
+      contatos: initialContacts(null),
+      observacoes: "",
     });
   };
 
@@ -90,6 +120,11 @@ export default function PreProvidersPage() {
       }
     }
     try {
+      const cleanContatos = form.contatos
+        .map(c => ({ ...c, titulo: (c.titulo || "").trim(), nome: c.nome.trim(), telefone_fixo: c.telefone_fixo.trim(), telefone_movel: c.telefone_movel.trim(), email: c.email.trim() }))
+        .filter(c => c.titulo || c.nome || c.telefone_fixo || c.telefone_movel || c.email);
+      const primary = cleanContatos[0];
+      const noc = cleanContatos.find(c => /noc/i.test(c.titulo)) || cleanContatos[1];
       await createPreProvider.mutateAsync({
         cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
@@ -98,12 +133,13 @@ export default function PreProvidersPage() {
         estado_sede: form.estado_sede.trim() || null,
         has_cross_ntt: form.has_cross_ntt,
         oferece_mancha: form.oferece_mancha || "NÃO",
-        contato_comercial_nome: form.contato_comercial_nome.trim() || null,
-        contato_comercial_fone: form.contato_comercial_fone.trim() || null,
-        contato_comercial_email: form.contato_comercial_email.trim() || null,
-        contato_noc_nome: form.contato_noc_nome.trim() || null,
-        contato_noc_fone: form.contato_noc_fone.trim() || null,
-        contato_noc_email: form.contato_noc_email.trim() || null,
+        contatos: cleanContatos,
+        contato_comercial_nome: primary?.nome || null,
+        contato_comercial_fone: primary?.telefone_movel || primary?.telefone_fixo || null,
+        contato_comercial_email: primary?.email || null,
+        contato_noc_nome: noc?.nome || null,
+        contato_noc_fone: noc?.telefone_movel || noc?.telefone_fixo || null,
+        contato_noc_email: noc?.email || null,
         observacoes: form.observacoes.trim() || null,
       } as any);
       resetForm();
@@ -189,8 +225,18 @@ export default function PreProvidersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {pp.contato_comercial_nome && <span>{pp.contato_comercial_nome} {pp.contato_comercial_fone && `- ${pp.contato_comercial_fone}`}</span>}
-                      {!pp.contato_comercial_nome && "—"}
+                      {(() => {
+                        const list = (pp.contatos as any[] | null) || [];
+                        const primary = list[0];
+                        if (primary) {
+                          const fone = primary.telefone_movel || primary.telefone_fixo;
+                          return <span>{primary.nome || primary.titulo} {fone && `- ${fone}`}</span>;
+                        }
+                        if (pp.contato_comercial_nome) {
+                          return <span>{pp.contato_comercial_nome} {pp.contato_comercial_fone && `- ${pp.contato_comercial_fone}`}</span>;
+                        }
+                        return "—";
+                      })()}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => setDetailProvider(pp)} title="Detalhes">
@@ -379,37 +425,65 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         </div>
       </div>
 
-      <p className="text-xs font-semibold text-muted-foreground mt-4">Contato Comercial</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Nome</Label>
-          <Input value={form.contato_comercial_nome} onChange={e => update("contato_comercial_nome", e.target.value)} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input value={form.contato_comercial_fone} onChange={e => update("contato_comercial_fone", e.target.value)} />
-        </div>
-        <div>
-          <Label>E-mail</Label>
-          <Input value={form.contato_comercial_email} onChange={e => update("contato_comercial_email", e.target.value)} />
-        </div>
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs font-semibold text-muted-foreground">Contatos</p>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="gap-1"
+          onClick={() => update("contatos", [
+            ...(form.contatos || []),
+            { id: crypto.randomUUID(), titulo: "Novo Contato", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+          ])}
+        >
+          <UserPlus className="h-4 w-4" /> Adicionar Contato
+        </Button>
       </div>
 
-      <p className="text-xs font-semibold text-muted-foreground mt-4">Contato NOC</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label>Nome</Label>
-          <Input value={form.contato_noc_nome} onChange={e => update("contato_noc_nome", e.target.value)} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input value={form.contato_noc_fone} onChange={e => update("contato_noc_fone", e.target.value)} />
-        </div>
-        <div>
-          <Label>E-mail</Label>
-          <Input value={form.contato_noc_email} onChange={e => update("contato_noc_email", e.target.value)} />
-        </div>
-      </div>
+      {(form.contatos as PreProviderContact[] || []).map((c, idx) => {
+        const updateContact = (field: keyof PreProviderContact, value: string) => {
+          const next = [...form.contatos];
+          next[idx] = { ...next[idx], [field]: value };
+          update("contatos", next);
+        };
+        const removeContact = () => {
+          update("contatos", form.contatos.filter((_: any, i: number) => i !== idx));
+        };
+        return (
+          <div key={c.id} className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Input
+                value={c.titulo}
+                onChange={e => updateContact("titulo", e.target.value)}
+                placeholder="Ex: Contato Comercial"
+                className="font-medium flex-1"
+              />
+              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato">
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <Label>Nome</Label>
+                <Input value={c.nome} onChange={e => updateContact("nome", e.target.value)} />
+              </div>
+              <div>
+                <Label>Telefone Fixo</Label>
+                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", e.target.value)} placeholder="(00) 0000-0000" />
+              </div>
+              <div>
+                <Label>Telefone Móvel</Label>
+                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", e.target.value)} placeholder="(00) 00000-0000" />
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input value={c.email} onChange={e => updateContact("email", e.target.value)} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
       <div>
         <Label>Observações</Label>
@@ -430,12 +504,7 @@ function EditPreProviderDialog({ provider, allProviders, onClose }: { provider: 
     estado_sede: provider.estado_sede || "",
     has_cross_ntt: provider.has_cross_ntt,
     oferece_mancha: provider.oferece_mancha || "NÃO",
-    contato_comercial_nome: provider.contato_comercial_nome || "",
-    contato_comercial_fone: provider.contato_comercial_fone || "",
-    contato_comercial_email: provider.contato_comercial_email || "",
-    contato_noc_nome: provider.contato_noc_nome || "",
-    contato_noc_fone: provider.contato_noc_fone || "",
-    contato_noc_email: provider.contato_noc_email || "",
+    contatos: initialContacts(provider),
     observacoes: provider.observacoes || "",
   });
 
@@ -455,6 +524,11 @@ function EditPreProviderDialog({ provider, allProviders, onClose }: { provider: 
       }
     }
     try {
+      const cleanContatos = form.contatos
+        .map(c => ({ ...c, titulo: (c.titulo || "").trim(), nome: c.nome.trim(), telefone_fixo: c.telefone_fixo.trim(), telefone_movel: c.telefone_movel.trim(), email: c.email.trim() }))
+        .filter(c => c.titulo || c.nome || c.telefone_fixo || c.telefone_movel || c.email);
+      const primary = cleanContatos[0];
+      const noc = cleanContatos.find(c => /noc/i.test(c.titulo)) || cleanContatos[1];
       await updatePreProvider.mutateAsync({
         id: provider.id,
         cnpj: form.cnpj.trim() || null,
@@ -464,12 +538,13 @@ function EditPreProviderDialog({ provider, allProviders, onClose }: { provider: 
         estado_sede: form.estado_sede.trim() || null,
         has_cross_ntt: form.has_cross_ntt,
         oferece_mancha: form.oferece_mancha,
-        contato_comercial_nome: form.contato_comercial_nome.trim() || null,
-        contato_comercial_fone: form.contato_comercial_fone.trim() || null,
-        contato_comercial_email: form.contato_comercial_email.trim() || null,
-        contato_noc_nome: form.contato_noc_nome.trim() || null,
-        contato_noc_fone: form.contato_noc_fone.trim() || null,
-        contato_noc_email: form.contato_noc_email.trim() || null,
+        contatos: cleanContatos,
+        contato_comercial_nome: primary?.nome || null,
+        contato_comercial_fone: primary?.telefone_movel || primary?.telefone_fixo || null,
+        contato_comercial_email: primary?.email || null,
+        contato_noc_nome: noc?.nome || null,
+        contato_noc_fone: noc?.telefone_movel || noc?.telefone_fixo || null,
+        contato_noc_email: noc?.email || null,
         observacoes: form.observacoes.trim() || null,
       } as any);
       toast({ title: "Pré-cadastro atualizado!" });
@@ -668,14 +743,34 @@ function DetailDialog({ provider, onClose }: { provider: PreProvider; onClose: (
             <div><span className="font-medium">Cross NTT:</span> {provider.has_cross_ntt ? "Sim" : "Não"}</div>
             <div><span className="font-medium">Mancha:</span> {provider.oferece_mancha || "NÃO"}</div>
           </div>
-          <div className="border-t pt-2">
-            <p className="font-medium">Contato Comercial</p>
-            <p>{provider.contato_comercial_nome || "—"} | {provider.contato_comercial_fone || "—"} | {provider.contato_comercial_email || "—"}</p>
-          </div>
-          <div className="border-t pt-2">
-            <p className="font-medium">Contato NOC</p>
-            <p>{provider.contato_noc_nome || "—"} | {provider.contato_noc_fone || "—"} | {provider.contato_noc_email || "—"}</p>
-          </div>
+          {(() => {
+            const list = (provider.contatos as PreProviderContact[] | null) || [];
+            if (list.length === 0) {
+              return (
+                <>
+                  <div className="border-t pt-2">
+                    <p className="font-medium">Contato Comercial</p>
+                    <p>{provider.contato_comercial_nome || "—"} | {provider.contato_comercial_fone || "—"} | {provider.contato_comercial_email || "—"}</p>
+                  </div>
+                  <div className="border-t pt-2">
+                    <p className="font-medium">Contato NOC</p>
+                    <p>{provider.contato_noc_nome || "—"} | {provider.contato_noc_fone || "—"} | {provider.contato_noc_email || "—"}</p>
+                  </div>
+                </>
+              );
+            }
+            return list.map(c => (
+              <div key={c.id} className="border-t pt-2">
+                <p className="font-medium">{c.titulo || "Contato"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {c.nome || "—"}
+                  {c.telefone_fixo && <> | Fixo: {c.telefone_fixo}</>}
+                  {c.telefone_movel && <> | Móvel: {c.telefone_movel}</>}
+                  {c.email && <> | {c.email}</>}
+                </p>
+              </div>
+            ));
+          })()}
           {provider.observacoes && (
             <div className="border-t pt-2">
               <p className="font-medium">Observações</p>
