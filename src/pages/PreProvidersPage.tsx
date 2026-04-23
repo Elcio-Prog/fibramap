@@ -90,12 +90,7 @@ export default function PreProvidersPage() {
     estado_sede: "",
     has_cross_ntt: false,
     oferece_mancha: "NÃO",
-    contato_comercial_nome: "",
-    contato_comercial_fone: "",
-    contato_comercial_email: "",
-    contato_noc_nome: "",
-    contato_noc_fone: "",
-    contato_noc_email: "",
+    contatos: initialContacts(null),
     observacoes: "",
   });
 
@@ -103,8 +98,8 @@ export default function PreProvidersPage() {
     setForm({
       cnpj: "", nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
       has_cross_ntt: false, oferece_mancha: "NÃO",
-      contato_comercial_nome: "", contato_comercial_fone: "", contato_comercial_email: "",
-      contato_noc_nome: "", contato_noc_fone: "", contato_noc_email: "", observacoes: "",
+      contatos: initialContacts(null),
+      observacoes: "",
     });
   };
 
@@ -125,6 +120,11 @@ export default function PreProvidersPage() {
       }
     }
     try {
+      const cleanContatos = form.contatos
+        .map(c => ({ ...c, titulo: (c.titulo || "").trim(), nome: c.nome.trim(), telefone_fixo: c.telefone_fixo.trim(), telefone_movel: c.telefone_movel.trim(), email: c.email.trim() }))
+        .filter(c => c.titulo || c.nome || c.telefone_fixo || c.telefone_movel || c.email);
+      const primary = cleanContatos[0];
+      const noc = cleanContatos.find(c => /noc/i.test(c.titulo)) || cleanContatos[1];
       await createPreProvider.mutateAsync({
         cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
@@ -133,12 +133,13 @@ export default function PreProvidersPage() {
         estado_sede: form.estado_sede.trim() || null,
         has_cross_ntt: form.has_cross_ntt,
         oferece_mancha: form.oferece_mancha || "NÃO",
-        contato_comercial_nome: form.contato_comercial_nome.trim() || null,
-        contato_comercial_fone: form.contato_comercial_fone.trim() || null,
-        contato_comercial_email: form.contato_comercial_email.trim() || null,
-        contato_noc_nome: form.contato_noc_nome.trim() || null,
-        contato_noc_fone: form.contato_noc_fone.trim() || null,
-        contato_noc_email: form.contato_noc_email.trim() || null,
+        contatos: cleanContatos,
+        contato_comercial_nome: primary?.nome || null,
+        contato_comercial_fone: primary?.telefone_movel || primary?.telefone_fixo || null,
+        contato_comercial_email: primary?.email || null,
+        contato_noc_nome: noc?.nome || null,
+        contato_noc_fone: noc?.telefone_movel || noc?.telefone_fixo || null,
+        contato_noc_email: noc?.email || null,
         observacoes: form.observacoes.trim() || null,
       } as any);
       resetForm();
