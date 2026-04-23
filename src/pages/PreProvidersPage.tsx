@@ -502,8 +502,11 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
   const { toast } = useToast();
 
   const handleAdd = async () => {
-    if (!cidade.trim()) return;
-    await addCity.mutateAsync({ pre_provider_id: preProviderId, cidade: cidade.trim(), estado: estado.trim() || undefined });
+    if (!cidade.trim() || !estado.trim()) {
+      toast({ title: "Cidade e UF são obrigatórios", variant: "destructive" });
+      return;
+    }
+    await addCity.mutateAsync({ pre_provider_id: preProviderId, cidade: cidade.trim(), estado: estado.trim() });
     setCidade("");
     setEstado("");
     toast({ title: "Cidade adicionada" });
@@ -524,10 +527,19 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         return;
       }
 
-      // Try to find cidade/uf columns (flexible matching)
+      // Find required cidade/uf columns
       const headers = Object.keys(rows[0]);
-      const cidadeCol = headers.find(h => /cidade/i.test(h)) || headers[0];
-      const ufCol = headers.find(h => /uf|estado|sigla/i.test(h));
+      const cidadeCol = headers.find(h => /cidade/i.test(h));
+      const ufCol = headers.find(h => /\b(uf|estado|sigla)\b/i.test(h));
+
+      if (!cidadeCol || !ufCol) {
+        toast({
+          title: "Colunas obrigatórias ausentes",
+          description: "A planilha deve conter as colunas 'Cidade' e 'UF'.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const existingSet = new Set(
         (cities || []).map(c => `${c.cidade.trim().toUpperCase()}|${(c.estado || "").trim().toUpperCase()}`)
@@ -535,11 +547,15 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
 
       let added = 0;
       let skipped = 0;
+      let invalid = 0;
 
       for (const row of rows) {
         const cidadeVal = String(row[cidadeCol] || "").trim();
-        if (!cidadeVal) continue;
-        const estadoVal = ufCol ? String(row[ufCol] || "").trim() : "";
+        const estadoVal = String(row[ufCol] || "").trim();
+        if (!cidadeVal || !estadoVal) {
+          invalid++;
+          continue;
+        }
         const key = `${cidadeVal.toUpperCase()}|${estadoVal.toUpperCase()}`;
 
         if (existingSet.has(key)) {
@@ -550,7 +566,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         await addCity.mutateAsync({
           pre_provider_id: preProviderId,
           cidade: cidadeVal,
-          estado: estadoVal || undefined,
+          estado: estadoVal,
         });
         existingSet.add(key);
         added++;
@@ -558,7 +574,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
 
       toast({
         title: "Importação concluída",
-        description: `${added} cidade(s) adicionada(s)${skipped > 0 ? `, ${skipped} já existente(s)` : ""}`,
+        description: `${added} adicionada(s)${skipped > 0 ? `, ${skipped} já existente(s)` : ""}${invalid > 0 ? `, ${invalid} ignorada(s) por falta de Cidade/UF` : ""}`,
       });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
@@ -576,8 +592,8 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex gap-2">
-            <Input placeholder="Cidade" value={cidade} onChange={e => setCidade(e.target.value)} className="flex-1" />
-            <Input placeholder="UF" value={estado} onChange={e => setEstado(e.target.value)} className="w-16" maxLength={2} />
+            <Input placeholder="Cidade *" value={cidade} onChange={e => setCidade(e.target.value)} className="flex-1" />
+            <Input placeholder="UF *" value={estado} onChange={e => setEstado(e.target.value)} className="w-16" maxLength={2} />
             <Button onClick={handleAdd} size="sm"><Plus className="h-4 w-4" /></Button>
           </div>
           <div className="flex items-center gap-2">
@@ -598,7 +614,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
               className="hidden"
               onChange={handleExcelImport}
             />
-            <span className="text-xs text-muted-foreground">Colunas: Cidade, UF (opcional)</span>
+            <span className="text-xs text-muted-foreground">Colunas obrigatórias: Cidade, UF</span>
           </div>
           <div className="max-h-[400px] overflow-y-auto">
             <Table>
