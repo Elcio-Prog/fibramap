@@ -573,33 +573,6 @@ export async function findBestConnectionPointByRoute(
     verificationPending: false,
   };
 
-  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms). Nenhuma rota real disponível; nada será desenhado.`);
-
-  const isApto = selectedBox.aptoNovoCliente;
-  return {
-    taResult: {
-      distance: selectedBox.distance,
-      point: [selectedBox.lat, selectedBox.lng],
-      nome: selectedBox.nome,
-      tipo: selectedBox.tipo,
-      portaDisponivel: selectedBox.portaDisponivel,
-      aptoNovoCliente: isApto,
-      motivoBloqueio: selectedBox.motivoBloqueio,
-      motivo: isApto ? "mais_proximo" : "sem_apto",
-      sigla: selectedBox.sigla,
-      recipiente_sigla: selectedBox.recipiente_sigla,
-      portas_livres: selectedBox.portas_livres,
-      portas_ocupadas: selectedBox.portas_ocupadas,
-      tipo_splitter: selectedBox.tipo_splitter,
-      mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
-    },
-    routeDistance: selectedBox.distance,
-    routeGeometry: null,
-    snapPoint: originSnap && originSnap.offsetMeters > 1 ? [originSnap.lat, originSnap.lng] : undefined,
-    destSnapPoint: destSnap && destSnap.offsetMeters > 1 ? [destSnap.lat, destSnap.lng] : undefined,
-    verificationPending: true,
-    routeFailed: true,
-  };
 }
 
 /** Find the best TA (Terminal de Atendimento) for connection.
