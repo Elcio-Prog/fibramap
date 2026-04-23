@@ -625,9 +625,11 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className={cn("space-y-4", (isLimitedEdit || isBkoOnly) && "pointer-events-none opacity-80")}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  const renderStep2 = () => {
+    const step2Blocked = isLimitedEdit || isBkoOnly;
+    return (
+    <div className="space-y-4">
+      <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4", step2Blocked && "pointer-events-none opacity-80")}>
         <div className="sm:col-span-2">
           <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
           <Input className="h-9 mt-1" value={meta.nome_cliente} onChange={setMetaField("nome_cliente")} />
@@ -667,17 +669,17 @@ export default function PreViabilidadeEditDrawer({ item, open, onOpenChange, rea
           <Label className="text-xs text-muted-foreground">Observações</Label>
           <Textarea className="mt-1" rows={4} value={meta.observacoes} onChange={setMetaField("observacoes")} />
         </div>
-        <div className="sm:col-span-2 lg:col-span-3">
-          <AttachmentsField
-            value={anexos}
-            onChange={setAnexos}
-            disabled={false}
-            folderPrefix={item?.id}
-          />
-        </div>
       </div>
+      {/* Attachments always clickable (view/download) — upload/delete controlled by disabled prop */}
+      <AttachmentsField
+        value={anexos}
+        onChange={setAnexos}
+        disabled={step2Blocked}
+        folderPrefix={item?.id}
+      />
     </div>
-  );
+    );
+  };
 
   const renderStep3 = () => (
     <div className={cn("space-y-4", (isLimitedEdit || isBkoOnly) && "pointer-events-none opacity-80")}>
