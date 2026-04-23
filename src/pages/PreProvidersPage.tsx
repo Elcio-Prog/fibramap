@@ -10,6 +10,7 @@ import {
   useDeletePreProviderCity,
   usePromotePreProvider,
   PreProvider,
+  PreProviderContact,
 } from "@/hooks/usePreProviders";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2, UserPlus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+
+// Build initial contacts list, preserving legacy fields if present
+function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
+  const list: PreProviderContact[] = Array.isArray(provider?.contatos) ? [...(provider!.contatos as PreProviderContact[])] : [];
+  if (list.length > 0) return list;
+  // Legacy migration on the fly
+  const legacy: PreProviderContact[] = [];
+  if (provider?.contato_comercial_nome || provider?.contato_comercial_fone || provider?.contato_comercial_email) {
+    legacy.push({
+      id: crypto.randomUUID(),
+      titulo: "Contato Comercial",
+      nome: provider.contato_comercial_nome || "",
+      telefone_fixo: "",
+      telefone_movel: provider.contato_comercial_fone || "",
+      email: provider.contato_comercial_email || "",
+    });
+  }
+  if (provider?.contato_noc_nome || provider?.contato_noc_fone || provider?.contato_noc_email) {
+    legacy.push({
+      id: crypto.randomUUID(),
+      titulo: "Contato NOC",
+      nome: provider.contato_noc_nome || "",
+      telefone_fixo: "",
+      telefone_movel: provider.contato_noc_fone || "",
+      email: provider.contato_noc_email || "",
+    });
+  }
+  if (legacy.length > 0) return legacy;
+  // Default for new providers
+  return [
+    { id: crypto.randomUUID(), titulo: "Contato Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+    { id: crypto.randomUUID(), titulo: "Contato NOC", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+  ];
+}
 
 // Format CNPJ as 00.000.000/0000-00
 function formatCnpj(v: string) {
