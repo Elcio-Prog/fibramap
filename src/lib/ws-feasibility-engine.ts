@@ -321,8 +321,8 @@ async function processItem(
           ta_info: taNote,
           nearest_point: cp?.point,
           route_geometry: routeGeomInsideCoverage,
-          snap_point: snapPointInsideCoverage,
-          dest_snap_point: destSnapPointInsideCoverage,
+          snap_point: undefined,
+          dest_snap_point: undefined,
           is_own_network: true,
         });
       } else {
