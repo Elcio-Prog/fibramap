@@ -464,20 +464,50 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between mt-4 gap-3">
         <p className="text-xs font-semibold text-muted-foreground">Contatos</p>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="gap-1"
-          onClick={() => update("contatos", [
-            ...(form.contatos || []),
-            { id: crypto.randomUUID(), titulo: "Comercial", nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
-          ])}
-        >
-          <UserPlus className="h-4 w-4" /> Adicionar Contato
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" size="sm" variant="outline" className="gap-2 min-w-[220px] justify-between">
+              <span className="truncate">
+                {(() => {
+                  const tipos = (form.contatos as PreProviderContact[] || []).map(c => c.titulo);
+                  if (tipos.length === 0) return "Selecionar contatos…";
+                  if (tipos.length === CONTATO_TIPOS.length) return "Todos os contatos";
+                  return tipos.join(", ");
+                })()}
+              </span>
+              <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-2">
+            <div className="space-y-1">
+              {CONTATO_TIPOS.map((tipo) => {
+                const list = (form.contatos as PreProviderContact[]) || [];
+                const checked = list.some(c => c.titulo === tipo);
+                const toggle = () => {
+                  if (checked) {
+                    update("contatos", list.filter(c => c.titulo !== tipo));
+                  } else {
+                    update("contatos", [
+                      ...list,
+                      { id: crypto.randomUUID(), titulo: tipo, nome: "", telefone_fixo: "", telefone_movel: "", email: "" },
+                    ]);
+                  }
+                };
+                return (
+                  <label
+                    key={tipo}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-sm"
+                  >
+                    <Checkbox checked={checked} onCheckedChange={toggle} />
+                    <span>{tipo}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {(form.contatos as PreProviderContact[] || []).map((c, idx) => {
@@ -489,24 +519,11 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
         const removeContact = () => {
           update("contatos", form.contatos.filter((_: any, i: number) => i !== idx));
         };
-        const tipoValue = CONTATO_TIPOS.includes(c.titulo as any) ? c.titulo : "Comercial";
         return (
           <div key={c.id} className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 max-w-xs">
-                <Label className="text-xs">Tipo de Contato</Label>
-                <Select value={tipoValue} onValueChange={(v) => updateContact("titulo", v)}>
-                  <SelectTrigger className="font-medium">
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTATO_TIPOS.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato" className="mt-5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold">{c.titulo}</p>
+              <Button type="button" variant="ghost" size="icon" onClick={removeContact} title="Remover contato">
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
