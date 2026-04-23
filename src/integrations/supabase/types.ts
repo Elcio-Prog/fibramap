@@ -721,6 +721,7 @@ export type Database = {
           contato_noc_email: string | null
           contato_noc_fone: string | null
           contato_noc_nome: string | null
+          contatos: Json
           created_at: string
           estado_sede: string | null
           has_cross_ntt: boolean
@@ -742,6 +743,7 @@ export type Database = {
           contato_noc_email?: string | null
           contato_noc_fone?: string | null
           contato_noc_nome?: string | null
+          contatos?: Json
           created_at?: string
           estado_sede?: string | null
           has_cross_ntt?: boolean
@@ -763,6 +765,7 @@ export type Database = {
           contato_noc_email?: string | null
           contato_noc_fone?: string | null
           contato_noc_nome?: string | null
+          contatos?: Json
           created_at?: string
           estado_sede?: string | null
           has_cross_ntt?: boolean

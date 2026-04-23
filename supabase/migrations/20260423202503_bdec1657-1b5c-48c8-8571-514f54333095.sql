@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_providers ADD COLUMN IF NOT EXISTS contatos jsonb NOT NULL DEFAULT '[]'::jsonb;
