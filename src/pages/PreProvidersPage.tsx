@@ -524,10 +524,19 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         return;
       }
 
-      // Try to find cidade/uf columns (flexible matching)
+      // Find required cidade/uf columns
       const headers = Object.keys(rows[0]);
-      const cidadeCol = headers.find(h => /cidade/i.test(h)) || headers[0];
-      const ufCol = headers.find(h => /uf|estado|sigla/i.test(h));
+      const cidadeCol = headers.find(h => /cidade/i.test(h));
+      const ufCol = headers.find(h => /\b(uf|estado|sigla)\b/i.test(h));
+
+      if (!cidadeCol || !ufCol) {
+        toast({
+          title: "Colunas obrigatórias ausentes",
+          description: "A planilha deve conter as colunas 'Cidade' e 'UF'.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const existingSet = new Set(
         (cities || []).map(c => `${c.cidade.trim().toUpperCase()}|${(c.estado || "").trim().toUpperCase()}`)
@@ -535,11 +544,15 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
 
       let added = 0;
       let skipped = 0;
+      let invalid = 0;
 
       for (const row of rows) {
         const cidadeVal = String(row[cidadeCol] || "").trim();
-        if (!cidadeVal) continue;
-        const estadoVal = ufCol ? String(row[ufCol] || "").trim() : "";
+        const estadoVal = String(row[ufCol] || "").trim();
+        if (!cidadeVal || !estadoVal) {
+          invalid++;
+          continue;
+        }
         const key = `${cidadeVal.toUpperCase()}|${estadoVal.toUpperCase()}`;
 
         if (existingSet.has(key)) {
@@ -550,7 +563,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
         await addCity.mutateAsync({
           pre_provider_id: preProviderId,
           cidade: cidadeVal,
-          estado: estadoVal || undefined,
+          estado: estadoVal,
         });
         existingSet.add(key);
         added++;
@@ -558,7 +571,7 @@ function CitiesDialog({ preProviderId, providerName, onClose }: { preProviderId:
 
       toast({
         title: "Importação concluída",
-        description: `${added} cidade(s) adicionada(s)${skipped > 0 ? `, ${skipped} já existente(s)` : ""}`,
+        description: `${added} adicionada(s)${skipped > 0 ? `, ${skipped} já existente(s)` : ""}${invalid > 0 ? `, ${invalid} ignorada(s) por falta de Cidade/UF` : ""}`,
       });
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
