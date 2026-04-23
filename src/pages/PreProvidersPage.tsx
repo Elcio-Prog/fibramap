@@ -24,6 +24,22 @@ import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Sea
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 
+// Phone masks
+function maskPhoneFixo(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 10);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+}
+function maskPhoneMovel(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 // Build initial contacts list, preserving legacy fields if present
 function initialContacts(provider?: PreProvider | null): PreProviderContact[] {
   const list: PreProviderContact[] = Array.isArray(provider?.contatos) ? [...(provider!.contatos as PreProviderContact[])] : [];
@@ -470,11 +486,11 @@ function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void 
               </div>
               <div>
                 <Label>Telefone Fixo</Label>
-                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", e.target.value)} placeholder="(00) 0000-0000" />
+                <Input value={c.telefone_fixo} onChange={e => updateContact("telefone_fixo", maskPhoneFixo(e.target.value))} placeholder="(00) 0000-0000" inputMode="numeric" />
               </div>
               <div>
                 <Label>Telefone Móvel</Label>
-                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", e.target.value)} placeholder="(00) 00000-0000" />
+                <Input value={c.telefone_movel} onChange={e => updateContact("telefone_movel", maskPhoneMovel(e.target.value))} placeholder="(00) 00000-0000" inputMode="numeric" />
               </div>
               <div>
                 <Label>E-mail</Label>
