@@ -234,7 +234,6 @@ async function processItem(
     overpassPromise = prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000);
   }
 
-  const originSnap = await originSnapPromise;
 
   const t0Engine = performance.now();
   console.log(`[WS-ENGINE] Starting processItem at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
