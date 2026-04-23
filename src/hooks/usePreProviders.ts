@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface PreProviderContact {
+  id: string;
+  titulo: string;
+  nome: string;
+  telefone_fixo: string;
+  telefone_movel: string;
+  email: string;
+}
+
 export interface PreProvider {
   id: string;
   cnpj: string | null;
@@ -16,6 +25,7 @@ export interface PreProvider {
   contato_noc_nome: string | null;
   contato_noc_fone: string | null;
   contato_noc_email: string | null;
+  contatos: PreProviderContact[] | null;
   observacoes: string | null;
   status: string;
   promoted_provider_id: string | null;
