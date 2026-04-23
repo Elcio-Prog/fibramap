@@ -10,6 +10,9 @@ import {
   findBestConnectionPoint,
   findBestConnectionPointByRoute,
   findNearestConnectionPointAny,
+  getRouteDistance,
+  getRouteDistancePreSnapped,
+  snapToRoadCached,
   isInsideCoverage,
   findNearestBoundaryPoint,
   routeCrossesCPFL,
@@ -228,12 +231,16 @@ async function processItem(
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
-  // Start Overpass prefetch early
+  // Pre-snap origin AND prefetch Overpass in PARALLEL
+  const originSnapPromise = snapToRoadCached(lat, lng);
+  
+  // Start Overpass prefetch early (runs concurrently with snap)
   let overpassPromise: Promise<{ ways: any; success: boolean }> | null = null;
   if (netTurboProvider) {
     overpassPromise = prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000);
   }
 
+  const originSnap = await originSnapPromise;
 
   const t0Engine = performance.now();
   console.log(`[WS-ENGINE] Starting processItem at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
@@ -289,17 +296,24 @@ async function processItem(
 
         let routeDistInsideCoverage = 0;
         let routeGeomInsideCoverage: any = undefined;
+        let snapPointInsideCoverage: [number, number] | undefined;
+        let destSnapPointInsideCoverage: [number, number] | undefined;
 
         if (cp?.point) {
-          // Linha reta: fibra do cliente até a caixa não segue fluxo da rua
-          routeDistInsideCoverage = cp.distance || 0;
-          routeGeomInsideCoverage = {
-            type: "LineString",
-            coordinates: [
-              [lng, lat],
-              [cp.point[1], cp.point[0]],
-            ],
-          };
+          try {
+            const routeResult = await getRouteDistancePreSnapped(
+              lat, lng, cp.point[0], cp.point[1], originSnap
+            );
+            if (routeResult) {
+              routeDistInsideCoverage = routeResult.distance;
+              routeGeomInsideCoverage = routeResult.geometry;
+              snapPointInsideCoverage = routeResult.snapPoint;
+              destSnapPointInsideCoverage = routeResult.destSnapPoint;
+            }
+          } catch {
+            // fallback: Haversine
+            routeDistInsideCoverage = cp.distance || 0;
+          }
         }
 
         allOptions.push({
@@ -314,8 +328,8 @@ async function processItem(
           ta_info: taNote,
           nearest_point: cp?.point,
           route_geometry: routeGeomInsideCoverage,
-          snap_point: undefined,
-          dest_snap_point: undefined,
+          snap_point: snapPointInsideCoverage,
+          dest_snap_point: destSnapPointInsideCoverage,
           is_own_network: true,
         });
       } else {
@@ -589,14 +603,22 @@ async function processItem(
       const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
       let distance = bestNearest.distance;
-      // Linha reta: fibra do cliente até a caixa/ponto não segue fluxo da rua
-      const routeGeometry = {
-        type: "LineString",
-        coordinates: [
-          [lng, lat],
-          [bestNearest.point[1], bestNearest.point[0]],
-        ],
-      };
+      let routeGeometry: any = null;
+      let snapPoint: [number, number] | undefined = undefined;
+      let destSnapPoint: [number, number] | undefined = undefined;
+      
+      // Quick haversine pre-filter: skip expensive OSRM call if straight-line is already > maxDist * 1.5
+      if (distance <= maxDist * 1.5) {
+        try {
+          const route = await getRouteDistancePreSnapped(lat, lng, bestNearest.point[0], bestNearest.point[1], originSnap);
+          if (route) {
+            distance = route.distance;
+            routeGeometry = route.geometry;
+            snapPoint = route.snapPoint;
+            destSnapPoint = route.destSnapPoint;
+          }
+        } catch {}
+      }
 
       if (distance <= maxDist) {
         return {
@@ -610,8 +632,8 @@ async function processItem(
           notes: `LPU viável - ${provider.name} - ${Math.round(distance)}m`,
           nearest_point: bestNearest.point,
           route_geometry: routeGeometry,
-          snap_point: undefined,
-          dest_snap_point: undefined,
+          snap_point: snapPoint,
+          dest_snap_point: destSnapPoint,
           has_cross_ntt: provider.has_cross_ntt,
         };
       }

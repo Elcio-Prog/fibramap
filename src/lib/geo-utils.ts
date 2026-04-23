@@ -517,27 +517,71 @@ export async function findBestConnectionPointByRoute(
   console.log(`[GEO]   Apta: ${selectedBox.aptoNovoCliente}${selectedBox.motivoBloqueio ? ` [${selectedBox.motivoBloqueio}]` : ''}`);
   console.log(`[GEO] ═══════════════════════════════════════════════════`);
 
-  // === LINHA RETA: distância Haversine e geometria direta (sem OSRM) ===
-  // Na vida real, a fibra do cliente até a caixa não segue o fluxo da rua.
-  const straightLineDistance = selectedBox.distance; // already Haversine
-  const straightLineGeometry = {
-    type: "LineString" as const,
-    coordinates: [
-      [lng, lat],
-      [selectedBox.lng, selectedBox.lat],
-    ],
+  const originSnap = await snapToRoadCached(lat, lng);
+  const destSnap = await snapToRoadCached(selectedBox.lat, selectedBox.lng);
+
+  console.log(`[SNAP] Origem: lat=${lat.toFixed(6)}, lng=${lng.toFixed(6)}${originSnap ? ` → snapped offset=${Math.round(originSnap.offsetMeters)}m` : ' (snap falhou)'}`);
+  console.log(`[SNAP] Destino: lat=${selectedBox.lat.toFixed(6)}, lng=${selectedBox.lng.toFixed(6)}${destSnap ? ` → snapped offset=${Math.round(destSnap.offsetMeters)}m` : ' (snap falhou)'}`);
+
+  const t0 = performance.now();
+  let route = await getRouteDistancePreSnapped(lat, lng, selectedBox.lat, selectedBox.lng, originSnap);
+  const elapsed = Math.round(performance.now() - t0);
+
+  const hasValidRouteGeometry = (geometry: any): boolean => {
+    if (!geometry) return false;
+    const candidateGeometry = geometry?.type === "Feature" ? geometry.geometry : geometry;
+    const coordinates = candidateGeometry?.type === "LineString"
+      ? candidateGeometry.coordinates
+      : candidateGeometry?.type === "MultiLineString"
+        ? candidateGeometry.coordinates?.flat?.() ?? []
+        : [];
+    return Array.isArray(coordinates) && coordinates.length >= 2;
   };
 
-  console.log(`[GEO] Linha reta: ${Math.round(straightLineDistance)}m de [${lat.toFixed(6)}, ${lng.toFixed(6)}] até [${selectedBox.lat.toFixed(6)}, ${selectedBox.lng.toFixed(6)}]`);
-
-  // Apply route filter (CPFL / highway checks) using the straight line geometry
-  if (routeFilter) {
-    const accepted = await routeFilter(selectedBox, { distance: straightLineDistance, geometry: straightLineGeometry });
-    if (!accepted) {
-      console.log(`[GEO] ✗ Linha reta rejeitada pelo filtro de regras técnicas`);
-      return null;
+  if (route) {
+    console.log(`[GEO] ✓ Rota OSRM OK: distance=${Math.round(route.distance)}m (${elapsed}ms)`);
+    if (!hasValidRouteGeometry(route.geometry)) {
+      console.warn(`[GEO] ✗ Geometria inválida — não será desenhada.`);
+      route = null;
     }
   }
+
+  if (route) {
+    if (routeFilter) {
+      const accepted = await routeFilter(selectedBox, route);
+      if (!accepted) {
+        console.log(`[GEO] ✗ Rota rejeitada pelo filtro de regras técnicas`);
+        return null;
+      }
+    }
+
+    const isApto = selectedBox.aptoNovoCliente;
+    return {
+      taResult: {
+        distance: selectedBox.distance,
+        point: [selectedBox.lat, selectedBox.lng],
+        nome: selectedBox.nome,
+        tipo: selectedBox.tipo,
+        portaDisponivel: selectedBox.portaDisponivel,
+        aptoNovoCliente: isApto,
+        motivoBloqueio: selectedBox.motivoBloqueio,
+        motivo: isApto ? "mais_proximo" : "sem_apto",
+        sigla: selectedBox.sigla,
+        recipiente_sigla: selectedBox.recipiente_sigla,
+        portas_livres: selectedBox.portas_livres,
+        portas_ocupadas: selectedBox.portas_ocupadas,
+        tipo_splitter: selectedBox.tipo_splitter,
+        mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
+      },
+      routeDistance: route.distance,
+      routeGeometry: route.geometry,
+      snapPoint: route.snapPoint,
+      destSnapPoint: route.destSnapPoint,
+      verificationPending: false,
+    };
+  }
+
+  console.warn(`[GEO] ⚠ OSRM falhou para ${selectedBox.nome} (${elapsed}ms).`);
 
   const isApto = selectedBox.aptoNovoCliente;
   return {
@@ -557,9 +601,12 @@ export async function findBestConnectionPointByRoute(
       tipo_splitter: selectedBox.tipo_splitter,
       mensagem: isApto ? undefined : "Ponto mais próximo sem condição para ativação pelas regras atuais. Necessária viabilidade real via equipe Delivery.",
     },
-    routeDistance: straightLineDistance,
-    routeGeometry: straightLineGeometry,
-    verificationPending: false,
+    routeDistance: selectedBox.distance,
+    routeGeometry: null,
+    snapPoint: originSnap && originSnap.offsetMeters > 1 ? [originSnap.lat, originSnap.lng] : undefined,
+    destSnapPoint: destSnap && destSnap.offsetMeters > 1 ? [destSnap.lat, destSnap.lng] : undefined,
+    verificationPending: true,
+    routeFailed: true,
   };
 
 }
@@ -1099,7 +1146,7 @@ export async function getRouteDistanceFast(
   const doFetch = async (): Promise<{ distance: number; geometry: any } | null | 'rate_limited'> => {
     await _osrmThrottle();
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
+      const url = `https://router.project-osrm.org/route/v1/foot/${snapLng},${snapLat};${destSnapLng},${destSnapLat}?overview=full&geometries=geojson&alternatives=true&steps=false`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(url, { signal: controller.signal });
