@@ -19,9 +19,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, MapPin, ArrowUpRight, Building2, Eye, Upload, Search, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+
+// Format CNPJ as 00.000.000/0000-00
+function formatCnpj(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
 
 export default function PreProvidersPage() {
   const { data: preProviders, isLoading } = usePreProviders();
@@ -38,6 +48,7 @@ export default function PreProvidersPage() {
 
   // Form state
   const [form, setForm] = useState({
+    cnpj: "",
     nome_fantasia: "",
     razao_social: "",
     cidade_sede: "",
@@ -55,7 +66,7 @@ export default function PreProvidersPage() {
 
   const resetForm = () => {
     setForm({
-      nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
+      cnpj: "", nome_fantasia: "", razao_social: "", cidade_sede: "", estado_sede: "",
       has_cross_ntt: false, oferece_mancha: "NÃO",
       contato_comercial_nome: "", contato_comercial_fone: "", contato_comercial_email: "",
       contato_noc_nome: "", contato_noc_fone: "", contato_noc_email: "", observacoes: "",
@@ -66,6 +77,7 @@ export default function PreProvidersPage() {
     if (!form.nome_fantasia.trim()) return;
     try {
       await createPreProvider.mutateAsync({
+        cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
         razao_social: form.razao_social.trim() || null,
         cidade_sede: form.cidade_sede.trim() || null,
@@ -79,7 +91,7 @@ export default function PreProvidersPage() {
         contato_noc_fone: form.contato_noc_fone.trim() || null,
         contato_noc_email: form.contato_noc_email.trim() || null,
         observacoes: form.observacoes.trim() || null,
-      });
+      } as any);
       resetForm();
       setShowForm(false);
       toast({ title: "Pré-cadastro criado!" });
@@ -256,8 +268,68 @@ export default function PreProvidersPage() {
 
 function ProviderForm({ form, setForm }: { form: any; setForm: (f: any) => void }) {
   const update = (field: string, value: any) => setForm({ ...form, [field]: value });
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const { toast } = useToast();
+
+  const lookupCnpj = async () => {
+    const digits = (form.cnpj || "").replace(/\D/g, "");
+    if (digits.length !== 14) {
+      toast({ title: "CNPJ inválido", description: "Digite os 14 dígitos do CNPJ", variant: "destructive" });
+      return;
+    }
+    setCnpjLoading(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "CNPJ não encontrado");
+      }
+      const data = await res.json();
+      // Map BrasilAPI fields → form
+      setForm({
+        ...form,
+        cnpj: formatCnpj(digits),
+        razao_social: data.razao_social || form.razao_social,
+        nome_fantasia: data.nome_fantasia || data.razao_social || form.nome_fantasia,
+        cidade_sede: data.municipio || form.cidade_sede,
+        estado_sede: data.uf || form.estado_sede,
+        contato_comercial_fone:
+          form.contato_comercial_fone ||
+          (data.ddd_telefone_1 ? data.ddd_telefone_1 : "") ||
+          "",
+        contato_comercial_email: form.contato_comercial_email || data.email || "",
+      });
+      toast({ title: "Dados carregados", description: data.razao_social });
+    } catch (err: any) {
+      toast({ title: "Erro ao buscar CNPJ", description: err.message, variant: "destructive" });
+    } finally {
+      setCnpjLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <p className="text-xs font-semibold text-muted-foreground">Identificação</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="col-span-2">
+          <Label>CNPJ</Label>
+          <div className="flex gap-2">
+            <Input
+              value={form.cnpj || ""}
+              onChange={e => update("cnpj", formatCnpj(e.target.value))}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); lookupCnpj(); } }}
+            />
+            <Button type="button" variant="outline" onClick={lookupCnpj} disabled={cnpjLoading} className="shrink-0">
+              {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-1">Buscar</span>
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Preenche automaticamente os campos via BrasilAPI</p>
+        </div>
+      </div>
+
       <p className="text-xs font-semibold text-muted-foreground">Dados da Empresa</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="col-span-2">
@@ -337,6 +409,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
   const updatePreProvider = useUpdatePreProvider();
   const { toast } = useToast();
   const [form, setForm] = useState({
+    cnpj: (provider as any).cnpj || "",
     nome_fantasia: provider.nome_fantasia,
     razao_social: provider.razao_social || "",
     cidade_sede: provider.cidade_sede || "",
@@ -356,6 +429,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
     try {
       await updatePreProvider.mutateAsync({
         id: provider.id,
+        cnpj: form.cnpj.trim() || null,
         nome_fantasia: form.nome_fantasia.trim(),
         razao_social: form.razao_social.trim() || null,
         cidade_sede: form.cidade_sede.trim() || null,
@@ -369,7 +443,7 @@ function EditPreProviderDialog({ provider, onClose }: { provider: PreProvider; o
         contato_noc_fone: form.contato_noc_fone.trim() || null,
         contato_noc_email: form.contato_noc_email.trim() || null,
         observacoes: form.observacoes.trim() || null,
-      });
+      } as any);
       toast({ title: "Pré-cadastro atualizado!" });
       onClose();
     } catch (err: any) {

@@ -714,6 +714,7 @@ export type Database = {
       pre_providers: {
         Row: {
           cidade_sede: string | null
+          cnpj: string | null
           contato_comercial_email: string | null
           contato_comercial_fone: string | null
           contato_comercial_nome: string | null
@@ -734,6 +735,7 @@ export type Database = {
         }
         Insert: {
           cidade_sede?: string | null
+          cnpj?: string | null
           contato_comercial_email?: string | null
           contato_comercial_fone?: string | null
           contato_comercial_nome?: string | null
@@ -754,6 +756,7 @@ export type Database = {
         }
         Update: {
           cidade_sede?: string | null
+          cnpj?: string | null
           contato_comercial_email?: string | null
           contato_comercial_fone?: string | null
           contato_comercial_nome?: string | null
