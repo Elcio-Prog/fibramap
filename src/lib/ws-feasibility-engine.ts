@@ -596,22 +596,14 @@ async function processItem(
       const bestNearest = nearestAny && nearestAny.distance < nearest.distance ? nearestAny : nearest;
 
       let distance = bestNearest.distance;
-      let routeGeometry: any = null;
-      let snapPoint: [number, number] | undefined = undefined;
-      let destSnapPoint: [number, number] | undefined = undefined;
-      
-      // Quick haversine pre-filter: skip expensive OSRM call if straight-line is already > maxDist * 1.5
-      if (distance <= maxDist * 1.5) {
-        try {
-          const route = await getRouteDistancePreSnapped(lat, lng, bestNearest.point[0], bestNearest.point[1], originSnap);
-          if (route) {
-            distance = route.distance;
-            routeGeometry = route.geometry;
-            snapPoint = route.snapPoint;
-            destSnapPoint = route.destSnapPoint;
-          }
-        } catch {}
-      }
+      // Linha reta: fibra do cliente até a caixa/ponto não segue fluxo da rua
+      const routeGeometry = {
+        type: "LineString",
+        coordinates: [
+          [lng, lat],
+          [bestNearest.point[1], bestNearest.point[0]],
+        ],
+      };
 
       if (distance <= maxDist) {
         return {
