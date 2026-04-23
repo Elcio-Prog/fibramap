@@ -296,24 +296,17 @@ async function processItem(
 
         let routeDistInsideCoverage = 0;
         let routeGeomInsideCoverage: any = undefined;
-        let snapPointInsideCoverage: [number, number] | undefined;
-        let destSnapPointInsideCoverage: [number, number] | undefined;
 
         if (cp?.point) {
-          try {
-            const routeResult = await getRouteDistancePreSnapped(
-              lat, lng, cp.point[0], cp.point[1], originSnap
-            );
-            if (routeResult) {
-              routeDistInsideCoverage = routeResult.distance;
-              routeGeomInsideCoverage = routeResult.geometry;
-              snapPointInsideCoverage = routeResult.snapPoint;
-              destSnapPointInsideCoverage = routeResult.destSnapPoint;
-            }
-          } catch {
-            // fallback: Haversine
-            routeDistInsideCoverage = cp.distance || 0;
-          }
+          // Linha reta: fibra do cliente até a caixa não segue fluxo da rua
+          routeDistInsideCoverage = cp.distance || 0;
+          routeGeomInsideCoverage = {
+            type: "LineString",
+            coordinates: [
+              [lng, lat],
+              [cp.point[1], cp.point[0]],
+            ],
+          };
         }
 
         allOptions.push({
