@@ -10,6 +10,9 @@ import {
   findBestConnectionPoint,
   findBestConnectionPointByRoute,
   findNearestConnectionPointAny,
+  getRouteDistance,
+  getRouteDistancePreSnapped,
+  snapToRoadCached,
   isInsideCoverage,
   findNearestBoundaryPoint,
   routeCrossesCPFL,
@@ -228,12 +231,16 @@ async function processItem(
   const allOptions: ViableOption[] = [];
   const netTurboProvider = providers.find(p => p.name.toLowerCase().includes("net turbo"));
 
-  // Start Overpass prefetch early
+  // Pre-snap origin AND prefetch Overpass in PARALLEL
+  const originSnapPromise = snapToRoadCached(lat, lng);
+  
+  // Start Overpass prefetch early (runs concurrently with snap)
   let overpassPromise: Promise<{ ways: any; success: boolean }> | null = null;
   if (netTurboProvider) {
     overpassPromise = prefetchHighwaysForArea(lat, lng, netTurboProvider.max_lpu_distance_m + 1000);
   }
 
+  const originSnap = await originSnapPromise;
 
   const t0Engine = performance.now();
   console.log(`[WS-ENGINE] Starting processItem at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`);
