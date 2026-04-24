@@ -78,14 +78,15 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (viabilidadeFilter !== "all") {
       list = list.filter((r) => {
+        const isSistema = r.viabilidade === "Viabilizado pelo Sistema";
         const derived = r.inviabilidade_tecnica
           ? "Inviabilidade Técnica"
           : (r.viabilidade === "Aguardando Projetista" && !r.distancia_projetista)
               ? "Aguardando Projetista"
               : (r.ticket_mensal != null && r.valor_minimo != null)
                   ? (r.ticket_mensal >= r.valor_minimo
-                      ? (r.viabilidade === "Viabilizado pelo Sistema" ? "Viabilizado pelo Sistema" : "Viável")
-                      : "Abaixo do Valor")
+                      ? (isSistema ? "Viabilizado pelo Sistema" : "Viável")
+                      : (isSistema ? "Abaixo do Valor - Sistema" : "Abaixo do Valor"))
                   : r.viabilidade;
         return derived === viabilidadeFilter;
       });
