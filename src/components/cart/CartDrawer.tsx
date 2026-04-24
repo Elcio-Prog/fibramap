@@ -222,7 +222,9 @@ export default function CartDrawer({ open, onOpenChange }: Props) {
           coordenadas: item.lat && item.lng ? `${item.lat}, ${item.lng}` : null,
           status: viabilidade === "Viabilizado pelo Sistema" ? "Fechado" : "Aberto",
           distancia_sistema: distSistema,
-          distancia_projetista: choice === "sistema" ? distSistema : null,
+          // Variância só é registrada quando o projetista informa um valor diferente do sistema.
+          // Se o usuário optou por usar a distância do sistema, distancia_projetista permanece null.
+          distancia_projetista: null,
           dados_precificacao: {
             produto: categoriaNT,
             subproduto: item.produto || "NT LINK DEDICADO FULL",

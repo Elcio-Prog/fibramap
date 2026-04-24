@@ -1453,8 +1453,10 @@ export default function WsSingleSearch() {
             coordenadas: `${geoResult.lat}, ${geoResult.lng}`,
             observacoes: o.notes || "",
             // New fields for distance choice
+            // Variância só é registrada quando o projetista informa um valor diferente do sistema.
+            // Se o usuário optou por usar a distância do sistema, distancia_projetista permanece undefined.
             distancia_sistema: o.distance_m,
-            distancia_projetista: choice === "sistema" ? o.distance_m : undefined,
+            distancia_projetista: undefined,
             viabilidade_override: choice === "sistema" && isViavel ? "Viabilizado pelo Sistema" : choice === "projetista" ? "Aguardando Projetista" : undefined,
           };
           setPreViabInitialData(initData);
