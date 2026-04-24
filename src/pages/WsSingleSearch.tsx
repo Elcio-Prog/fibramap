@@ -175,11 +175,13 @@ export default function WsSingleSearch() {
     try {
       const isDarkFiber = params.produto === "NT DARK FIBER";
       const isL2L = params.produto === "NT L2L";
+      const vigenciaNum = Number(params.vigencia) || 24;
+      const roi = getRoiForVigencia(String(vigenciaNum), "Conectividade");
       const payload: Record<string, any> = {
         produto: "Conectividade" as const,
         subproduto: params.produto,
-        vigencia: Number(params.vigencia) || 24,
-        roiVigencia: 24,
+        vigencia: vigenciaNum,
+        roiVigencia: roi ?? vigenciaNum,
         taxaInstalacao: Number(params.taxaInstalacao) || 0,
         custosMateriaisAdicionais: 0,
         projetoAvaliado: false,
