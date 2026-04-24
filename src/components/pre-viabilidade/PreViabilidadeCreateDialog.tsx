@@ -425,7 +425,13 @@ export default function PreViabilidadeCreateDialog({ open, onOpenChange, initial
         origem: "manual",
         anexos: anexos as any,
         distancia_sistema: initialData?.distancia_sistema ?? null,
-        distancia_projetista: initialData?.distancia_projetista ?? null,
+        // Variância só é registrada quando o projetista informa um valor diferente do sistema (>1m).
+        distancia_projetista:
+          initialData?.distancia_projetista != null &&
+          initialData?.distancia_sistema != null &&
+          Math.abs(initialData.distancia_projetista - initialData.distancia_sistema) > 1
+            ? initialData.distancia_projetista
+            : (initialData?.distancia_sistema == null ? (initialData?.distancia_projetista ?? null) : null),
       } as any]);
 
       if (meta.id_guardachuva) {
