@@ -215,7 +215,7 @@ export default function WsSingleSearch() {
     } finally {
       setRowCalcLoading(prev => ({ ...prev, [idx]: false }));
     }
-  }, []);
+  }, [getRoiForVigencia]);
 
   // Trigger debounced recalc when rowPricing changes
   useEffect(() => {
