@@ -294,17 +294,17 @@ export default function WsSingleSearch() {
     if (!cepData) return null;
     const street = number ? `${cepData.logradouro}, ${number}` : cepData.logradouro;
     const params = new URLSearchParams({ format: "json", street, city: cepData.localidade, state: cepData.uf, country: "BR", limit: "1" });
-    let res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+    let res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?${params}`);
     let results = await res.json();
     if (results.length === 0) {
       const clean = cep.replace(/\D/g, "");
       const p2 = new URLSearchParams({ format: "json", postalcode: clean, country: "BR", limit: "1" });
-      res = await fetch(`https://nominatim.openstreetmap.org/search?${p2}`);
+      res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?${p2}`);
       results = await res.json();
     }
     if (results.length === 0) {
       const q = `${cepData.logradouro}, ${cepData.localidade}, ${cepData.uf}`;
-      res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
+      res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
       results = await res.json();
     }
     if (results.length > 0) {
