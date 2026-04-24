@@ -16,6 +16,7 @@ import {
   haversineDistance,
   closedLineToPolygon,
   geoGridToElements,
+  fetchWithRetry,
 } from "@/lib/geo-utils";
 import { processWsSingleItem, buildElementsByProvider, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
@@ -293,17 +294,17 @@ export default function WsSingleSearch() {
     if (!cepData) return null;
     const street = number ? `${cepData.logradouro}, ${number}` : cepData.logradouro;
     const params = new URLSearchParams({ format: "json", street, city: cepData.localidade, state: cepData.uf, country: "BR", limit: "1" });
-    let res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+    let res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?${params}`);
     let results = await res.json();
     if (results.length === 0) {
       const clean = cep.replace(/\D/g, "");
       const p2 = new URLSearchParams({ format: "json", postalcode: clean, country: "BR", limit: "1" });
-      res = await fetch(`https://nominatim.openstreetmap.org/search?${p2}`);
+      res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?${p2}`);
       results = await res.json();
     }
     if (results.length === 0) {
       const q = `${cepData.logradouro}, ${cepData.localidade}, ${cepData.uf}`;
-      res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
+      res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=br`);
       results = await res.json();
     }
     if (results.length > 0) {
@@ -334,7 +335,7 @@ export default function WsSingleSearch() {
       ? Promise.resolve({ cidade: cepData.localidade, uf: cepData.uf })
       : (async () => {
           try {
-            const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+            const revRes = await fetchWithRetry(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
             const revData = await revRes.json();
             if (revData?.address) {
               const cidade = revData.address.city || revData.address.town || revData.address.municipality || null;
@@ -532,7 +533,13 @@ export default function WsSingleSearch() {
         });
       }
     } catch (err: any) {
-      toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
+      const msg = err?.name === "AbortError"
+        ? "Tempo limite excedido ao consultar serviços de geolocalização. Verifique sua conexão e tente novamente."
+        : err?.message?.includes("HTTP 429")
+          ? "Limite de requisições atingido temporariamente. Aguarde alguns segundos e tente novamente."
+          : "Falha na comunicação com serviços externos. Tente novamente em instantes.";
+      console.error("[WsSingleSearch] Erro na busca:", err);
+      toast({ title: "Erro na busca", description: msg, variant: "destructive" });
       failBgTask(taskId, err?.message ?? "Erro na busca");
     } finally {
       setLoading(false);

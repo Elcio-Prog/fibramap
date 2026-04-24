@@ -1419,10 +1419,46 @@ function extractCityUf(address: string): { city: string; uf: string } | null {
   return null;
 }
 
+/** Fetch com timeout + retries (backoff exponencial). Resiliente a falhas transitórias
+ *  (rate-limit 429, lentidão de rede, instabilidades em redes corporativas / Teams). */
+export async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  maxAttempts = 3,
+  timeoutMs = 8000,
+): Promise<Response> {
+  let lastErr: any = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      // Retry em 429 / 5xx
+      if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+        lastErr = new Error(`HTTP ${res.status}`);
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 400 * attempt + Math.random() * 300));
+          continue;
+        }
+      }
+      return res;
+    } catch (e: any) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 400 * attempt + Math.random() * 300));
+        continue;
+      }
+    }
+  }
+  throw lastErr ?? new Error("fetchWithRetry: falha desconhecida");
+}
+
 /** Nominatim free-text search */
 async function nominatimSearch(query: string): Promise<{ lat: number; lng: number; display: string } | null> {
   try {
-    const res = await fetch(
+    const res = await fetchWithRetry(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`
     );
     const data = await res.json();
@@ -1439,7 +1475,7 @@ async function nominatimSearch(query: string): Promise<{ lat: number; lng: numbe
 async function nominatimStructured(params: Record<string, string>): Promise<{ lat: number; lng: number; display: string } | null> {
   try {
     const sp = new URLSearchParams({ format: "json", limit: "1", country: "BR", ...params });
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?${sp}`);
+    const res = await fetchWithRetry(`https://nominatim.openstreetmap.org/search?${sp}`);
     const data = await res.json();
     if (data.length > 0) {
       return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
