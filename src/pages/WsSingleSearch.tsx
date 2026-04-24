@@ -335,7 +335,7 @@ export default function WsSingleSearch() {
       ? Promise.resolve({ cidade: cepData.localidade, uf: cepData.uf })
       : (async () => {
           try {
-            const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
+            const revRes = await fetchWithRetry(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${geo.lat}&lon=${geo.lng}&zoom=10&addressdetails=1&accept-language=pt-BR`);
             const revData = await revRes.json();
             if (revData?.address) {
               const cidade = revData.address.city || revData.address.town || revData.address.municipality || null;
