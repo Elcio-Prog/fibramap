@@ -267,6 +267,11 @@ export default function MapPage() {
       return;
     }
 
+    const loadingToast = toast({
+      title: "Processando arquivo...",
+      description: `Lendo "${file.name}". Para arquivos grandes isso pode levar alguns segundos.`,
+    });
+
     try {
       let fc: GeoJSON.FeatureCollection;
       const fileName = file.name.toLowerCase();
@@ -291,13 +296,31 @@ export default function MapPage() {
         }));
 
       if (items.length === 0) {
+        loadingToast.dismiss();
         toast({ title: "Nenhum elemento geográfico válido encontrado no arquivo", variant: "destructive" });
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
 
-      await bulkCreate.mutateAsync(items);
-      toast({ title: `${items.length} elementos importados!` });
+      loadingToast.update({
+        id: loadingToast.id,
+        title: `Importando ${items.length.toLocaleString("pt-BR")} elementos...`,
+        description: "Enviando em lotes. Não feche a aba.",
+      });
+
+      await bulkCreate.mutateAsync({
+        items,
+        onProgress: (inserted, total) => {
+          loadingToast.update({
+            id: loadingToast.id,
+            title: `Importando elementos...`,
+            description: `${inserted.toLocaleString("pt-BR")} de ${total.toLocaleString("pt-BR")} (${Math.round((inserted / total) * 100)}%)`,
+          });
+        },
+      });
+
+      loadingToast.dismiss();
+      toast({ title: `${items.length.toLocaleString("pt-BR")} elementos importados!` });
 
       // Auto-enable and zoom to imported layer
       setVisibleProviders((prev) => new Set(prev).add(selectedProvider));
@@ -312,7 +335,12 @@ export default function MapPage() {
         } catch {}
       }
     } catch (err: any) {
-      toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
+      loadingToast.dismiss();
+      toast({
+        title: "Erro ao importar",
+        description: err?.message ?? String(err),
+        variant: "destructive",
+      });
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
