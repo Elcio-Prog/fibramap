@@ -533,7 +533,13 @@ export default function WsSingleSearch() {
         });
       }
     } catch (err: any) {
-      toast({ title: "Erro na busca", description: "Falha na comunicação com serviços externos. Tente novamente.", variant: "destructive" });
+      const msg = err?.name === "AbortError"
+        ? "Tempo limite excedido ao consultar serviços de geolocalização. Verifique sua conexão e tente novamente."
+        : err?.message?.includes("HTTP 429")
+          ? "Limite de requisições atingido temporariamente. Aguarde alguns segundos e tente novamente."
+          : "Falha na comunicação com serviços externos. Tente novamente em instantes.";
+      console.error("[WsSingleSearch] Erro na busca:", err);
+      toast({ title: "Erro na busca", description: msg, variant: "destructive" });
       failBgTask(taskId, err?.message ?? "Erro na busca");
     } finally {
       setLoading(false);
