@@ -217,23 +217,23 @@ export default function WsSingleSearch() {
     }
   }, [getRoiForVigencia]);
 
-  // Trigger debounced recalc when rowPricing changes
+  // Trigger debounced recalc when rowPricing changes OR when options/ROI table loads
   useEffect(() => {
     if (options.length === 0) return;
-    for (const idxStr of Object.keys(rowPricing)) {
-      const idx = Number(idxStr);
-      const params = rowPricing[idx];
+    if (loadingFormData) return;
+    for (let idx = 0; idx < options.length; idx++) {
+      const params = rowPricing[idx] ?? { ...defaultRowPricing, velocidade: velocidade || "" };
       const opt = options[idx];
-      if (!opt || !params) continue;
+      if (!opt) continue;
       clearTimeout(calcTimers.current[idx]);
       calcTimers.current[idx] = setTimeout(() => {
         calcularRow(idx, params, opt.distance_m);
-      }, 600);
+      }, 300);
     }
     return () => {
       Object.values(calcTimers.current).forEach(t => clearTimeout(t));
     };
-  }, [rowPricing, options, calcularRow]);
+  }, [rowPricing, options, calcularRow, loadingFormData, velocidade]);
 
   // Reset pricing state when options change (skip on first mount to preserve restored snapshot)
   const optionsResetMountRef = useRef(true);
