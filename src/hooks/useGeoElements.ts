@@ -41,12 +41,30 @@ export function useGeoElements(providerId?: string) {
   });
 }
 
+const INSERT_CHUNK_SIZE = 500;
+
 export function useBulkCreateGeoElements() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (items: TablesInsert<"geo_elements">[]) => {
-      const { error } = await supabase.from("geo_elements").insert(items);
-      if (error) throw error;
+    mutationFn: async (
+      args:
+        | TablesInsert<"geo_elements">[]
+        | { items: TablesInsert<"geo_elements">[]; onProgress?: (inserted: number, total: number) => void }
+    ) => {
+      const items = Array.isArray(args) ? args : args.items;
+      const onProgress = Array.isArray(args) ? undefined : args.onProgress;
+      const total = items.length;
+
+      for (let i = 0; i < total; i += INSERT_CHUNK_SIZE) {
+        const chunk = items.slice(i, i + INSERT_CHUNK_SIZE);
+        const { error } = await supabase.from("geo_elements").insert(chunk);
+        if (error) {
+          throw new Error(
+            `Falha no lote ${Math.floor(i / INSERT_CHUNK_SIZE) + 1} (registros ${i + 1}-${i + chunk.length}): ${error.message}`
+          );
+        }
+        onProgress?.(Math.min(i + chunk.length, total), total);
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["geo_elements"] }),
   });
