@@ -152,7 +152,7 @@ export default function WsSingleSearch() {
   const [pendingDistOption, setPendingDistOption] = useState<{ distance_m: number; optionIdx: number } | null>(null);
 
   // Pricing parameters per row
-  const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
+  const { options: formOptions, loadingData: loadingFormData, getRoiForVigencia } = useFormPrecificacao();
   const [rowPricing, setRowPricing] = useState<Record<number, RowPricingParams>>(snap?.rowPricing ?? {});
   const [rowValorMinimo, setRowValorMinimo] = useState<Record<number, number | null>>(snap?.rowValorMinimo ?? {});
   const [rowCalcLoading, setRowCalcLoading] = useState<Record<number, boolean>>({});
@@ -175,11 +175,13 @@ export default function WsSingleSearch() {
     try {
       const isDarkFiber = params.produto === "NT DARK FIBER";
       const isL2L = params.produto === "NT L2L";
+      const vigenciaNum = Number(params.vigencia) || 24;
+      const roi = getRoiForVigencia(String(vigenciaNum), "Conectividade");
       const payload: Record<string, any> = {
         produto: "Conectividade" as const,
         subproduto: params.produto,
-        vigencia: Number(params.vigencia) || 24,
-        roiVigencia: 24,
+        vigencia: vigenciaNum,
+        roiVigencia: roi ?? vigenciaNum,
         taxaInstalacao: Number(params.taxaInstalacao) || 0,
         custosMateriaisAdicionais: 0,
         projetoAvaliado: false,
@@ -213,7 +215,7 @@ export default function WsSingleSearch() {
     } finally {
       setRowCalcLoading(prev => ({ ...prev, [idx]: false }));
     }
-  }, []);
+  }, [getRoiForVigencia]);
 
   // Trigger debounced recalc when rowPricing changes
   useEffect(() => {
