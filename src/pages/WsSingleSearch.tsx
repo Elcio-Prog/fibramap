@@ -152,7 +152,7 @@ export default function WsSingleSearch() {
   const [pendingDistOption, setPendingDistOption] = useState<{ distance_m: number; optionIdx: number } | null>(null);
 
   // Pricing parameters per row
-  const { options: formOptions, loadingData: loadingFormData } = useFormPrecificacao();
+  const { options: formOptions, loadingData: loadingFormData, getRoiForVigencia } = useFormPrecificacao();
   const [rowPricing, setRowPricing] = useState<Record<number, RowPricingParams>>(snap?.rowPricing ?? {});
   const [rowValorMinimo, setRowValorMinimo] = useState<Record<number, number | null>>(snap?.rowValorMinimo ?? {});
   const [rowCalcLoading, setRowCalcLoading] = useState<Record<number, boolean>>({});
