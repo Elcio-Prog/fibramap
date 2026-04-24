@@ -16,6 +16,7 @@ import {
   haversineDistance,
   closedLineToPolygon,
   geoGridToElements,
+  fetchWithRetry,
 } from "@/lib/geo-utils";
 import { processWsSingleItem, buildElementsByProvider, type WsItemInput, type ViableOption, type PreProviderWithCities } from "@/lib/ws-feasibility-engine";
 import { useGeoGridViabilidade } from "@/hooks/useGeoGridViabilidade";
