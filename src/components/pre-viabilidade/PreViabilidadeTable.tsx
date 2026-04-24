@@ -78,14 +78,15 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     if (viabilidadeFilter !== "all") {
       list = list.filter((r) => {
+        const isSistema = r.viabilidade === "Viabilizado pelo Sistema";
         const derived = r.inviabilidade_tecnica
           ? "Inviabilidade Técnica"
           : (r.viabilidade === "Aguardando Projetista" && !r.distancia_projetista)
               ? "Aguardando Projetista"
               : (r.ticket_mensal != null && r.valor_minimo != null)
                   ? (r.ticket_mensal >= r.valor_minimo
-                      ? (r.viabilidade === "Viabilizado pelo Sistema" ? "Viabilizado pelo Sistema" : "Viável")
-                      : "Abaixo do Valor")
+                      ? (isSistema ? "Viabilizado pelo Sistema" : "Viável")
+                      : (isSistema ? "Abaixo do Valor - Sistema" : "Abaixo do Valor"))
                   : r.viabilidade;
         return derived === viabilidadeFilter;
       });
@@ -244,17 +245,18 @@ export default function PreViabilidadeTable({ data, search, statusFilter, viabil
                       </td>
                       <td className="px-2 py-1.5">
                         <StatusBadge 
-                          value={
-                            row.inviabilidade_tecnica 
-                              ? "Inviabilidade Técnica"
-                              : (row.viabilidade === "Aguardando Projetista" && !row.distancia_projetista)
-                                  ? "Aguardando Projetista"
-                                  : (row.ticket_mensal != null && row.valor_minimo != null)
-                                      ? (row.ticket_mensal >= row.valor_minimo
-                                          ? (row.viabilidade === "Viabilizado pelo Sistema" ? "Viabilizado pelo Sistema" : "Viável")
-                                          : "Abaixo do Valor")
-                                      : row.viabilidade
-                          } 
+                          value={(() => {
+                            const isSistema = row.viabilidade === "Viabilizado pelo Sistema";
+                            if (row.inviabilidade_tecnica) return "Inviabilidade Técnica";
+                            if (row.viabilidade === "Aguardando Projetista" && !row.distancia_projetista) return "Aguardando Projetista";
+                            if (row.ticket_mensal != null && row.valor_minimo != null) {
+                              if (row.ticket_mensal >= row.valor_minimo) {
+                                return isSistema ? "Viabilizado pelo Sistema" : "Viável";
+                              }
+                              return isSistema ? "Abaixo do Valor - Sistema" : "Abaixo do Valor";
+                            }
+                            return row.viabilidade;
+                          })()}
                         />
                       </td>
                       <td className="px-2 py-1.5">{formatCurrency(row.ticket_mensal)}</td>
