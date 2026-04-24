@@ -45,6 +45,7 @@ export default function PreViabilidadeFilters({ search, onSearchChange, statusFi
           <SelectItem value="Viável">Viável</SelectItem>
           <SelectItem value="Viabilizado pelo Sistema">Viabilizado pelo Sistema</SelectItem>
           <SelectItem value="Abaixo do Valor">Abaixo do Valor</SelectItem>
+          <SelectItem value="Abaixo do Valor - Sistema">Abaixo do Valor - Sistema</SelectItem>
           <SelectItem value="Inviabilidade Técnica">Inviabilidade Técnica</SelectItem>
         </SelectContent>
       </Select>
